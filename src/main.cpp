@@ -1,7 +1,24 @@
+#include <vulkan/vulkan.h>
+
 #include <iostream>
-#include <GLFW/glfw3.h>
+#include <stdexcept>
+#include <cstdlib>
+
+#include "application.h"
 
 int main()
 {
-    std::cout << "Hello World!" << std::endl;
+    Application app;
+
+    try 
+    {
+        app.Run();
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    return EXIT_SUCCESS;
 }
