@@ -16,4 +16,4 @@ add_executable(VulkanGravity ${PROJ_SRC})
 add_custom_command(TARGET VulkanGravity PRE_BUILD COMMAND ../compileShaders.sh)
 
 target_link_libraries(VulkanGravity glm glfw -lvulkan)
-#-lOpenCL -lglfw -lvulkan -ldl -lpthread -lX11 -lXxf86vm -lXrandr -lXi)
+#-lOpenCL -lglfw -lvulkan -ldl -lpthread -lX11 -lXxf86vm -lXrandr -lXi

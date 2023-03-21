@@ -64,6 +64,7 @@ Device::Device()
 {
     CreateInstance();
     SetupDebugMessenger();
+    PickPhysicalDevice();
 }
 
 Device::~Device()
@@ -218,4 +219,70 @@ void Device::CreateInstance()
     }
 
     CheckRequiredGlfwExtensions();
+}
+
+QueueFamilyIndices Device::FindQueueFamilies(VkPhysicalDevice device)
+{
+    QueueFamilyIndices indices;
+
+    uint32_t queueFamilyCount = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+
+    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+
+    int i = 0;
+    for (const auto &queueFamily : queueFamilies) 
+    {
+        if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) 
+        {
+            indices.graphicsFamily = i;
+            indices.graphicsFamilyHasValue = true;
+        }
+
+        i++;
+    }
+
+    return indices;
+}
+
+bool Device::IsDeviceSuitable(VkPhysicalDevice device)
+{
+    QueueFamilyIndices indices = FindQueueFamilies(device);
+
+    VkPhysicalDeviceFeatures supportedFeatures;
+    vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
+
+    return indices.IsComplete();
+}
+
+void Device::PickPhysicalDevice()
+{
+    uint32_t deviceCount = 0;
+    vkEnumeratePhysicalDevices(m_Instance, &deviceCount, nullptr);
+    if (deviceCount == 0) 
+    {
+        throw std::runtime_error("failed to find GPUs with Vulkan support!");
+    }
+    std::cout << "Number of devices: " << deviceCount << std::endl;
+    std::vector<VkPhysicalDevice> devices(deviceCount);
+    vkEnumeratePhysicalDevices(m_Instance, &deviceCount, devices.data());
+
+    for (const auto &device : devices) 
+    {
+        if (IsDeviceSuitable(device)) 
+        {
+            m_PhysicalDevice = device;
+            break;
+        }
+    }
+
+    if (m_PhysicalDevice == VK_NULL_HANDLE) 
+    {
+        throw std::runtime_error("failed to find a suitable GPU!");
+    }
+
+    VkPhysicalDeviceProperties properties;
+    vkGetPhysicalDeviceProperties(m_PhysicalDevice, &properties);
+    std::cout << "physical device: " << properties.deviceName << std::endl;
 }
