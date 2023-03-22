@@ -61,10 +61,12 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
     }
 }
 
-Device::Device()
+Device::Device(Window &window)
+    : m_Window{window}
 {
     CreateInstance();
     SetupDebugMessenger();
+    CreateSurface();
     PickPhysicalDevice();
     CreateLogicalDevice();
 }
@@ -77,6 +79,7 @@ Device::~Device()
         DestroyDebugUtilsMessengerEXT(m_Instance, m_DebugMessenger, nullptr);
     }
 
+    vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
     vkDestroyInstance(m_Instance, nullptr);
 }
 
@@ -242,6 +245,17 @@ QueueFamilyIndices Device::FindQueueFamilies(VkPhysicalDevice device)
             indices.graphicsFamily = i;
             indices.graphicsFamilyHasValue = true;
         }
+        VkBool32 presentSupport = false;
+        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, m_Surface, &presentSupport);
+        if (presentSupport) 
+        {
+            indices.presentFamily = i;
+            indices.presentFamilyHasValue = true;
+        }
+        if (indices.IsComplete()) 
+        {
+            break;
+        }
 
         i++;
     }
@@ -292,11 +306,10 @@ void Device::PickPhysicalDevice()
 
 void Device::CreateLogicalDevice()
 {
-      QueueFamilyIndices indices = FindQueueFamilies(m_PhysicalDevice);
+    QueueFamilyIndices indices = FindQueueFamilies(m_PhysicalDevice);
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-    std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily//, indices.presentFamily};
-    };
+    std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily, indices.presentFamily};
 
     float queuePriority = 1.0f;
     for (uint32_t queueFamily : uniqueQueueFamilies) 
@@ -334,4 +347,7 @@ void Device::CreateLogicalDevice()
     }
 
     vkGetDeviceQueue(m_Device, indices.graphicsFamily, 0, &m_GraphicsQueue);
+    vkGetDeviceQueue(m_Device, indices.graphicsFamily, 0, &m_PresentQueue);
 }
+
+void Device::CreateSurface() { m_Window.CreateWindowSurface(m_Instance, &m_Surface); }

@@ -14,7 +14,7 @@ public:
 
     void Run();
 private:
-    Window m_Window;
-    Pipeline m_Pipeline;
-    Device m_Device;
+    Window m_Window{WIDTH, HEIGHT, "Gravity"};
+    Device m_Device{m_Window};
+    Pipeline m_Pipeline{"shaders/shader.vert.spv", "shaders/shader.frag.spv"};
 };

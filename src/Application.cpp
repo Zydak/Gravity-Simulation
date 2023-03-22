@@ -1,8 +1,6 @@
 #include "application.h"
 
 Application::Application()
-    :   m_Window(WIDTH, HEIGHT, "Gravity"),
-        m_Pipeline("shaders/shader.vert.spv", "shaders/shader.frag.spv")
 {
 
 }
