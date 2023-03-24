@@ -6,6 +6,13 @@
 
 #include <vector>
 
+struct SwapChainSupportDetails 
+{
+  VkSurfaceCapabilitiesKHR capabilities; // min/max number of images
+  std::vector<VkSurfaceFormatKHR> formats; // pixel format, color space
+  std::vector<VkPresentModeKHR> presentModes;
+};
+
 struct QueueFamilyIndices 
 {
     uint32_t graphicsFamily;
@@ -26,6 +33,11 @@ public:
     Device(Device &&) = delete;
     Device &operator=(Device &&) = delete;
 
+    inline VkDevice GetDevice() { return m_Device; }
+    inline SwapChainSupportDetails GetSwapChainSupport() { return QuerySwapChainSupport(m_PhysicalDevice); }
+    inline VkSurfaceKHR GetSurface() { return m_Surface; }
+    inline QueueFamilyIndices FindPhysicalQueueFamilies() { return FindQueueFamilies(m_PhysicalDevice); }
+
 private:
     std::vector<const char *> GetRequiredGlfwExtensions();
     void CheckRequiredGlfwExtensions();
@@ -40,6 +52,8 @@ private:
     void CreateSurface();
 
     bool CheckValidationLayerSupport();
+    bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
+    SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device);
 
     VkInstance m_Instance;
     VkDebugUtilsMessengerEXT m_DebugMessenger;
@@ -52,6 +66,7 @@ private:
     VkQueue m_PresentQueue;
 
     const std::vector<const char *> m_ValidationLayers = {"VK_LAYER_KHRONOS_validation"};
+    const std::vector<const char *> m_DeviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
 #ifdef NDEBUG
     const bool m_EnableValidationLayers = false;

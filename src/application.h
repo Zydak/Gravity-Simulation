@@ -2,6 +2,7 @@
 #include "window.h"
 #include "pipeline.h"
 #include "device.h"
+#include "renderer.h"
 
 class Application
 {
@@ -16,5 +17,6 @@ public:
 private:
     Window m_Window{WIDTH, HEIGHT, "Gravity"};
     Device m_Device{m_Window};
+    Renderer m_Renderer{m_Window, m_Device};
     Pipeline m_Pipeline{"shaders/shader.vert.spv", "shaders/shader.frag.spv"};
 };

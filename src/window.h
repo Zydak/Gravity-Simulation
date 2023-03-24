@@ -16,6 +16,7 @@ public:
     void CreateWindowSurface(VkInstance instance, VkSurfaceKHR* surface);
 
     inline bool ShouldClose() { return glfwWindowShouldClose(m_Window); }
+    inline VkExtent2D GetExtent() { return { static_cast<uint32_t>(m_Width), static_cast<uint32_t>(m_Height) }; }
 
 private:
     const int m_Width;

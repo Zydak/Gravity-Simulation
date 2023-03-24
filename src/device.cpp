@@ -267,10 +267,16 @@ bool Device::IsDeviceSuitable(VkPhysicalDevice device)
 {
     QueueFamilyIndices indices = FindQueueFamilies(device);
 
-    VkPhysicalDeviceFeatures supportedFeatures;
-    vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
+    bool extensionSupported = CheckDeviceExtensionSupport(device);
 
-    return indices.IsComplete();
+    bool swapChainAdequate = false;
+    if (extensionSupported) 
+    {
+        SwapChainSupportDetails swapChainSupport = QuerySwapChainSupport(device);
+        swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
+    }
+
+    return indices.IsComplete() && extensionSupported && swapChainAdequate;
 }
 
 void Device::PickPhysicalDevice()
@@ -329,8 +335,8 @@ void Device::CreateLogicalDevice()
     createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
     createInfo.pQueueCreateInfos = queueCreateInfos.data();
     createInfo.pEnabledFeatures = &deviceFeatures;
-    createInfo.enabledExtensionCount = 0;
-
+    createInfo.enabledExtensionCount = (uint32_t)m_DeviceExtensions.size();
+    createInfo.ppEnabledExtensionNames = m_DeviceExtensions.data();
 
     if (m_EnableValidationLayers) 
     {
@@ -350,4 +356,50 @@ void Device::CreateLogicalDevice()
     vkGetDeviceQueue(m_Device, indices.graphicsFamily, 0, &m_PresentQueue);
 }
 
-void Device::CreateSurface() { m_Window.CreateWindowSurface(m_Instance, &m_Surface); }
+void Device::CreateSurface() 
+{ 
+    m_Window.CreateWindowSurface(m_Instance, &m_Surface); 
+}
+
+bool Device::CheckDeviceExtensionSupport(VkPhysicalDevice device)
+{
+    uint32_t extensionCount;
+    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
+
+    std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
+
+    std::set<std::string> requiredExtensions(m_DeviceExtensions.begin(), m_DeviceExtensions.end());
+
+    for (const auto &extension : availableExtensions) 
+    {
+        requiredExtensions.erase(extension.extensionName);
+    }
+
+    return requiredExtensions.empty();
+}
+
+SwapChainSupportDetails Device::QuerySwapChainSupport(VkPhysicalDevice device)
+{
+    SwapChainSupportDetails details;
+
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, m_Surface, &details.capabilities);
+
+    uint32_t formatCount;
+    vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_Surface, &formatCount, nullptr);
+    if (formatCount != 0) 
+    {
+        details.formats.resize(formatCount);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_Surface, &formatCount, details.formats.data());
+    }
+
+    uint32_t presentModeCount;
+    vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_Surface, &presentModeCount, nullptr);
+    if (presentModeCount != 0)
+    {
+        details.presentModes.resize(presentModeCount);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_Surface, &presentModeCount, details.presentModes.data());
+    }
+
+    return details;
+}
