@@ -4,11 +4,13 @@
 #include <limits>
 #include <algorithm>
 #include <stdexcept>
+#include <iostream>
 
 SwapChain::SwapChain(Device &deviceRef, VkExtent2D windowExtent)
     : m_Device(deviceRef), m_WindowExtent(windowExtent)
 {
     CreateSwapChain();
+    CreateImageViews();
 }
 SwapChain::SwapChain(Device &deviceRef, VkExtent2D windowExtent, std::shared_ptr<SwapChain> previous)
     : m_Device(deviceRef), m_WindowExtent(windowExtent)
@@ -44,6 +46,16 @@ VkSurfaceFormatKHR SwapChain::ChooseSwapSurfaceFormat(const std::vector<VkSurfac
 
 VkPresentModeKHR SwapChain::ChooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes)
 {
+    for (const auto &availablePresentMode : availablePresentModes) 
+    {
+        if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) 
+        {
+            std::cout << "Present mode: Mailbox" << std::endl;
+            return availablePresentMode;
+        }
+    }
+
+    std::cout << "Present mode: V-Sync" << std::endl;
     return VK_PRESENT_MODE_FIFO_KHR;
 }
 
@@ -92,12 +104,14 @@ void SwapChain::CreateSwapChain()
     QueueFamilyIndices indices = m_Device.FindPhysicalQueueFamilies();
     uint32_t queueFamilyIndices[] = {indices.graphicsFamily, indices.presentFamily};
 
+    // if graphics and present queue are the same which happens on some hardware create images in sharing mode
     if (indices.graphicsFamily != indices.presentFamily) 
     {
         createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
         createInfo.queueFamilyIndexCount = 2;
         createInfo.pQueueFamilyIndices = queueFamilyIndices;
-    } else 
+    } 
+    else 
     {
         createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
         createInfo.queueFamilyIndexCount = 0; // Optional

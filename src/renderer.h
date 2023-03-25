@@ -3,6 +3,9 @@
 #include "window.h"
 #include "device.h"
 #include "swapchain.h"
+#include "pipeline.h"
+
+#include <memory>
 
 class Renderer
 {
@@ -22,4 +25,7 @@ private:
     std::unique_ptr<SwapChain> m_SwapChain;
     Window &m_Window;
     Device &m_Device;
+    
+    VkPipelineLayout m_PipelineLayout;
+    std::unique_ptr<Pipeline> m_Pipeline;
 };

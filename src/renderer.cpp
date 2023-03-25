@@ -4,6 +4,7 @@ Renderer::Renderer(Window& window, Device& device)
     : m_Window(window), m_Device(device)
 {
     RecreateSwapChain();
+    m_Pipeline = std::make_unique<Pipeline>(m_Device, "shaders/shader.vert.spv", "shaders/shader.frag.spv", Pipeline::DefaultPipelineConfigInfo());
 }
 
 Renderer::~Renderer()
