@@ -7,7 +7,17 @@
 
 struct PipelineConfigInfo 
 {
-
+    VkViewport viewport;
+    VkRect2D scissor;
+    VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo;
+    VkPipelineRasterizationStateCreateInfo rasterizationInfo;
+    VkPipelineMultisampleStateCreateInfo multisampleInfo;
+    VkPipelineColorBlendAttachmentState colorBlendAttachment;
+    VkPipelineColorBlendStateCreateInfo colorBlendInfo;
+    VkPipelineDepthStencilStateCreateInfo depthStencilInfo;
+    VkPipelineLayout pipelineLayout = nullptr;
+    VkRenderPass renderPass = nullptr;
+    uint32_t subpass = 0;
 };
 
 class Pipeline
@@ -22,7 +32,8 @@ public:
     Pipeline(const Pipeline&) = delete;
     Pipeline& operator=(const Pipeline&) = delete;
 
-    static PipelineConfigInfo DefaultPipelineConfigInfo();
+    static PipelineConfigInfo DefaultPipelineConfigInfo(uint32_t width, uint32_t height);
+    void Bind(VkCommandBuffer commandBuffer);
 private:
     static std::vector<char> ReadFile(const std::string& filepath);
 

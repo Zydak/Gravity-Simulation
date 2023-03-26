@@ -19,12 +19,11 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
     std::string messageLevel = "";
     
     if (messageType == 0x00000001)
-        messageLevel = "Info";
+        //std::cerr << "Validation Layer: Info" << "\n\t" << pCallbackData->pMessage << std::endl;
     if (messageType == 0x00000002)
-        messageLevel = "Validation Error";
+        std::cerr << "Validation Layer: Validation Error" << "\n\t" << pCallbackData->pMessage << std::endl;
     if (messageType == 0x00000004)
-        messageLevel = "Performance Issue (Not Optimal)";
-    std::cerr << "Validation Layer: " << messageLevel << "\n\t" << pCallbackData->pMessage << std::endl;
+        std::cerr << "Validation Layer: Performance Issue (Not Optimal)" << "\n\t" << pCallbackData->pMessage << std::endl;
     return VK_FALSE;
 }
 
@@ -69,10 +68,12 @@ Device::Device(Window &window)
     CreateSurface();
     PickPhysicalDevice();
     CreateLogicalDevice();
+    CreateCommandPool();
 }
 
 Device::~Device()
 {
+    vkDestroyCommandPool(m_Device, m_CommandPool, nullptr);
     vkDestroyDevice(m_Device, nullptr);
     if (m_EnableValidationLayers)
     {
@@ -134,19 +135,19 @@ void Device::CheckRequiredGlfwExtensions()
     std::vector<VkExtensionProperties> extensions(extensionCount);
     vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
 
-    std::cout << "Available Extensions:" << std::endl;
+    //std::cout << "Available Extensions:" << std::endl;
     std::unordered_set<std::string> available;
     for (const auto &extension : extensions)
     {
-        std::cout << "\t" << extension.extensionName << std::endl;
+        //std::cout << "\t" << extension.extensionName << std::endl;
         available.insert(extension.extensionName);
     }
 
-    std::cout << "Required Extensions:" << std::endl;
+    //std::cout << "Required Extensions:" << std::endl;
     auto requiredExtensions = GetRequiredGlfwExtensions();
     for (const auto& required : requiredExtensions)
     {
-        std::cout << "\t" << required << std::endl;
+        //std::cout << "\t" << required << std::endl;
         if (available.find(required) == available.end())
         {
             throw std::runtime_error("Missing required GLFW extension");
@@ -402,4 +403,79 @@ SwapChainSupportDetails Device::QuerySwapChainSupport(VkPhysicalDevice device)
     }
 
     return details;
+}
+
+VkFormat Device::FindSupportedFormat(const std::vector<VkFormat> &candidates, VkImageTiling tiling, VkFormatFeatureFlags features) 
+{
+    for (VkFormat format : candidates) 
+    {
+        VkFormatProperties props;
+        vkGetPhysicalDeviceFormatProperties(m_PhysicalDevice, format, &props);
+
+        if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) 
+        {
+            return format;
+        } 
+        else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) 
+        {
+            return format;
+        }
+    }
+    throw std::runtime_error("failed to find supported format!");
+}
+
+void Device::CreateCommandPool()
+{
+    QueueFamilyIndices queueFamilyIndices = FindPhysicalQueueFamilies();
+
+    VkCommandPoolCreateInfo poolInfo = {};
+    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily;
+    poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+
+    if (vkCreateCommandPool(m_Device, &poolInfo, nullptr, &m_CommandPool) != VK_SUCCESS) 
+    {
+        throw std::runtime_error("failed to create command pool!");
+    }
+}
+
+void Device::CreateImageWithInfo(const VkImageCreateInfo &imageInfo, VkMemoryPropertyFlags properties, VkImage &image, VkDeviceMemory &imageMemory)
+{
+    if (vkCreateImage(m_Device, &imageInfo, nullptr, &image) != VK_SUCCESS) 
+    {
+        throw std::runtime_error("failed to create image!");
+    }
+
+    VkMemoryRequirements memRequirements;
+    vkGetImageMemoryRequirements(m_Device, image, &memRequirements);
+
+    VkMemoryAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocInfo.allocationSize = memRequirements.size;
+    allocInfo.memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, properties);
+
+    if (vkAllocateMemory(m_Device, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS) 
+    {
+        throw std::runtime_error("failed to allocate image memory!");
+    }
+
+    if (vkBindImageMemory(m_Device, image, imageMemory, 0) != VK_SUCCESS) 
+    {
+        throw std::runtime_error("failed to bind image memory!");
+    }
+}
+
+uint32_t Device::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) 
+{
+    VkPhysicalDeviceMemoryProperties memProperties;
+    vkGetPhysicalDeviceMemoryProperties(m_PhysicalDevice, &memProperties);
+    for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) 
+    {
+        if ((typeFilter & (1 << i)) &&(memProperties.memoryTypes[i].propertyFlags & properties) == properties) 
+        {
+            return i;
+        }
+    }
+
+    throw std::runtime_error("failed to find suitable memory type!");
 }

@@ -37,20 +37,28 @@ public:
     inline SwapChainSupportDetails GetSwapChainSupport() { return QuerySwapChainSupport(m_PhysicalDevice); }
     inline VkSurfaceKHR GetSurface() { return m_Surface; }
     inline QueueFamilyIndices FindPhysicalQueueFamilies() { return FindQueueFamilies(m_PhysicalDevice); }
+    inline VkCommandPool GetCommandPool() { return m_CommandPool; }
+    inline VkQueue GetGraphicsQueue() { return m_GraphicsQueue; }
+    inline VkQueue GetPresentQueue() { return m_PresentQueue; }
+
+    VkFormat FindSupportedFormat(const std::vector<VkFormat> &candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+    void CreateImageWithInfo(const VkImageCreateInfo &imageInfo, VkMemoryPropertyFlags properties, VkImage &image, VkDeviceMemory &imageMemory);
 
 private:
     std::vector<const char *> GetRequiredGlfwExtensions();
     void CheckRequiredGlfwExtensions();
     bool IsDeviceSuitable(VkPhysicalDevice device);
     QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
+    uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
     void CreateInstance();
     void SetupDebugMessenger();
-    void PopulateDebugMessenger(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
+    void CreateSurface();
     void PickPhysicalDevice();
     void CreateLogicalDevice();
-    void CreateSurface();
+    void CreateCommandPool();
 
+    void PopulateDebugMessenger(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
     bool CheckValidationLayerSupport();
     bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
     SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device);
@@ -64,6 +72,8 @@ private:
 
     VkQueue m_GraphicsQueue;
     VkQueue m_PresentQueue;
+
+    VkCommandPool m_CommandPool;
 
     const std::vector<const char *> m_ValidationLayers = {"VK_LAYER_KHRONOS_validation"};
     const std::vector<const char *> m_DeviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
