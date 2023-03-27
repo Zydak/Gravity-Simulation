@@ -48,12 +48,13 @@ private:
     VkExtent2D m_WindowExtent;
 
     size_t m_CurrentFrame = 0;
+    std::vector<VkFramebuffer> m_SwapChainFramebuffers;
+    
     std::vector<VkImage> m_DepthImages;
     std::vector<VkImage> m_SwapChainImages;
     std::vector<VkDeviceMemory> m_DepthImageMemories;
     std::vector<VkImageView> m_SwapChainImageViews;
     std::vector<VkImageView> m_DepthImageViews;
-    std::vector<VkFramebuffer> m_SwapChainFramebuffers;
     
     std::vector<VkSemaphore> m_ImageAvailableSemaphores;
     std::vector<VkSemaphore> m_RenderFinishedSemaphores;
