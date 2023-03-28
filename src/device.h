@@ -64,7 +64,7 @@ private:
     bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
     SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device);
     void EndSingleTimeCommands(VkCommandBuffer commandBuffer);
-    VkCommandBuffer BeginSingleTimeCommands();
+    void BeginSingleTimeCommands(VkCommandBuffer& buffer) ;
 
     VkInstance m_Instance;
     VkDebugUtilsMessengerEXT m_DebugMessenger;

@@ -13,7 +13,8 @@ class Model
 public:
     struct Vertex 
     {
-        glm::vec2 pos;
+        glm::vec2 position;
+        glm::vec3 color;
 
         static std::vector<VkVertexInputBindingDescription> GetBindingDescriptions();
         static std::vector<VkVertexInputAttributeDescription> GetAttributeDescriptions();

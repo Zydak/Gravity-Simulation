@@ -467,11 +467,30 @@ void Device::CreateImageWithInfo(const VkImageCreateInfo &imageInfo, VkMemoryPro
 
 uint32_t Device::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) 
 {
+    /*
+        The VkPhysicalDeviceMemoryProperties structure has two arrays memoryTypes and memoryHeaps. 
+        Memory heaps are distinct memory resources like dedicated VRAM and swap space in RAM 
+        for when VRAM runs out. The different types of memory exist within these heaps. 
+        Right now we'll only concern ourselves with the type of memory and not the heap it comes 
+        from, but you can imagine that this can affect performance.
+    */
     VkPhysicalDeviceMemoryProperties memProperties;
     vkGetPhysicalDeviceMemoryProperties(m_PhysicalDevice, &memProperties);
     for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) 
     {
-        if ((typeFilter & (1 << i)) &&(memProperties.memoryTypes[i].propertyFlags & properties) == properties) 
+        /*
+            The typeFilter parameter will be used to specify the bit field of memory 
+            types that are suitable. That means that we can find the index of a suitable 
+            memory type by simply iterating over them and checking if the corresponding bit is set to 1.
+        */
+        /*
+            We also need to be able to write our vertex data to that memory. 
+            The memoryTypes array consists of VkMemoryType structs that specify 
+            the heap and properties of each type of memory. The properties define 
+            special features of the memory, like being able to map it so we can write to it from the CPU.
+            So we should check if the result of the bitwise AND is equal to the desired properties bit field.
+        */
+        if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) 
         {
             return i;
         }
@@ -486,12 +505,27 @@ void Device::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryP
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bufferInfo.size = size;
     bufferInfo.usage = usage;
+    // Just like the images in the swap chain, buffers can also be owned 
+    // by a specific queue family or be shared between multiple at the same time. 
+    // The buffer will only be used from the graphics queue, so we can stick to exclusive access.
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
     if (vkCreateBuffer(m_Device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS) 
     {
         throw std::runtime_error("failed to create vertex buffer!");
     }
+
+    /**  
+     * The VkMemoryRequirements struct has three fields:
+            size: The size of the required amount of memory in bytes, may differ from bufferInfo.size.
+            alignment: The offset in bytes where the buffer begins in the allocated region of memory, depends on bufferInfo.usage and bufferInfo.flags.
+            memoryTypeBits: Bit field of the memory types that are suitable for the buffer.
+
+        Graphics cards can offer different types of memory to allocate from. 
+        Each type of memory varies in terms of allowed operations and performance 
+        characteristics. We need to combine the requirements of the buffer and
+        our own application requirements to find the right type of memory to use.
+    */
 
     VkMemoryRequirements memRequirements;
     vkGetBufferMemoryRequirements(m_Device, buffer, &memRequirements);
@@ -506,12 +540,16 @@ void Device::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryP
         throw std::runtime_error("failed to allocate vertex buffer memory!");
     }
 
+    /*
+        If memory allocation was successful, then we can now associate this memory with the buffer using vkBindBufferMemory
+    */
     vkBindBufferMemory(m_Device, buffer, bufferMemory, 0);
 }
 
 void Device::CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) 
 {
-    VkCommandBuffer commandBuffer = BeginSingleTimeCommands();
+    VkCommandBuffer commandBuffer;
+    BeginSingleTimeCommands(commandBuffer);
 
     VkBufferCopy copyRegion{};
     copyRegion.srcOffset = 0;  // Optional
@@ -522,7 +560,7 @@ void Device::CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize siz
     EndSingleTimeCommands(commandBuffer);
 }
 
-VkCommandBuffer Device::BeginSingleTimeCommands() 
+void Device::BeginSingleTimeCommands(VkCommandBuffer& buffer) 
 {
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -530,15 +568,13 @@ VkCommandBuffer Device::BeginSingleTimeCommands()
     allocInfo.commandPool = m_CommandPool;
     allocInfo.commandBufferCount = 1;
 
-    VkCommandBuffer commandBuffer;
-    vkAllocateCommandBuffers(m_Device, &allocInfo, &commandBuffer);
+    vkAllocateCommandBuffers(m_Device, &allocInfo, &buffer);
 
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-    vkBeginCommandBuffer(commandBuffer, &beginInfo);
-    return commandBuffer;
+    vkBeginCommandBuffer(buffer, &beginInfo);
 }
 
 void Device::EndSingleTimeCommands(VkCommandBuffer commandBuffer) 
