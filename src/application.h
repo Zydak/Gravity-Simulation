@@ -4,7 +4,7 @@
 #include "device.h"
 #include "pipeline.h"
 #include "swapchain.h"
-#include "model.h"
+#include "object.h"
 
 #include <memory>
 #include <vector>
@@ -17,13 +17,14 @@ public:
 
     void Run();
 private:
-    void LoadVertexBuffers();
+    void LoadGameObjects();
     void CreatePipelineLayout();
     void CreatePipeline();
     void CreateCommandBuffers();
     void DrawFrame();
     void RecreateSwapChain();
     void RecordCommandBuffer(int imageIndex);
+    void RenderGameObjects(VkCommandBuffer commandBuffer);
 
     Window m_Window{800, 600, "Gravity"};
     Device m_Device{m_Window};
@@ -31,5 +32,5 @@ private:
     std::unique_ptr<Pipeline> m_Pipeline;
     VkPipelineLayout m_PipelineLayout;
     std::vector<VkCommandBuffer> m_CommandBuffers;
-    std::unique_ptr<Model> m_Model;
+    std::vector<Object*> m_GameObjects;
 };

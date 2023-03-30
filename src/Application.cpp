@@ -4,9 +4,22 @@
 #include <array>
 #include <vector>
 
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#include <glm/glm.hpp>
+#include <glm/gtc/constants.hpp>
+#include "objects/triangle.h"
+
+struct PushConstants
+{
+    glm::mat2 transform{1.0f};
+    alignas(8) glm::vec2 offset;
+    alignas(16) glm::vec3 color;
+};
+
 Application::Application()
 {
-    LoadVertexBuffers();
+    LoadGameObjects();
     CreatePipelineLayout();
     RecreateSwapChain();
     CreateCommandBuffers();
@@ -34,12 +47,17 @@ void Application::Run()
 
 void Application::CreatePipelineLayout()
 {
+    VkPushConstantRange pushConstantRange{};
+    pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    pushConstantRange.offset = 0;
+    pushConstantRange.size = sizeof(PushConstants);
+
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = 0;
     pipelineLayoutInfo.pSetLayouts = nullptr;
-    pipelineLayoutInfo.pushConstantRangeCount = 0;
-    pipelineLayoutInfo.pPushConstantRanges = nullptr;
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+    pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
     if (vkCreatePipelineLayout(m_Device.GetDevice(), &pipelineLayoutInfo, nullptr, &m_PipelineLayout) != VK_SUCCESS) 
     {
         throw std::runtime_error("failed to create pipeline layout!");
@@ -95,9 +113,8 @@ void Application::RecordCommandBuffer(int imageIndex)
 
     vkCmdBeginRenderPass(m_CommandBuffers[imageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-    m_Pipeline->Bind(m_CommandBuffers[imageIndex]);
-    m_Model->Bind(m_CommandBuffers[imageIndex]);
-    m_Model->Draw(m_CommandBuffers[imageIndex]);
+    RenderGameObjects(m_CommandBuffers[imageIndex]);
+
 
     vkCmdEndRenderPass(m_CommandBuffers[imageIndex]);
     if (vkEndCommandBuffer(m_CommandBuffers[imageIndex]) != VK_SUCCESS) 
@@ -120,6 +137,7 @@ void Application::DrawFrame()
         throw std::runtime_error("failed to acquire swap chain image");
     }
 
+    //vkResetCommandBuffer(m_CommandBuffers[imageIndex], 0);
     RecordCommandBuffer(imageIndex);
     result = m_SwapChain->SubmitCommandBuffers(&m_CommandBuffers[imageIndex], &imageIndex);
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_Window.WasWindowResized()) 
@@ -134,7 +152,7 @@ void Application::DrawFrame()
     }
 }
 
-void Application::LoadVertexBuffers()
+void Application::LoadGameObjects()
 {
     std::vector<Model::Vertex> vertices
     {
@@ -143,9 +161,11 @@ void Application::LoadVertexBuffers()
         {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
     };
 
-    m_Model = std::make_unique<Model>(m_Device, vertices);
-}
+    Object* obj = (Object*)new Triangle(m_Device, vertices);
+    //std::unique_ptr<Object> triangle = std::make_unique<Triangle>(Triangle::CreateTriangle(m_Device, vertices));
 
+    m_GameObjects.push_back(std::move(obj));
+}
 void Application::RecreateSwapChain()
 {
     auto extent = m_Window.GetExtent();
@@ -166,4 +186,23 @@ void Application::RecreateSwapChain()
     }
     
     CreatePipeline();
+}
+
+void Application::RenderGameObjects(VkCommandBuffer commandBuffer)
+{
+    m_Pipeline->Bind(commandBuffer);
+
+    for (auto& obj: m_GameObjects)
+    {
+        obj->Update();
+
+        PushConstants push{};
+        push.offset = obj->GetTransform().translation;
+        push.color = obj->GetObjectProperties().color;
+        push.transform = obj->GetTransform().mat2();
+
+        vkCmdPushConstants(commandBuffer, m_PipelineLayout,
+            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstants), &push);
+        obj->Draw(commandBuffer);
+    }
 }
