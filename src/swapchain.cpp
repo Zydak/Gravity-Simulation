@@ -17,8 +17,8 @@ SwapChain::SwapChain(Device &deviceRef, VkExtent2D windowExtent)
     CreateFramebuffers();
     CreateSyncObjects();
 }
-SwapChain::SwapChain(Device &deviceRef, VkExtent2D windowExtent, std::shared_ptr<SwapChain> previous)
-    : m_Device(deviceRef), m_WindowExtent(windowExtent)
+SwapChain::SwapChain(Device &deviceRef, VkExtent2D windowExtent, std::shared_ptr<SwapChain> previousSwapChain)
+    : m_Device(deviceRef), m_WindowExtent(windowExtent), m_OldSwapChain(previousSwapChain)
 {
     CreateSwapChain();
     CreateImageViews();
@@ -26,6 +26,8 @@ SwapChain::SwapChain(Device &deviceRef, VkExtent2D windowExtent, std::shared_ptr
     CreateDepthResources();
     CreateFramebuffers();
     CreateSyncObjects();
+
+    m_OldSwapChain = nullptr;
 }
 
 SwapChain::~SwapChain()
@@ -160,7 +162,7 @@ void SwapChain::CreateSwapChain()
     createInfo.presentMode = presentMode;
     createInfo.clipped = VK_TRUE; // discards pixels that are obscured (for example behind other window)
 
-    createInfo.oldSwapchain = VK_NULL_HANDLE;
+    createInfo.oldSwapchain = m_OldSwapChain == nullptr ? VK_NULL_HANDLE : m_OldSwapChain->m_SwapChain;
 
     if (vkCreateSwapchainKHR(m_Device.GetDevice(), &createInfo, nullptr, &m_SwapChain) != VK_SUCCESS) 
     {

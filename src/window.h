@@ -14,14 +14,19 @@ public:
     Window& operator=(const Window&) = delete;
 
     void CreateWindowSurface(VkInstance instance, VkSurfaceKHR* surface);
+    inline bool WasWindowResized() { return m_Resized; }
+    inline void ResetWindowResizedFlag() { m_Resized = false; }
 
     inline bool ShouldClose() { return glfwWindowShouldClose(m_Window); }
     inline VkExtent2D GetExtent() { return { static_cast<uint32_t>(m_Width), static_cast<uint32_t>(m_Height) }; }
 
 private:
-    const int m_Width;
-    const int m_Height;
+    static void ResizeCallback(GLFWwindow* window, int width, int height);
+
+    int m_Width;
+    int m_Height;
     std::string m_Name;
+    bool m_Resized = false;
 
     GLFWwindow *m_Window;
 };
