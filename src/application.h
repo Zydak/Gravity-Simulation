@@ -29,10 +29,10 @@ private:
 
     Window m_Window{800, 600, "Gravity"};
     Device m_Device{m_Window};
+    Renderer m_Renderer{m_Window, m_Device};
     std::unique_ptr<SwapChain> m_SwapChain;
     std::unique_ptr<Pipeline> m_Pipeline;
     VkPipelineLayout m_PipelineLayout;
     std::vector<VkCommandBuffer> m_CommandBuffers;
     std::vector<std::shared_ptr<Object>> m_GameObjects;
-    Renderer m_Renderer{m_Window, m_Device};
 };

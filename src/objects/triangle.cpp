@@ -13,18 +13,19 @@ void Triangle::Draw(VkCommandBuffer commandBuffer)
 
 void Triangle::Update()
 {
-    m_Transform2d.rotation = glm::mod(m_Transform2d.rotation + 0.01f, glm::two_pi<float>());
+    m_Transform.rotation.y = glm::mod(m_Transform.rotation.y + 0.01f, glm::two_pi<float>());
+    m_Transform.rotation.x = glm::mod(m_Transform.rotation.x + 0.005f, glm::two_pi<float>());
 }
 
-Triangle::Triangle(Device& device, const std::vector<Model::Vertex> &vertices, Transform2d transform, Properties properties)
-    : m_Model(device, vertices), m_Transform2d(transform), m_Properties(properties)
+Triangle::Triangle(Device& device, const std::vector<Model::Vertex> &vertices, Transform transform, Properties properties)
+    : m_Model(device, vertices), m_Transform(transform), m_Properties(properties)
 {
     
 }
 
-Transform2d Triangle::GetObjectTransform()
+Transform Triangle::GetObjectTransform()
 {
-    return m_Transform2d;
+    return m_Transform;
 }
 
 Properties Triangle::GetObjectProperties()

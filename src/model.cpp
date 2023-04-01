@@ -57,7 +57,6 @@ void Model::CreateVertexBuffer(const std::vector<Vertex> &vertices)
         m_VertexBufferMemory
     );
 
-
     m_Device.CopyBuffer(m_StagingBuffer, m_VertexBuffer, bufferSize);
     vkDestroyBuffer(m_Device.GetDevice(), m_StagingBuffer, nullptr);
     vkFreeMemory(m_Device.GetDevice(), m_StagingBufferMemory, nullptr);
@@ -94,13 +93,12 @@ std::vector<VkVertexInputAttributeDescription> Model::Vertex::GetAttributeDescri
 
     attributeDescriptions[0].binding = 0;
     attributeDescriptions[0].location = 0;
-    attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
+    attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
     attributeDescriptions[0].offset = offsetof(Vertex, position);
 
     attributeDescriptions[1].binding = 0;
     attributeDescriptions[1].location = 1;
     attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
     attributeDescriptions[1].offset = offsetof(Vertex, color);
-
     return attributeDescriptions;
 }

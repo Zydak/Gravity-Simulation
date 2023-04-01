@@ -174,11 +174,9 @@ void Renderer::RenderGameObjects(VkCommandBuffer commandBuffer, std::vector<std:
         obj->Update();
 
         PushConstants push{};
-        push.offset = obj->GetObjectTransform().translation;
-        push.color = obj->GetObjectProperties().color;
-        push.transform = obj->GetObjectTransform().mat2();
+        push.transform = obj->GetObjectTransform().mat4();
 
-        vkCmdPushConstants(commandBuffer, m_PipelineLayout,
+        vkCmdPushConstants(commandBuffer, m_PipelineLayout, 
             VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstants), &push);
         obj->Draw(commandBuffer);
     }

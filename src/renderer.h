@@ -12,9 +12,7 @@
 
 struct PushConstants
 {
-    glm::mat2 transform{1.0f};
-    alignas(8) glm::vec2 offset;
-    alignas(16) glm::vec3 color;
+    glm::mat4 transform{1.0f};
 };
 
 class Renderer
@@ -28,10 +26,10 @@ public:
 
     inline VkRenderPass GetSwapChainRenderPass() { return m_SwapChain->GetRenderPass(); }
     inline bool IsFrameInProgress() const { return m_IsFrameStarted; }
-    VkCommandBuffer GetCurrentCommandBuffer() const 
+    VkCommandBuffer GetCurrentCommandBuffer() const
     {
         assert(m_IsFrameStarted && "Cannot get command buffer when frame is not in progress");
-        return m_CommandBuffers[m_CurrentImageIndex]; 
+        return m_CommandBuffers[m_CurrentImageIndex];
     }
 
     VkCommandBuffer BeginFrame();

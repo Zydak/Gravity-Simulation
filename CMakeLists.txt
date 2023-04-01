@@ -3,7 +3,6 @@ project(VulkanGravity LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 
-# Add all files/folders under src folder automatically to the project
 file(GLOB_RECURSE PROJ_SRC src/*.cpp)
 
 include_directories(libraries/glfw/include/)
