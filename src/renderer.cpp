@@ -165,7 +165,7 @@ void Renderer::EndSwapChainRenderPass(VkCommandBuffer commandBuffer)
     vkCmdEndRenderPass(commandBuffer);
 }
 
-void Renderer::RenderGameObjects(VkCommandBuffer commandBuffer, std::vector<std::shared_ptr<Object>> m_GameObjects)
+void Renderer::RenderGameObjects(VkCommandBuffer commandBuffer, std::vector<std::shared_ptr<Object>> m_GameObjects, const Camera& camera)
 {
     m_Pipeline->Bind(commandBuffer);
 
@@ -174,7 +174,7 @@ void Renderer::RenderGameObjects(VkCommandBuffer commandBuffer, std::vector<std:
         obj->Update();
 
         PushConstants push{};
-        push.transform = obj->GetObjectTransform().mat4();
+        push.transform = camera.GetProjection() * obj->GetObjectTransform().mat4();
 
         vkCmdPushConstants(commandBuffer, m_PipelineLayout, 
             VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstants), &push);

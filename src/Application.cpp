@@ -21,9 +21,12 @@ void Application::Run()
     while(!m_Window.ShouldClose())
     {
         glfwPollEvents();
+        float aspectRatio = m_Renderer.GetAspectRatio();
+        m_Camera.SetPerspectiveProjection(glm::radians(50.0f), aspectRatio, 0.1f, 10.0f);
+
         if (auto commandBuffer = m_Renderer.BeginFrame()) 
         {
-            m_Renderer.RenderGameObjects(commandBuffer, m_GameObjects);
+            m_Renderer.RenderGameObjects(commandBuffer, m_GameObjects, m_Camera);
             m_Renderer.EndFrame();
         }
     }
@@ -88,7 +91,7 @@ void Application::LoadGameObjects()
     // Empty for now
     
     Transform transform{};
-    transform.translation = {0.0f, 0.0f, 0.5f};
+    transform.translation = {0.0f, 0.0f, 2.5f};
     transform.scale = {0.5f, 0.5f, 0.5f};
 
     std::unique_ptr<Object> obj = std::make_unique<Triangle>(m_Device, vertices, transform, properties);

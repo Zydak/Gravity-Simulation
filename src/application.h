@@ -6,6 +6,7 @@
 #include "swapchain.h"
 #include "object.h"
 #include "renderer.h"
+#include "camera.h"
 
 #include <memory>
 #include <vector>
@@ -30,6 +31,7 @@ private:
     Window m_Window{800, 600, "Gravity"};
     Device m_Device{m_Window};
     Renderer m_Renderer{m_Window, m_Device};
+    Camera m_Camera{};
     std::unique_ptr<SwapChain> m_SwapChain;
     std::unique_ptr<Pipeline> m_Pipeline;
     VkPipelineLayout m_PipelineLayout;

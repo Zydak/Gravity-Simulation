@@ -32,6 +32,10 @@ public:
     {
         return swapChain.m_SwapChainDepthFormat == m_SwapChainDepthFormat && swapChain.m_SwapChainImageFormat == m_SwapChainImageFormat;
     }
+    float GetExtentAspectRatio() 
+    { 
+        return static_cast<float>(m_SwapChainExtent.width) / static_cast<float>(m_SwapChainExtent.height); 
+    }
 
 private:
     void Init();

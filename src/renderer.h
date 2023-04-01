@@ -5,6 +5,7 @@
 #include "swapchain.h"
 #include "object.h"
 #include "pipeline.h"
+#include "camera.h"
 
 #include <memory>
 #include <vector>
@@ -25,6 +26,7 @@ public:
     Renderer &operator=(const Renderer&) = delete;
 
     inline VkRenderPass GetSwapChainRenderPass() { return m_SwapChain->GetRenderPass(); }
+    inline float GetAspectRatio() { return m_SwapChain->GetExtentAspectRatio(); }
     inline bool IsFrameInProgress() const { return m_IsFrameStarted; }
     VkCommandBuffer GetCurrentCommandBuffer() const
     {
@@ -36,7 +38,7 @@ public:
     void EndFrame();
     void BeginSwapChainRenderPass(VkCommandBuffer commandBuffer);
     void EndSwapChainRenderPass(VkCommandBuffer commandBuffer);
-    void RenderGameObjects(VkCommandBuffer commandBuffer, std::vector<std::shared_ptr<Object>> m_GameObjects);
+    void RenderGameObjects(VkCommandBuffer commandBuffer, std::vector<std::shared_ptr<Object>> m_GameObjects, const Camera& camera);
 private:
     void CreateCommandBuffers();
     void FreeCommandBuffers();
