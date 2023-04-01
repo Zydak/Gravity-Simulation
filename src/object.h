@@ -32,7 +32,7 @@ public:
     virtual ~Object() = default;
 
     virtual Properties GetObjectProperties() = 0;
-    virtual Transform2d GetTransform() = 0;
+    virtual Transform2d GetObjectTransform() = 0;
     virtual void Draw(VkCommandBuffer commandBuffer) = 0;
     virtual void Update() = 0;
 };

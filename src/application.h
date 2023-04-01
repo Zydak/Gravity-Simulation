@@ -5,6 +5,7 @@
 #include "pipeline.h"
 #include "swapchain.h"
 #include "object.h"
+#include "renderer.h"
 
 #include <memory>
 #include <vector>
@@ -32,5 +33,6 @@ private:
     std::unique_ptr<Pipeline> m_Pipeline;
     VkPipelineLayout m_PipelineLayout;
     std::vector<VkCommandBuffer> m_CommandBuffers;
-    std::vector<Object*> m_GameObjects;
+    std::vector<std::shared_ptr<Object>> m_GameObjects;
+    Renderer m_Renderer{m_Window, m_Device};
 };

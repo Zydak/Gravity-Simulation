@@ -28,6 +28,10 @@ public:
 
     VkResult SubmitCommandBuffers(const VkCommandBuffer *buffers, uint32_t *imageIndex);
     VkResult AcquireNextImage(uint32_t *imageIndex);
+    bool CompareSwapFormats(const SwapChain& swapChain) const
+    {
+        return swapChain.m_SwapChainDepthFormat == m_SwapChainDepthFormat && swapChain.m_SwapChainImageFormat == m_SwapChainImageFormat;
+    }
 
 private:
     void Init();
