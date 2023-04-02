@@ -7,9 +7,12 @@
 #include "object.h"
 #include "renderer.h"
 #include "camera.h"
+#include "cameraController.h"
 
+#include <iostream>
 #include <memory>
 #include <vector>
+#include <chrono>
 
 class Application
 {
@@ -32,6 +35,7 @@ private:
     Device m_Device{m_Window};
     Renderer m_Renderer{m_Window, m_Device};
     Camera m_Camera{};
+    CameraController m_CameraController{m_Window.GetGLFWwindow()};
     std::unique_ptr<SwapChain> m_SwapChain;
     std::unique_ptr<Pipeline> m_Pipeline;
     VkPipelineLayout m_PipelineLayout;

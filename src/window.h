@@ -19,6 +19,7 @@ public:
 
     inline bool ShouldClose() { return glfwWindowShouldClose(m_Window); }
     inline VkExtent2D GetExtent() { return { static_cast<uint32_t>(m_Width), static_cast<uint32_t>(m_Height) }; }
+    inline GLFWwindow *GetGLFWwindow() const { return m_Window; }
 
 private:
     static void ResizeCallback(GLFWwindow* window, int width, int height);

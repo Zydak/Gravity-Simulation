@@ -1,6 +1,7 @@
 #include "application.h"
 
 #include "objects/triangle.h"
+#include "objects/cameraObject.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -18,11 +19,22 @@ Application::~Application()
 }
 void Application::Run()
 {
+    auto currentTime = std::chrono::high_resolution_clock::now();
+
     while(!m_Window.ShouldClose())
     {
         glfwPollEvents();
+
+        auto newTime = std::chrono::high_resolution_clock::now();
+        float frameTime = std::chrono::duration<float, std::chrono::seconds::period>(newTime - currentTime).count();
+        currentTime = newTime;
+
+        m_CameraController.Update(m_Camera);
+
+        m_Camera.SetViewTarget(glm::vec3(0.0f, 0.0f, 0.0f));
+
         float aspectRatio = m_Renderer.GetAspectRatio();
-        m_Camera.SetPerspectiveProjection(glm::radians(50.0f), aspectRatio, 0.1f, 10.0f);
+        m_Camera.SetPerspectiveProjection(glm::radians(50.0f), aspectRatio, 0.1f, 100.0f);
 
         if (auto commandBuffer = m_Renderer.BeginFrame()) 
         {
@@ -91,8 +103,9 @@ void Application::LoadGameObjects()
     // Empty for now
     
     Transform transform{};
-    transform.translation = {0.0f, 0.0f, 2.5f};
+    transform.translation = {0.0f, 0.0f, 0.0f};
     transform.scale = {0.5f, 0.5f, 0.5f};
+    transform.rotation = {0.0f, 0.0f, 0.0f};
 
     std::unique_ptr<Object> obj = std::make_unique<Triangle>(m_Device, vertices, transform, properties);
 

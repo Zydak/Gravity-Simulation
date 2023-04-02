@@ -10,7 +10,7 @@ struct Transform
     glm::vec3 translation{};
     glm::vec3 scale{1.0f, 1.0f, 1.0f};
     glm::vec3 rotation{};
-
+    
     glm::mat4 mat4()
     {
         auto transform = glm::translate(glm::mat4{1.0f}, translation);
@@ -38,32 +38,7 @@ public:
     virtual Transform GetObjectTransform() = 0;
     virtual void Draw(VkCommandBuffer commandBuffer) = 0;
     virtual void Update() = 0;
+
+    Transform m_Transform;
+    Properties m_Properties;
 };
-
-/*
-class Object
-{
-public:
-    using id_t = unsigned int;
-
-    static Object CreateGameObject()
-    {
-        static id_t currentId = 0;
-        return Object{currentId++};
-    }
-
-    Object(const Object&) = delete;
-    Object &operator=(const Object&) = delete;
-    Object(Object&&) = default;
-    Object &operator=(Object&&) = default;
-
-    inline id_t GetId() { return m_Id; }
-
-    std::shared_ptr<Model> m_Model;
-    glm::vec3 m_Color;
-    Transform2d m_Transform2d;
-private:
-    Object(id_t objId) : m_Id(objId) {}
-
-    id_t m_Id;
-};*/

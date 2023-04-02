@@ -6,8 +6,7 @@
 class Triangle : public Object
 {
 public:
-    Triangle(Device& device, const std::vector<Model::Vertex> &vertices, Transform transform, Properties properties
-    );
+    Triangle(Device& device, const std::vector<Model::Vertex> &vertices, const Transform& transform, Properties properties);
     virtual void Draw(VkCommandBuffer commandBuffer) override;
     virtual void Update() override;
     virtual Transform GetObjectTransform() override;

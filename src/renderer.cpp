@@ -169,12 +169,14 @@ void Renderer::RenderGameObjects(VkCommandBuffer commandBuffer, std::vector<std:
 {
     m_Pipeline->Bind(commandBuffer);
 
+    auto projectionView = camera.GetProjection() * camera.GetView();
+
     for (auto& obj: m_GameObjects)
     {
         obj->Update();
 
         PushConstants push{};
-        push.transform = camera.GetProjection() * obj->GetObjectTransform().mat4();
+        push.transform = projectionView * obj->GetObjectTransform().mat4();
 
         vkCmdPushConstants(commandBuffer, m_PipelineLayout, 
             VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstants), &push);
