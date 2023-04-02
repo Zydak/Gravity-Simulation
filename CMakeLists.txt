@@ -3,8 +3,10 @@ project(VulkanGravity LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 
-file(GLOB_RECURSE PROJ_SRC src/*.cpp)
+file(GLOB_RECURSE PROJ_SRC src/*.cpp libraries/tinyobjloader/tiny_obj_loader.h)
 
+include_directories(/)
+include_directories(libraries/)
 include_directories(libraries/glfw/include/)
 
 add_subdirectory(libraries/glfw/)

@@ -47,55 +47,22 @@ void Application::Run()
 
 void Application::LoadGameObjects()
 {
-    Model::Builder modelBuilder{};
-    modelBuilder.vertices = {
-        // left face (white)
-        {{-.5f, -.5f, -.5f}, {.9f, .9f, .9f}},
-        {{-.5f, .5f, .5f}, {.9f, .9f, .9f}},
-        {{-.5f, -.5f, .5f}, {.9f, .9f, .9f}},
-        {{-.5f, .5f, -.5f}, {.9f, .9f, .9f}},
-    
-        // right face (yellow)
-        {{.5f, -.5f, -.5f}, {.8f, .8f, .1f}},
-        {{.5f, .5f, .5f}, {.8f, .8f, .1f}},
-        {{.5f, -.5f, .5f}, {.8f, .8f, .1f}},
-        {{.5f, .5f, -.5f}, {.8f, .8f, .1f}},
-    
-        // top face (orange, remember y axis points down)
-        {{-.5f, -.5f, -.5f}, {.9f, .6f, .1f}},
-        {{.5f, -.5f, .5f}, {.9f, .6f, .1f}},
-        {{-.5f, -.5f, .5f}, {.9f, .6f, .1f}},
-        {{.5f, -.5f, -.5f}, {.9f, .6f, .1f}},
-    
-        // bottom face (red)
-        {{-.5f, .5f, -.5f}, {.8f, .1f, .1f}},
-        {{.5f, .5f, .5f}, {.8f, .1f, .1f}},
-        {{-.5f, .5f, .5f}, {.8f, .1f, .1f}},
-        {{.5f, .5f, -.5f}, {.8f, .1f, .1f}},
-    
-        // nose face (blue)
-        {{-.5f, -.5f, 0.5f}, {.1f, .1f, .8f}},
-        {{.5f, .5f, 0.5f}, {.1f, .1f, .8f}},
-        {{-.5f, .5f, 0.5f}, {.1f, .1f, .8f}},
-        {{.5f, -.5f, 0.5f}, {.1f, .1f, .8f}},
-    
-        // tail face (green)
-        {{-.5f, -.5f, -0.5f}, {.1f, .8f, .1f}},
-        {{.5f, .5f, -0.5f}, {.1f, .8f, .1f}},
-        {{-.5f, .5f, -0.5f}, {.1f, .8f, .1f}},
-        {{.5f, -.5f, -0.5f}, {.1f, .8f, .1f}},
-    };
-    modelBuilder.indices = {0,  1,  2,  0,  3,  1,  4,  5,  6,  4,  7,  5,  8,  9,  10, 8,  11, 9, 12, 13, 14, 12, 15, 13, 16, 17, 18, 16, 19, 17, 20, 21, 22, 20, 23, 21};
-
     Properties properties{};
     // Empty for now
     
-    Transform transform{};
-    transform.translation = {0.0f, 0.0f, 0.0f};
-    transform.scale = {1.5f, 1.5f, 1.5f};
-    transform.rotation = {0.0f, 0.0f, 0.0f};
+    Transform transform1{};
+    transform1.translation = {0.0f, 0.0f, 0.0f};
+    transform1.scale = {1.0f, 1.0f, 1.0f};
+    transform1.rotation = {0.0f, 0.0f, 0.0f};
 
-    std::unique_ptr<Object> obj = std::make_unique<Triangle>(m_Device, modelBuilder, transform, properties);
+    Transform transform2{};
+    transform2.translation = {5.0f, 0.0f, 0.0f};
+    transform2.scale = {1.0f, 1.0f, 1.0f};
+    transform2.rotation = {0.0f, 0.0f, 0.0f};
 
-    m_GameObjects.push_back(std::move(obj));
+    std::unique_ptr<Object> obj1 = std::make_unique<Triangle>(m_Device, "assets/models/smooth_vase.obj", transform1, properties);
+    std::unique_ptr<Object> obj2 = std::make_unique<Triangle>(m_Device, "assets/models/colored_cube.obj", transform2, properties);
+
+    m_GameObjects.push_back(std::move(obj1));
+    m_GameObjects.push_back(std::move(obj2));
 }

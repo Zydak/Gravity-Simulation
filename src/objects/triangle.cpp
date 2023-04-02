@@ -17,8 +17,8 @@ void Triangle::Update()
     //m_Transform.rotation.x = glm::mod(m_Transform.rotation.x + 0.005f, glm::two_pi<float>());
 }
 
-Triangle::Triangle(Device& device, Model::Builder builder, const Transform& transform, Properties properties)
-    : m_Model(device, builder), m_Transform(transform), m_Properties(properties)
+Triangle::Triangle(Device& device, const std::string& filepath, const Transform& transform, Properties properties)
+    : m_Model(Model::CreateModelFromFile(device, filepath)), m_Transform(transform), m_Properties(properties)
 {
     
 }
