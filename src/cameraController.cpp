@@ -44,6 +44,9 @@ CameraController::~CameraController()
     
 }
 
+/*
+    * @brief Updates camera position based on mouse movement
+*/
 void CameraController::Update(Camera& camera)
 {
     float radius = scrollY;
@@ -67,10 +70,13 @@ void CameraController::Update(Camera& camera)
         lastX = x;
         lastY = y;
     }
-        
+    
+    // Equation for camera positioning around a sphere
     camera.m_Transform.translation.x = radius * -sinf(yaw*(M_PI/180)) * cosf((pitch)*(M_PI/180));
     camera.m_Transform.translation.y = radius * -sinf((pitch)*(M_PI/180));
     camera.m_Transform.translation.z = -radius * cosf((yaw)*(M_PI/180)) * cosf((pitch)*(M_PI/180));
+
+    // only for debuging info
     camera.m_Transform.rotation.x = yaw;
     camera.m_Transform.rotation.y = pitch;
 }
