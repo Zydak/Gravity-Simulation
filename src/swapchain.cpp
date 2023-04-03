@@ -93,6 +93,14 @@ VkPresentModeKHR SwapChain::ChooseSwapPresentMode(const std::vector<VkPresentMod
             return availablePresentMode;
         }
     }
+    //for (const auto &availablePresentMode : availablePresentModes) 
+    //{
+    //    if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) 
+    //    {
+    //        std::cout << "Present mode: Immediate" << std::endl;
+    //        return availablePresentMode;
+    //    }
+    //}
 
     std::cout << "Present mode: V-Sync" << std::endl;
     return VK_PRESENT_MODE_FIFO_KHR;
@@ -341,11 +349,6 @@ void SwapChain::CreateDepthResources()
 
 VkResult SwapChain::SubmitCommandBuffers(const VkCommandBuffer *buffers, uint32_t *imageIndex) 
 {
-    if (m_ImagesInFlight[*imageIndex] != VK_NULL_HANDLE) 
-    {
-        vkWaitForFences(m_Device.GetDevice(), 1, &m_ImagesInFlight[*imageIndex], VK_TRUE, UINT64_MAX);
-    }
-    m_ImagesInFlight[*imageIndex] = m_InFlightFences[m_CurrentFrame];
 
     VkSubmitInfo submitInfo = {};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -363,7 +366,7 @@ VkResult SwapChain::SubmitCommandBuffers(const VkCommandBuffer *buffers, uint32_
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = &signalSemaphores;
 
-    vkResetFences(m_Device.GetDevice(), 1, &m_InFlightFences[m_CurrentFrame]);
+    
     if (vkQueueSubmit(m_Device.GetGraphicsQueue(), 1, &submitInfo, m_InFlightFences[m_CurrentFrame]) !=VK_SUCCESS) 
     {
         throw std::runtime_error("failed to submit draw command buffer!");
@@ -391,6 +394,7 @@ VkResult SwapChain::SubmitCommandBuffers(const VkCommandBuffer *buffers, uint32_
 VkResult SwapChain::AcquireNextImage(uint32_t *imageIndex) 
 {
     vkWaitForFences(m_Device.GetDevice(), 1, &m_InFlightFences[m_CurrentFrame], VK_TRUE, UINT64_MAX);
+    vkResetFences(m_Device.GetDevice(), 1, &m_InFlightFences[m_CurrentFrame]);
 
     VkResult result = vkAcquireNextImageKHR( m_Device.GetDevice(), m_SwapChain,
         std::numeric_limits<uint64_t>::max(), m_ImageAvailableSemaphores[m_CurrentFrame], VK_NULL_HANDLE, imageIndex);
@@ -403,7 +407,6 @@ void SwapChain::CreateSyncObjects()
     m_ImageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
     m_RenderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
     m_InFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-    m_ImagesInFlight.resize(GetImageCount(), VK_NULL_HANDLE);
 
     VkSemaphoreCreateInfo semaphoreInfo = {};
     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;

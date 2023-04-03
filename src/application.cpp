@@ -51,8 +51,6 @@ void Application::Run()
     auto io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
-    auto currentTime = std::chrono::high_resolution_clock::now();
-
     std::vector<std::unique_ptr<Buffer>> uboBuffers(SwapChain::MAX_FRAMES_IN_FLIGHT);
     for (int i = 0; i < uboBuffers.size(); i++)
     {
@@ -101,20 +99,26 @@ void Application::Run()
     vkDeviceWaitIdle(m_Device.GetDevice());
     ImGui_ImplVulkan_DestroyFontUploadObjects();
 
+    auto lastUpdate = std::chrono::high_resolution_clock::now();
+    float accumulator = 0;
+    float FPSaccumulator = 0;
+    float FPS = 0;
+
     while(!m_Window.ShouldClose())
     {
         glfwPollEvents();
 
-        auto newTime = std::chrono::high_resolution_clock::now();
-        float frameTime = std::chrono::duration<float, std::chrono::seconds::period>(newTime - currentTime).count();
-        currentTime = newTime;
+        auto now = std::chrono::high_resolution_clock::now();
+        float delta = std::chrono::duration<float, std::chrono::seconds::period>(now - lastUpdate).count();
+        lastUpdate = now;
+        accumulator += delta;
+        FPSaccumulator += delta;
         //std::cout << frameTime * 3600 << std::endl;
 
         if (!ImGui::GetIO().WantCaptureMouse)
         {
-            m_CameraController.Update(frameTime, m_Camera);
+            m_CameraController.Update(delta, m_Camera);
         }
-        
 
         m_Camera.SetViewTarget(glm::vec3(0.0f, 0.0f, 0.0f));
 
@@ -134,19 +138,44 @@ void Application::Run()
             FrameInfo frameInfo{};
             frameInfo.frameIndex = frameIndex;
             frameInfo.camera = &m_Camera;
-            frameInfo.frameTime = frameTime;
+            frameInfo.frameTime = delta;
             frameInfo.commandBuffer = commandBuffer;
             frameInfo.globalDescriptorSet = globalDescriptorSets[frameIndex];
             frameInfo.gameObjects = m_GameObjects;
 
-            Update(frameInfo.frameTime, 50);
+            while (accumulator > 0.016f)
+            {
+                Update(0.016f, 2500);
+                accumulator -= 0.016f;
+            }
             m_Renderer.RenderGameObjects(frameInfo);
 
             ImGui_ImplVulkan_NewFrame();
             ImGui_ImplGlfw_NewFrame();
             ImGui::NewFrame();
  
-            ImGui::ShowDemoWindow();
+            ImGui::Begin("Settings", (bool*)false, 0);
+            if (FPSaccumulator > 0.5f)
+            {
+                FPS = 1/frameInfo.frameTime;
+                FPSaccumulator -= 0.5f;
+            }
+            ImGui::Text("FPS %.1f", FPS);
+            for (auto& kv : m_GameObjects)
+            {
+                auto& obj = kv.second;
+                ImGui::Text("Obj ID: %d Pos: x %.0f | y %.0f, z %.0f", 
+                    obj->GetObjectID(), 
+                    obj->GetObjectTransform().translation.x,
+                    obj->GetObjectTransform().translation.y,
+                    obj->GetObjectTransform().translation.z
+                );
+                //ImGui::DragFloat((std::to_string(obj->GetObjectID()) + std::string(" Obj Mass")).c_str(), &obj->GetObjectProperties().mass, 0.005f);
+            }
+            static float x = 0;
+            static float y = 0;
+            static float z = 0;
+            ImGui::End();
  
             ImGui::Render();
             ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
@@ -161,28 +190,40 @@ void Application::Run()
 void Application::LoadGameObjects()
 {
     Properties properties1{};
-    properties1.velocity = {0.0f, 0.0f, 5.0f};
-    properties1.mass = 5;
+    properties1.velocity = {0.0f, 0.0f, 22.0f};
+    properties1.mass = 1;
     properties1.isStatic = false;
 
     Transform transform1{};
-    transform1.translation = {10.0f, 0.0f, 0.0f};
-    transform1.scale = {0.5f, 0.5f, 0.5f};
+    transform1.translation = {8.0f, 0.0f, 0.0f};
+    transform1.scale = glm::vec3{1.0f, 1.0f, 1.0f} * properties1.mass/2.0f;
     transform1.rotation = {0.0f, 0.0f, 0.0f};
     std::unique_ptr<Object> obj1 = std::make_unique<Planet>(m_Device, "assets/models/sphere.obj", transform1, properties1);
     m_GameObjects.emplace(obj1->GetObjectID(), std::move(obj1));
 
     Properties properties2{};
-    properties2.velocity = {0.0f, 0.0f, 0.0f};
-    properties2.mass = 50;
-    properties2.isStatic = true;
+    properties2.velocity = {0.0f, 0.0f, -15.0f};
+    properties2.mass = 5;
+    properties2.isStatic = false;
 
     Transform transform2{};
-    transform2.translation = {0.0f, 0.0f, 0.0f};
-    transform2.scale = {0.5f, 0.5f, 0.5f};
+    transform2.translation = {-15.0f, 0.0f, 0.0f};
+    transform2.scale = glm::vec3{1.0f, 1.0f, 1.0f} * properties2.mass/6.0f;
     transform2.rotation = {0.0f, 0.0f, 0.0f};
     std::unique_ptr<Object> obj2 = std::make_unique<Planet>(m_Device, "assets/models/sphere.obj", transform2, properties2);
     m_GameObjects.emplace(obj2->GetObjectID(), std::move(obj2));
+
+    Properties properties3{};
+    properties3.velocity = {0.0f, 0.0f, 0.0f};
+    properties3.mass = 500;
+    properties3.isStatic = true;
+
+    Transform transform3{};
+    transform3.translation = {0.0f, 0.0f, 0.0f};
+    transform3.scale = glm::vec3{1.0f, 1.0f, 1.0f};
+    transform3.rotation = {0.0f, 0.0f, 0.0f};
+    std::unique_ptr<Object> obj3 = std::make_unique<Planet>(m_Device, "assets/models/sphere.obj", transform3, properties3);
+    m_GameObjects.emplace(obj3->GetObjectID(), std::move(obj3));
 }
 
 void Application::Update(float delta, uint32_t substeps)

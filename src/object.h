@@ -37,8 +37,8 @@ public:
     Object() = default;
     virtual ~Object() = default;
 
-    virtual Properties GetObjectProperties() = 0;
-    virtual Transform GetObjectTransform() = 0;
+    virtual Properties& GetObjectProperties() = 0;
+    virtual Transform& GetObjectTransform() = 0;
     virtual uint32_t GetObjectID() = 0;
     virtual void Draw(VkCommandBuffer commandBuffer) = 0;
     virtual void Update(std::unordered_map<int, std::shared_ptr<Object>> gameObjects, float delta) = 0;

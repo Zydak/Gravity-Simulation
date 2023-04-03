@@ -33,7 +33,7 @@ void Planet::Update(std::unordered_map<int, std::shared_ptr<Object>> gameObjects
             auto offset = otherObjTranslation - m_Transform.translation;
             float distanceSquared = glm::dot(offset, offset);
 
-            float force = 10.0 * otherObjMass * m_Properties.mass / distanceSquared;
+            float force = 15.0 * otherObjMass * m_Properties.mass / distanceSquared;
             glm::vec3 trueForce = force * offset / glm::sqrt(distanceSquared);
             m_Properties.velocity += delta * trueForce / m_Properties.mass;
             m_Transform.translation += delta * m_Properties.velocity;

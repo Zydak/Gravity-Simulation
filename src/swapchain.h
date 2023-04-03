@@ -38,7 +38,6 @@ public:
     }
 
 private:
-    void Init();
     void CreateSwapChain();
     void CreateImageViews();
     void CreateDepthResources();
@@ -68,7 +67,6 @@ private:
     std::vector<VkSemaphore> m_ImageAvailableSemaphores;
     std::vector<VkSemaphore> m_RenderFinishedSemaphores;
     std::vector<VkFence> m_InFlightFences;
-    std::vector<VkFence> m_ImagesInFlight;
 
     VkFormat m_SwapChainImageFormat;
     VkFormat m_SwapChainDepthFormat;

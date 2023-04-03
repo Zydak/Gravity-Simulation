@@ -3,7 +3,7 @@
 #include <iostream>
 
 static float yaw = 0;
-static float pitch = 0;
+static float pitch = 89;
 static float lastX;
 static float lastY;
 static bool canClick = false;
