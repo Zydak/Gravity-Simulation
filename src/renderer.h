@@ -26,6 +26,7 @@ public:
     Renderer(const Renderer&) = delete;
     Renderer &operator=(const Renderer&) = delete;
 
+    inline uint32_t GetSwapChainImageCount() { return m_SwapChain->GetImageCount(); }
     inline VkRenderPass GetSwapChainRenderPass() { return m_SwapChain->GetRenderPass(); }
     inline float GetAspectRatio() { return m_SwapChain->GetExtentAspectRatio(); }
     inline bool IsFrameInProgress() const { return m_IsFrameStarted; }

@@ -1,24 +1,38 @@
 #include "application.h"
 
-#include "objects/triangle.h"
+#include "objects/planet.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
 
+#include "imgui.h"
+#include "imgui/backends/imgui_impl_glfw.h"
+#include "imgui/backends/imgui_impl_vulkan.h"
+
+static void check_vk_result(VkResult err)
+{
+    if (err == 0)
+        return;
+    fprintf(stderr, "[vulkan] Error: VkResult = %d\n", err);
+    if (err < 0)
+        abort();
+}
+
 struct GlobalUbo
 {
     glm::mat4 projection{1.0f};
     glm::mat4 view{1.0f};
-    glm::vec3 lightPosition{-1.0f};
+    glm::vec3 lightPosition{0.0f};
     alignas(16) glm::vec4 lightColor{1.0f, 1.0f, 1.0f, 1.0f}; // w is light intesity
 };
 
 Application::Application()
 {
     m_GlobalPool = DescriptorPool::Builder(m_Device)
-        .SetMaxSets(SwapChain::MAX_FRAMES_IN_FLIGHT)
+        .SetMaxSets(SwapChain::MAX_FRAMES_IN_FLIGHT * 2)
+        .SetPoolFlags(VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT)
         .AddPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, SwapChain::MAX_FRAMES_IN_FLIGHT)
         .Build();
     
@@ -27,10 +41,16 @@ Application::Application()
 
 Application::~Application()
 {
-    
+    ImGui_ImplVulkan_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
 }
 void Application::Run()
 {
+    ImGui::CreateContext();
+    auto io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
     auto currentTime = std::chrono::high_resolution_clock::now();
 
     std::vector<std::unique_ptr<Buffer>> uboBuffers(SwapChain::MAX_FRAMES_IN_FLIGHT);
@@ -60,6 +80,26 @@ void Application::Run()
             .WriteBuffer(0, &bufferInfo)
             .Build(globalDescriptorSets[i]);
     }
+    ImGui_ImplGlfw_InitForVulkan(m_Window.GetGLFWwindow(), true);
+    ImGui_ImplVulkan_InitInfo info;
+    info.Instance = m_Device.GetInstance();
+    info.PhysicalDevice = m_Device.GetPhysicalDevice();
+    info.Device = m_Device.GetDevice();
+    info.Queue = m_Device.GetGraphicsQueue();
+    info.DescriptorPool = m_GlobalPool->GetDescriptorPool();
+    info.Subpass = 0;
+    info.MinImageCount = 2;
+    info.ImageCount = m_Renderer.GetSwapChainImageCount();
+    info.CheckVkResultFn = check_vk_result;
+    ImGui_ImplVulkan_Init(&info, m_Renderer.GetSwapChainRenderPass());
+ 
+    VkCommandBuffer cmdBuffer;
+    m_Device.BeginSingleTimeCommands(cmdBuffer);
+    ImGui_ImplVulkan_CreateFontsTexture(cmdBuffer);
+    m_Device.EndSingleTimeCommands(cmdBuffer);
+ 
+    vkDeviceWaitIdle(m_Device.GetDevice());
+    ImGui_ImplVulkan_DestroyFontUploadObjects();
 
     while(!m_Window.ShouldClose())
     {
@@ -68,9 +108,13 @@ void Application::Run()
         auto newTime = std::chrono::high_resolution_clock::now();
         float frameTime = std::chrono::duration<float, std::chrono::seconds::period>(newTime - currentTime).count();
         currentTime = newTime;
-        std::cout << frameTime * 3600 << std::endl;
+        //std::cout << frameTime * 3600 << std::endl;
 
-        m_CameraController.Update(frameTime, m_Camera);
+        if (!ImGui::GetIO().WantCaptureMouse)
+        {
+            m_CameraController.Update(frameTime, m_Camera);
+        }
+        
 
         m_Camera.SetViewTarget(glm::vec3(0.0f, 0.0f, 0.0f));
 
@@ -96,6 +140,16 @@ void Application::Run()
             frameInfo.gameObjects = m_GameObjects;
 
             m_Renderer.RenderGameObjects(frameInfo);
+
+            ImGui_ImplVulkan_NewFrame();
+            ImGui_ImplGlfw_NewFrame();
+            ImGui::NewFrame();
+ 
+            ImGui::ShowDemoWindow();
+ 
+            ImGui::Render();
+            ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
+
             m_Renderer.EndFrame();
         }
     }
@@ -109,23 +163,16 @@ void Application::LoadGameObjects()
     // Empty for now
     
     Transform transform1{};
-    transform1.translation = {0.0f, 0.5f, 0.0f};
-    transform1.scale = {3.0f, 3.0f, 3.0f};
+    transform1.translation = {2.0f, 0.0f, 0.0f};
+    transform1.scale = {1.0f, 1.0f, 1.0f};
     transform1.rotation = {0.0f, 0.0f, 0.0f};
-    std::unique_ptr<Object> obj1 = std::make_unique<Triangle>(m_Device, "assets/models/flat_vase.obj", transform1, properties);
+    std::unique_ptr<Object> obj1 = std::make_unique<Planet>(m_Device, "assets/models/sphere.obj", transform1, properties);
     m_GameObjects.emplace(obj1->GetObjectID(), std::move(obj1));
 
-    Transform transform2{};
-    transform2.translation = {1.0f, 0.5f, 0.0f};
-    transform2.scale = {3.0f, 3.0f, 3.0f};
-    transform2.rotation = {0.0f, 0.0f, 0.0f};
-    std::unique_ptr<Object> obj2 = std::make_unique<Triangle>(m_Device, "assets/models/smooth_vase.obj", transform2, properties);
-    m_GameObjects.emplace(obj2->GetObjectID(), std::move(obj2));
-
     Transform transform3{};
-    transform3.translation = {0.0f, 0.5f, 0.0f};
-    transform3.scale = {3.0f, 3.0f, 3.0f};
+    transform3.translation = {-2.0f, 0.0f, 0.0f};
+    transform3.scale = {1.0f, 1.0f, 1.0f};
     transform3.rotation = {0.0f, 0.0f, 0.0f};
-    std::unique_ptr<Object> obj3 = std::make_unique<Triangle>(m_Device, "assets/models/quad.obj", transform3, properties);
+    std::unique_ptr<Object> obj3 = std::make_unique<Planet>(m_Device, "assets/models/sphere.obj", transform3, properties);
     m_GameObjects.emplace(obj3->GetObjectID(), std::move(obj3));
 }

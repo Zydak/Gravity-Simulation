@@ -3,10 +3,10 @@
 #include "../model.h"
 #include "../object.h"
 
-class Triangle : public Object
+class Planet : public Object
 {
 public:
-    Triangle(Device& device, const std::string& filepath, Transform transform, Properties properties);
+    Planet(Device& device, const std::string& filepath, Transform transform, Properties properties);
     virtual void Draw(VkCommandBuffer commandBuffer) override;
     virtual void Update() override;
     inline virtual Transform GetObjectTransform() override { return m_Transform; }

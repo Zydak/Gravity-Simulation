@@ -33,7 +33,9 @@ public:
     Device(Device &&) = delete;
     Device &operator=(Device &&) = delete;
 
+    inline VkInstance GetInstance() { return m_Instance; }
     inline VkDevice GetDevice() { return m_Device; }
+    inline VkPhysicalDevice GetPhysicalDevice() { return m_PhysicalDevice; }
     inline SwapChainSupportDetails GetSwapChainSupport() { return QuerySwapChainSupport(m_PhysicalDevice); }
     inline VkSurfaceKHR GetSurface() { return m_Surface; }
     inline QueueFamilyIndices FindPhysicalQueueFamilies() { return FindQueueFamilies(m_PhysicalDevice); }
@@ -47,6 +49,8 @@ public:
     void CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 
     VkPhysicalDeviceProperties m_Properties;
+    void EndSingleTimeCommands(VkCommandBuffer commandBuffer);
+    void BeginSingleTimeCommands(VkCommandBuffer& buffer);
 private:
     std::vector<const char *> GetRequiredGlfwExtensions();
     void CheckRequiredGlfwExtensions();
@@ -65,8 +69,7 @@ private:
     bool CheckValidationLayerSupport();
     bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
     SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device);
-    void EndSingleTimeCommands(VkCommandBuffer commandBuffer);
-    void BeginSingleTimeCommands(VkCommandBuffer& buffer) ;
+    
 
     VkInstance m_Instance;
     VkDebugUtilsMessengerEXT m_DebugMessenger;
