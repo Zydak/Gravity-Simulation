@@ -32,5 +32,5 @@ private:
     CameraController m_CameraController{m_Window.GetGLFWwindow()};
 
     std::unique_ptr<DescriptorPool> m_GlobalPool{};
-    std::vector<std::shared_ptr<Object>> m_GameObjects;
+    Map m_GameObjects;
 };

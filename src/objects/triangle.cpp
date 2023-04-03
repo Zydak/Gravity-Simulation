@@ -20,15 +20,6 @@ void Triangle::Update()
 Triangle::Triangle(Device& device, const std::string& filepath, Transform transform, Properties properties)
     : m_Model(Model::CreateModelFromFile(device, filepath)), m_Transform(transform), m_Properties(properties)
 {
-     
-}
-
-Transform Triangle::GetObjectTransform()
-{
-    return m_Transform;
-}
-
-Properties Triangle::GetObjectProperties()
-{
-    return m_Properties;
+    static uint32_t currentID = 0;
+    m_ID = currentID++;
 }

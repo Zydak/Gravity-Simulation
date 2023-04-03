@@ -72,7 +72,7 @@ void Renderer::FreeCommandBuffers()
     m_CommandBuffers.clear();
 }
 
-VkCommandBuffer Renderer::BeginFrame()
+VkCommandBuffer Renderer::BeginFrame(const glm::vec3& clearColor)
 {
     assert(!m_IsFrameStarted && "Can't call BeginFrame while already in progress!");
 
@@ -97,7 +97,7 @@ VkCommandBuffer Renderer::BeginFrame()
         throw std::runtime_error("failed to begin recording command buffer!");
     }
 
-    BeginSwapChainRenderPass(commandBuffer);
+    BeginSwapChainRenderPass(commandBuffer, clearColor);
     return commandBuffer;
 }
 
@@ -127,7 +127,7 @@ void Renderer::EndFrame()
     m_CurrentFrameIndex = (m_CurrentFrameIndex + 1) % SwapChain::MAX_FRAMES_IN_FLIGHT;
 }
 
-void Renderer::BeginSwapChainRenderPass(VkCommandBuffer commandBuffer)
+void Renderer::BeginSwapChainRenderPass(VkCommandBuffer commandBuffer, const glm::vec3& clearColor)
 {
     assert(m_IsFrameStarted && "Can't call BeginSwapChainRenderPass while frame is not in progress");
     assert(commandBuffer == GetCurrentCommandBuffer() && "Can't Begin Render pass on command buffer from different frame");
@@ -139,7 +139,7 @@ void Renderer::BeginSwapChainRenderPass(VkCommandBuffer commandBuffer)
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = m_SwapChain->GetSwapChainExtent();
     std::array<VkClearValue, 2> clearValues{};
-    clearValues[0].color = {0.02f, 0.02f, 0.02f, 1.0f};
+    clearValues[0].color = {clearColor.r, clearColor.g, clearColor.b};
     clearValues[1].depthStencil = {1.0f, 0};
     renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
     renderPassInfo.pClearValues = clearValues.data();
@@ -166,7 +166,7 @@ void Renderer::EndSwapChainRenderPass(VkCommandBuffer commandBuffer)
     vkCmdEndRenderPass(commandBuffer);
 }
 
-void Renderer::RenderGameObjects(FrameInfo& frameInfo, std::vector<std::shared_ptr<Object>> m_GameObjects)
+void Renderer::RenderGameObjects(FrameInfo& frameInfo)
 {
     m_Pipeline->Bind(frameInfo.commandBuffer);
 
@@ -181,8 +181,9 @@ void Renderer::RenderGameObjects(FrameInfo& frameInfo, std::vector<std::shared_p
         nullptr
     );
 
-    for (auto& obj: m_GameObjects)
+    for (auto& kv: frameInfo.gameObjects)
     {
+        auto& obj = kv.second;
         obj->Update();
 
         PushConstants push{};

@@ -9,8 +9,10 @@
 
 struct GlobalUbo
 {
-    alignas(16) glm::mat4 projectionView{1.0f};
-    alignas(16) glm::vec3 lightDirection = glm::normalize(glm::vec3{1.0f, -3.0f, -1.0f});
+    glm::mat4 projection{1.0f};
+    glm::mat4 view{1.0f};
+    glm::vec3 lightPosition{-1.0f};
+    alignas(16) glm::vec4 lightColor{1.0f, 1.0f, 1.0f, 1.0f}; // w is light intesity
 };
 
 Application::Application()
@@ -45,7 +47,7 @@ void Application::Run()
     }
 
     auto globalSetLayout = DescriptorSetLayout::Builder(m_Device)
-        .AddBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
+        .AddBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
         .Build();
 
     Renderer m_Renderer(m_Window, m_Device, globalSetLayout->GetDescriptorSetLayout());
@@ -75,12 +77,13 @@ void Application::Run()
         float aspectRatio = m_Renderer.GetAspectRatio();
         m_Camera.SetPerspectiveProjection(glm::radians(50.0f), aspectRatio, 0.1f, 100.0f);
 
-        if (auto commandBuffer = m_Renderer.BeginFrame()) 
+        if (auto commandBuffer = m_Renderer.BeginFrame({0.02f, 0.02f, 0.02f})) 
         {
             int frameIndex = m_Renderer.GetFrameIndex();
 
             GlobalUbo ubo{};
-            ubo.projectionView = m_Camera.GetProjection() * m_Camera.GetView();
+            ubo.projection = m_Camera.GetProjection();
+            ubo.view = m_Camera.GetView();
             uboBuffers[frameIndex]->WriteToBuffer(&ubo);
             uboBuffers[frameIndex]->Flush();
 
@@ -90,8 +93,9 @@ void Application::Run()
             frameInfo.frameTime = frameTime;
             frameInfo.commandBuffer = commandBuffer;
             frameInfo.globalDescriptorSet = globalDescriptorSets[frameIndex];
+            frameInfo.gameObjects = m_GameObjects;
 
-            m_Renderer.RenderGameObjects(frameInfo, m_GameObjects);
+            m_Renderer.RenderGameObjects(frameInfo);
             m_Renderer.EndFrame();
         }
     }
@@ -108,15 +112,20 @@ void Application::LoadGameObjects()
     transform1.translation = {0.0f, 0.5f, 0.0f};
     transform1.scale = {3.0f, 3.0f, 3.0f};
     transform1.rotation = {0.0f, 0.0f, 0.0f};
+    std::unique_ptr<Object> obj1 = std::make_unique<Triangle>(m_Device, "assets/models/flat_vase.obj", transform1, properties);
+    m_GameObjects.emplace(obj1->GetObjectID(), std::move(obj1));
 
     Transform transform2{};
     transform2.translation = {1.0f, 0.5f, 0.0f};
     transform2.scale = {3.0f, 3.0f, 3.0f};
     transform2.rotation = {0.0f, 0.0f, 0.0f};
-
-    std::unique_ptr<Object> obj1 = std::make_unique<Triangle>(m_Device, "assets/models/flat_vase.obj", transform1, properties);
     std::unique_ptr<Object> obj2 = std::make_unique<Triangle>(m_Device, "assets/models/smooth_vase.obj", transform2, properties);
+    m_GameObjects.emplace(obj2->GetObjectID(), std::move(obj2));
 
-    m_GameObjects.push_back(std::move(obj1));
-    m_GameObjects.push_back(std::move(obj2));
+    Transform transform3{};
+    transform3.translation = {0.0f, 0.5f, 0.0f};
+    transform3.scale = {3.0f, 3.0f, 3.0f};
+    transform3.rotation = {0.0f, 0.0f, 0.0f};
+    std::unique_ptr<Object> obj3 = std::make_unique<Triangle>(m_Device, "assets/models/quad.obj", transform3, properties);
+    m_GameObjects.emplace(obj3->GetObjectID(), std::move(obj3));
 }

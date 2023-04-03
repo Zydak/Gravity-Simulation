@@ -40,11 +40,11 @@ public:
         return m_CurrentFrameIndex;
     }
 
-    VkCommandBuffer BeginFrame();
+    VkCommandBuffer BeginFrame(const glm::vec3& clearColor);
     void EndFrame();
-    void BeginSwapChainRenderPass(VkCommandBuffer commandBuffer);
+    void BeginSwapChainRenderPass(VkCommandBuffer commandBuffer, const glm::vec3& clearColor);
     void EndSwapChainRenderPass(VkCommandBuffer commandBuffer);
-    void RenderGameObjects(FrameInfo& frameInfo, std::vector<std::shared_ptr<Object>> m_GameObjects);
+    void RenderGameObjects(FrameInfo& frameInfo);
 private:
     void CreateCommandBuffers();
     void FreeCommandBuffers();

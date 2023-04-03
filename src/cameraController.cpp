@@ -1,5 +1,7 @@
 #include "cameraController.h"
 
+#include <iostream>
+
 static float yaw = 0;
 static float pitch = 0;
 static float lastX;
@@ -28,8 +30,10 @@ static double scrollY = 10;
 void scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
 {
     scrollY -= yoffset;
+    
     if (scrollY < 1)
         scrollY = 1;
+    //std::cout << scrollY << std::endl;
 }
 
 CameraController::CameraController(GLFWwindow* window)

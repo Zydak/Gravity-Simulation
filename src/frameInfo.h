@@ -1,8 +1,13 @@
 #pragma once
 
 #include "camera.h"
+#include "object.h"
 
 #include <vulkan/vulkan.h>
+#include <unordered_map>
+#include <memory>
+
+using Map = std::unordered_map<int, std::shared_ptr<Object>>;
 
 struct FrameInfo
 {
@@ -11,4 +16,5 @@ struct FrameInfo
     VkCommandBuffer commandBuffer;
     Camera* camera;
     VkDescriptorSet globalDescriptorSet;
+    Map gameObjects;
 };

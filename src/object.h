@@ -36,6 +36,7 @@ public:
 
     virtual Properties GetObjectProperties() = 0;
     virtual Transform GetObjectTransform() = 0;
+    virtual uint32_t GetObjectID() = 0;
     virtual void Draw(VkCommandBuffer commandBuffer) = 0;
     virtual void Update() = 0;
 
