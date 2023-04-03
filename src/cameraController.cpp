@@ -47,7 +47,7 @@ CameraController::~CameraController()
 /*
     * @brief Updates camera position based on mouse movement
 */
-void CameraController::Update(Camera& camera)
+void CameraController::Update(float delta, Camera& camera)
 {
     float radius = scrollY;
     if (glfwGetMouseButton(m_Window, 0) == GLFW_PRESS)
@@ -55,12 +55,13 @@ void CameraController::Update(Camera& camera)
         double x, y;
         glfwGetCursorPos(m_Window, &x, &y);
             
+        float sensitivity = -25.0f;
         static float xOffset = 0;
         static float yOffset = 0;
-        xOffset = (lastX - x) * -1.0f;
-        yOffset = (lastY - y) * -1.0f;
-        yaw += xOffset;
-        pitch += yOffset;
+        xOffset = (lastX - x) * sensitivity;
+        yOffset = (lastY - y) * sensitivity;
+        yaw += xOffset * delta;
+        pitch += yOffset * delta;
 
         if (pitch > 89)
             pitch = 89;

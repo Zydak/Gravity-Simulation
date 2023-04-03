@@ -9,7 +9,7 @@ public:
     CameraController(GLFWwindow* window);
     ~CameraController();
 
-    void Update(Camera& camera);
+    void Update(float delta, Camera& camera);
 private:
     GLFWwindow* m_Window;
 };

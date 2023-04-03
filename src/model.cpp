@@ -33,14 +33,7 @@ Model::Model(Device& device, const Model::Builder& builder)
 }
 Model::~Model()
 {
-    vkDestroyBuffer(m_Device.GetDevice(), m_VertexBuffer, nullptr);
-    vkFreeMemory(m_Device.GetDevice(), m_VertexBufferMemory, nullptr);
 
-    if (m_HasIndexBuffer)
-    {
-        vkDestroyBuffer(m_Device.GetDevice(), m_IndexBuffer, nullptr);
-        vkFreeMemory(m_Device.GetDevice(), m_IndexBufferMemory, nullptr);
-    }
 }
 
 void Model::CreateVertexBuffer(const std::vector<Vertex> &vertices)
@@ -48,6 +41,7 @@ void Model::CreateVertexBuffer(const std::vector<Vertex> &vertices)
     m_VertexCount = static_cast<uint32_t>(vertices.size());
     assert(m_VertexCount >= 3 && "Vertex count me be at least 3");
     VkDeviceSize bufferSize = sizeof(vertices[0]) * m_VertexCount;
+    uint32_t vertexSize = sizeof(vertices[0]);
 
     /*
         We need to be able to write our vertex data to memory.
@@ -55,22 +49,18 @@ void Model::CreateVertexBuffer(const std::vector<Vertex> &vertices)
         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT is Used to get memory heap that is host coherent. 
         We use this to copy the data into the buffer memory immediately.
     */
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
-    m_Device.CreateBuffer(bufferSize, 
+    Buffer stagingBuffer(m_Device, 
+        vertexSize, 
+        m_VertexCount,
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        stagingBuffer,
-        stagingBufferMemory
-    );
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
     /*
         When buffer is created It is time to copy the vertex data to the buffer. 
         This is done by mapping the buffer memory into CPU accessible memory with vkMapMemory.
     */
-    void *data;
-    vkMapMemory(m_Device.GetDevice(), stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, vertices.data(), static_cast<size_t>(bufferSize));
-    vkUnmapMemory(m_Device.GetDevice(), stagingBufferMemory);
+    stagingBuffer.Map();
+    stagingBuffer.WriteToBuffer((void*)vertices.data());
 
     /*
         The vertexBuffer is now allocated from a memory type that is device 
@@ -81,16 +71,16 @@ void Model::CreateVertexBuffer(const std::vector<Vertex> &vertices)
         and the transfer destination flag(VK_BUFFER_USAGE_TRANSFER_DST_BIT)
         for the vertexBuffer, along with the vertex buffer usage flag.
     */
-    m_Device.CreateBuffer(bufferSize, 
+
+    m_VertexBuffer = std::make_unique<Buffer>(
+        m_Device,
+        vertexSize,
+        m_VertexCount,
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        m_VertexBuffer,
-        m_VertexBufferMemory
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
     );
 
-    m_Device.CopyBuffer(stagingBuffer, m_VertexBuffer, bufferSize);
-    vkDestroyBuffer(m_Device.GetDevice(), stagingBuffer, nullptr);
-    vkFreeMemory(m_Device.GetDevice(), stagingBufferMemory, nullptr);
+    m_Device.CopyBuffer(stagingBuffer.GetBuffer(), m_VertexBuffer->GetBuffer(), bufferSize);
 }
 
 void Model::CreateIndexBuffer(const std::vector<uint32_t> &indices)
@@ -103,49 +93,47 @@ void Model::CreateIndexBuffer(const std::vector<uint32_t> &indices)
     }
 
     VkDeviceSize bufferSize = sizeof(indices[0]) * m_IndexCount;
+    uint32_t indexSize = sizeof(indices[0]);
 
     /*
-        We need to be able to write our vertex data to memory.
+        We need to be able to write our index data to memory.
         This property is indicated with VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT with VK_MEMORY_PROPERTY_HOST_COHERENT_BIT property.
         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT is Used to get memory heap that is host coherent. 
         We use this to copy the data into the buffer memory immediately.
     */
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
-    m_Device.CreateBuffer(bufferSize, 
+    Buffer stagingBuffer(
+        m_Device,
+        indexSize,
+        m_IndexCount,
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        stagingBuffer,
-        stagingBufferMemory
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
     );
-    /*
-        When buffer is created It is time to copy the vertex data to the buffer. 
-        This is done by mapping the buffer memory into CPU accessible memory with vkMapMemory.
-    */
-    void *data;
-    vkMapMemory(m_Device.GetDevice(), stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, indices.data(), static_cast<size_t>(bufferSize));
-    vkUnmapMemory(m_Device.GetDevice(), stagingBufferMemory);
 
     /*
-        The vertexBuffer is now allocated from a memory type that is device 
+        When buffer is created It is time to copy the index data to the buffer. 
+        This is done by mapping the buffer memory into CPU accessible memory with vkMapMemory.
+    */
+    stagingBuffer.Map();
+    stagingBuffer.WriteToBuffer((void*)indices.data());
+
+    /*
+        The IndexBuffer is now allocated from a memory type that is device 
         local, which generally means that we're not able to use vkMapMemory. 
-        However, we can copy data from the stagingBuffer to the vertexBuffer. 
+        However, we can copy data from the stagingBuffer to the IndexBuffer. 
         We have to indicate that we intend to do that by specifying the transfer 
         source flag(VK_BUFFER_USAGE_TRANSFER_SRC_BIT) for the stagingBuffer 
         and the transfer destination flag(VK_BUFFER_USAGE_TRANSFER_DST_BIT)
-        for the vertexBuffer, along with the vertex buffer usage flag.
+        for the IndexBuffer, along with the IndexBuffer usage flag.
     */
-    m_Device.CreateBuffer(bufferSize, 
+    m_IndexBuffer = std::make_unique<Buffer>(
+        m_Device,
+        indexSize,
+        m_IndexCount,
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, 
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        m_IndexBuffer,
-        m_IndexBufferMemory
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
     );
 
-    m_Device.CopyBuffer(stagingBuffer, m_IndexBuffer, bufferSize);
-    vkDestroyBuffer(m_Device.GetDevice(), stagingBuffer, nullptr);
-    vkFreeMemory(m_Device.GetDevice(), stagingBufferMemory, nullptr);
+    m_Device.CopyBuffer(stagingBuffer.GetBuffer(), m_IndexBuffer->GetBuffer(), bufferSize);
 }
 
 /*
@@ -153,13 +141,13 @@ void Model::CreateIndexBuffer(const std::vector<uint32_t> &indices)
 */
 void Model::Bind(VkCommandBuffer commandBuffer)
 {
-    VkBuffer buffers[] = {m_VertexBuffer};
+    VkBuffer buffers[] = {m_VertexBuffer->GetBuffer()};
     VkDeviceSize offsets[] = {0};
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, buffers, offsets);
 
     if (m_HasIndexBuffer)
     {
-        vkCmdBindIndexBuffer(commandBuffer, m_IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindIndexBuffer(commandBuffer, m_IndexBuffer->GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
     }
 }
 
@@ -187,17 +175,12 @@ std::vector<VkVertexInputBindingDescription> Model::Vertex::GetBindingDescriptio
 
 std::vector<VkVertexInputAttributeDescription> Model::Vertex::GetAttributeDescriptions()
 {
-    std::vector<VkVertexInputAttributeDescription> attributeDescriptions(2);
+    std::vector<VkVertexInputAttributeDescription> attributeDescriptions{};
+    attributeDescriptions.push_back({0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, position)});
+    attributeDescriptions.push_back({1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color)});
+    attributeDescriptions.push_back({2, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal)});
+    attributeDescriptions.push_back({3, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, uv)});
 
-    attributeDescriptions[0].binding = 0;
-    attributeDescriptions[0].location = 0;
-    attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-    attributeDescriptions[0].offset = offsetof(Vertex, position);
-
-    attributeDescriptions[1].binding = 0;
-    attributeDescriptions[1].location = 1;
-    attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-    attributeDescriptions[1].offset = offsetof(Vertex, color);
     return attributeDescriptions;
 }
 
@@ -240,19 +223,11 @@ void Model::Builder::LoadModel(const std::string& filepath)
                 };
             }
 
-            auto colorIndex = 3 * index.vertex_index + 2;
-            if (colorIndex < attrib.colors.size())
-            {
-                vertex.color = { 
-                    attrib.colors[colorIndex - 2],
-                    attrib.colors[colorIndex - 1],
-                    attrib.colors[colorIndex - 0],
-                };
-            }
-            else
-            {
-                vertex.color = {1.0f, 1.0f, 1.0f};
-            }
+            vertex.color = { 
+                attrib.colors[3 * index.vertex_index + 0],
+                attrib.colors[3 * index.vertex_index + 1],
+                attrib.colors[3 * index.vertex_index + 2],
+            };
 
             if (index.normal_index >= 0)
             {

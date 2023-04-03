@@ -6,6 +6,7 @@
 #include "object.h"
 #include "pipeline.h"
 #include "camera.h"
+#include "frameInfo.h"
 
 #include <memory>
 #include <vector>
@@ -13,13 +14,13 @@
 
 struct PushConstants
 {
-    glm::mat4 transform{1.0f};
+    glm::mat4 modelMatrix{1.0f};
 };
 
 class Renderer
 {
 public:
-    Renderer(Window& m_Window, Device& m_Device);
+    Renderer(Window& window, Device& device, VkDescriptorSetLayout globalSetLayout);
     ~Renderer();
 
     Renderer(const Renderer&) = delete;
@@ -33,17 +34,22 @@ public:
         assert(m_IsFrameStarted && "Cannot get command buffer when frame is not in progress");
         return m_CommandBuffers[m_CurrentImageIndex];
     }
+    int GetFrameIndex() const
+    {
+        assert(m_IsFrameStarted && "Cannot get frame index when frameis not in progress");
+        return m_CurrentFrameIndex;
+    }
 
     VkCommandBuffer BeginFrame();
     void EndFrame();
     void BeginSwapChainRenderPass(VkCommandBuffer commandBuffer);
     void EndSwapChainRenderPass(VkCommandBuffer commandBuffer);
-    void RenderGameObjects(VkCommandBuffer commandBuffer, std::vector<std::shared_ptr<Object>> m_GameObjects, const Camera& camera);
+    void RenderGameObjects(FrameInfo& frameInfo, std::vector<std::shared_ptr<Object>> m_GameObjects);
 private:
     void CreateCommandBuffers();
     void FreeCommandBuffers();
     void RecreateSwapChain();
-    void CreatePipelineLayout();
+    void CreatePipelineLayout(VkDescriptorSetLayout globalSetLayout);
     void CreatePipeline();
 
     Window& m_Window;
@@ -54,5 +60,6 @@ private:
     VkPipelineLayout m_PipelineLayout;
 
     uint32_t m_CurrentImageIndex = 0;
+    int m_CurrentFrameIndex = 0;
     bool m_IsFrameStarted = false;
 };

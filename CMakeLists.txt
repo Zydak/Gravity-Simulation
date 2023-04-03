@@ -14,7 +14,7 @@ add_subdirectory(libraries/glm/)
 
 add_executable(VulkanGravity ${PROJ_SRC})
 
-add_custom_command(TARGET VulkanGravity PRE_BUILD COMMAND ../compileShaders.sh)
+add_custom_command(TARGET VulkanGravity PRE_BUILD COMMAND ../compileShadersAuto.sh)
 
 target_link_libraries(VulkanGravity glm glfw -lvulkan)
 #target_link_libraries(VulkanGravity -lOpenCL -lglfw -lvulkan -ldl -lpthread -lX11 -lXxf86vm -lXrandr -lXi)

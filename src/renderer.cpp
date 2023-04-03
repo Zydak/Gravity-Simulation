@@ -4,10 +4,10 @@
 #include <cassert>
 #include <array>
 
-Renderer::Renderer(Window& window, Device& device)
+Renderer::Renderer(Window& window, Device& device, VkDescriptorSetLayout globalSetLayout)
     :   m_Window(window), m_Device(device)
 {
-    CreatePipelineLayout();
+    CreatePipelineLayout(globalSetLayout);
     RecreateSwapChain();
     CreateCommandBuffers();
 }
@@ -124,6 +124,7 @@ void Renderer::EndFrame()
     }
 
     m_IsFrameStarted = false;
+    m_CurrentFrameIndex = (m_CurrentFrameIndex + 1) % SwapChain::MAX_FRAMES_IN_FLIGHT;
 }
 
 void Renderer::BeginSwapChainRenderPass(VkCommandBuffer commandBuffer)
@@ -165,36 +166,47 @@ void Renderer::EndSwapChainRenderPass(VkCommandBuffer commandBuffer)
     vkCmdEndRenderPass(commandBuffer);
 }
 
-void Renderer::RenderGameObjects(VkCommandBuffer commandBuffer, std::vector<std::shared_ptr<Object>> m_GameObjects, const Camera& camera)
+void Renderer::RenderGameObjects(FrameInfo& frameInfo, std::vector<std::shared_ptr<Object>> m_GameObjects)
 {
-    m_Pipeline->Bind(commandBuffer);
+    m_Pipeline->Bind(frameInfo.commandBuffer);
 
-    auto projectionView = camera.GetProjection() * camera.GetView();
+    vkCmdBindDescriptorSets(
+        frameInfo.commandBuffer,
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
+        m_PipelineLayout,
+        0,
+        1,
+        &frameInfo.globalDescriptorSet,
+        0,
+        nullptr
+    );
 
     for (auto& obj: m_GameObjects)
     {
         obj->Update();
 
         PushConstants push{};
-        push.transform = projectionView * obj->GetObjectTransform().mat4();
+        push.modelMatrix = obj->GetObjectTransform().mat4();
 
-        vkCmdPushConstants(commandBuffer, m_PipelineLayout, 
+        vkCmdPushConstants(frameInfo.commandBuffer, m_PipelineLayout, 
             VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstants), &push);
-        obj->Draw(commandBuffer);
+        obj->Draw(frameInfo.commandBuffer);
     }
 }
 
-void Renderer::CreatePipelineLayout()
+void Renderer::CreatePipelineLayout(VkDescriptorSetLayout globalSetLayout)
 {
     VkPushConstantRange pushConstantRange{};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
     pushConstantRange.offset = 0;
     pushConstantRange.size = sizeof(PushConstants);
 
+    std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout};
+
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = 0;
-    pipelineLayoutInfo.pSetLayouts = nullptr;
+    pipelineLayoutInfo.setLayoutCount = (uint32_t)descriptorSetLayouts.size();
+    pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
     pipelineLayoutInfo.pushConstantRangeCount = 1;
     pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
     if (vkCreatePipelineLayout(m_Device.GetDevice(), &pipelineLayoutInfo, nullptr, &m_PipelineLayout) != VK_SUCCESS) 
