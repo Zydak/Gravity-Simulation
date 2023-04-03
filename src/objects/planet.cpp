@@ -5,16 +5,40 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
 
+#include <chrono>
+
+#include <iostream>
+
 void Planet::Draw(VkCommandBuffer commandBuffer)
 {
     m_Model.Bind(commandBuffer);
     m_Model.Draw(commandBuffer);
 }
 
-void Planet::Update()
+void Planet::Update(std::unordered_map<int, std::shared_ptr<Object>> gameObjects, float delta)
 {
-    //m_Transform.rotation.y = glm::mod(m_Transform.rotation.y + 0.01f, glm::two_pi<float>());
-    //m_Transform.rotation.x = glm::mod(m_Transform.rotation.x + 0.005f, glm::two_pi<float>());
+    for (auto i = gameObjects.begin(); i != gameObjects.end(); i++)
+    {
+        if (i->first != GetObjectID())
+        {
+            auto& otherObj = i->second;
+
+            if (m_Properties.isStatic == true)
+            {
+                continue;
+            }
+            auto otherObjTranslation = otherObj->GetObjectTransform().translation;
+            auto otherObjMass = otherObj->GetObjectProperties().mass;
+
+            auto offset = otherObjTranslation - m_Transform.translation;
+            float distanceSquared = glm::dot(offset, offset);
+
+            float force = 10.0 * otherObjMass * m_Properties.mass / distanceSquared;
+            glm::vec3 trueForce = force * offset / glm::sqrt(distanceSquared);
+            m_Properties.velocity += delta * trueForce / m_Properties.mass;
+            m_Transform.translation += delta * m_Properties.velocity;
+        }
+    }
 }
 
 Planet::Planet(Device& device, const std::string& filepath, Transform transform, Properties properties)

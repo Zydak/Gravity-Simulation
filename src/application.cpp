@@ -119,7 +119,7 @@ void Application::Run()
         m_Camera.SetViewTarget(glm::vec3(0.0f, 0.0f, 0.0f));
 
         float aspectRatio = m_Renderer.GetAspectRatio();
-        m_Camera.SetPerspectiveProjection(glm::radians(50.0f), aspectRatio, 0.1f, 100.0f);
+        m_Camera.SetPerspectiveProjection(glm::radians(50.0f), aspectRatio, 0.1f, 1000.0f);
 
         if (auto commandBuffer = m_Renderer.BeginFrame({0.02f, 0.02f, 0.02f})) 
         {
@@ -139,6 +139,7 @@ void Application::Run()
             frameInfo.globalDescriptorSet = globalDescriptorSets[frameIndex];
             frameInfo.gameObjects = m_GameObjects;
 
+            Update(frameInfo.frameTime, 50);
             m_Renderer.RenderGameObjects(frameInfo);
 
             ImGui_ImplVulkan_NewFrame();
@@ -159,20 +160,40 @@ void Application::Run()
 
 void Application::LoadGameObjects()
 {
-    Properties properties{};
-    // Empty for now
-    
+    Properties properties1{};
+    properties1.velocity = {0.0f, 0.0f, 5.0f};
+    properties1.mass = 5;
+    properties1.isStatic = false;
+
     Transform transform1{};
-    transform1.translation = {2.0f, 0.0f, 0.0f};
-    transform1.scale = {1.0f, 1.0f, 1.0f};
+    transform1.translation = {10.0f, 0.0f, 0.0f};
+    transform1.scale = {0.5f, 0.5f, 0.5f};
     transform1.rotation = {0.0f, 0.0f, 0.0f};
-    std::unique_ptr<Object> obj1 = std::make_unique<Planet>(m_Device, "assets/models/sphere.obj", transform1, properties);
+    std::unique_ptr<Object> obj1 = std::make_unique<Planet>(m_Device, "assets/models/sphere.obj", transform1, properties1);
     m_GameObjects.emplace(obj1->GetObjectID(), std::move(obj1));
 
-    Transform transform3{};
-    transform3.translation = {-2.0f, 0.0f, 0.0f};
-    transform3.scale = {1.0f, 1.0f, 1.0f};
-    transform3.rotation = {0.0f, 0.0f, 0.0f};
-    std::unique_ptr<Object> obj3 = std::make_unique<Planet>(m_Device, "assets/models/sphere.obj", transform3, properties);
-    m_GameObjects.emplace(obj3->GetObjectID(), std::move(obj3));
+    Properties properties2{};
+    properties2.velocity = {0.0f, 0.0f, 0.0f};
+    properties2.mass = 50;
+    properties2.isStatic = true;
+
+    Transform transform2{};
+    transform2.translation = {0.0f, 0.0f, 0.0f};
+    transform2.scale = {0.5f, 0.5f, 0.5f};
+    transform2.rotation = {0.0f, 0.0f, 0.0f};
+    std::unique_ptr<Object> obj2 = std::make_unique<Planet>(m_Device, "assets/models/sphere.obj", transform2, properties2);
+    m_GameObjects.emplace(obj2->GetObjectID(), std::move(obj2));
+}
+
+void Application::Update(float delta, uint32_t substeps)
+{
+    for (auto& kv: m_GameObjects)
+    {
+        auto& obj = kv.second;
+        const float stepDelta = delta / substeps;
+        for (int i = 0; i < substeps; i++)
+        {
+            obj->Update(m_GameObjects, stepDelta);
+        }
+    }
 }

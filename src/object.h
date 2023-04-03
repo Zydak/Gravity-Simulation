@@ -2,6 +2,7 @@
 
 #include "model.h"
 #include <memory>
+#include <unordered_map>
 
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -25,7 +26,9 @@ struct Transform
 
 struct Properties
 {
-    glm::vec3 color;
+    glm::vec3 velocity;
+    float mass;
+    bool isStatic;
 };
 
 class Object
@@ -38,7 +41,7 @@ public:
     virtual Transform GetObjectTransform() = 0;
     virtual uint32_t GetObjectID() = 0;
     virtual void Draw(VkCommandBuffer commandBuffer) = 0;
-    virtual void Update() = 0;
+    virtual void Update(std::unordered_map<int, std::shared_ptr<Object>> gameObjects, float delta) = 0;
 
     Transform m_Transform;
     Properties m_Properties;

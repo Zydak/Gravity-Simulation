@@ -25,6 +25,7 @@ public:
     void Run();
 private:
     void LoadGameObjects();
+    void Update(float delta, uint32_t substeps);
 
     Window m_Window{800, 600, "Gravity"};
     Device m_Device{m_Window};

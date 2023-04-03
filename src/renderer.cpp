@@ -184,7 +184,6 @@ void Renderer::RenderGameObjects(FrameInfo& frameInfo)
     for (auto& kv: frameInfo.gameObjects)
     {
         auto& obj = kv.second;
-        obj->Update();
 
         PushConstants push{};
         push.modelMatrix = obj->GetObjectTransform().mat4();
