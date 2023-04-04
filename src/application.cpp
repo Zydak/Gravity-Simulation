@@ -1,6 +1,7 @@
 #include "application.h"
 
 #include "objects/planet.h"
+#include "objects/orbit.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -10,6 +11,8 @@
 #include "imgui.h"
 #include "imgui/backends/imgui_impl_glfw.h"
 #include "imgui/backends/imgui_impl_vulkan.h"
+
+static float OrbitAccumulator = 0;
 
 static void check_vk_result(VkResult err)
 {
@@ -68,7 +71,7 @@ void Application::Run()
         .AddBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
         .Build();
 
-    Renderer m_Renderer(m_Window, m_Device, globalSetLayout->GetDescriptorSetLayout());
+    m_Renderer = std::make_unique<Renderer>(m_Window, m_Device, globalSetLayout->GetDescriptorSetLayout());
 
     std::vector<VkDescriptorSet> globalDescriptorSets(SwapChain::MAX_FRAMES_IN_FLIGHT);
     for (int i = 0; i < globalDescriptorSets.size(); i++)
@@ -87,9 +90,9 @@ void Application::Run()
     info.DescriptorPool = m_GlobalPool->GetDescriptorPool();
     info.Subpass = 0;
     info.MinImageCount = 2;
-    info.ImageCount = m_Renderer.GetSwapChainImageCount();
+    info.ImageCount = m_Renderer->GetSwapChainImageCount();
     info.CheckVkResultFn = check_vk_result;
-    ImGui_ImplVulkan_Init(&info, m_Renderer.GetSwapChainRenderPass());
+    ImGui_ImplVulkan_Init(&info, m_Renderer->GetSwapChainRenderPass());
  
     VkCommandBuffer cmdBuffer;
     m_Device.BeginSingleTimeCommands(cmdBuffer);
@@ -113,6 +116,7 @@ void Application::Run()
         lastUpdate = now;
         accumulator += delta;
         FPSaccumulator += delta;
+        OrbitAccumulator += delta;
         //std::cout << frameTime * 3600 << std::endl;
 
         if (!ImGui::GetIO().WantCaptureMouse)
@@ -122,12 +126,12 @@ void Application::Run()
 
         m_Camera.SetViewTarget(glm::vec3(0.0f, 0.0f, 0.0f));
 
-        float aspectRatio = m_Renderer.GetAspectRatio();
+        float aspectRatio = m_Renderer->GetAspectRatio();
         m_Camera.SetPerspectiveProjection(glm::radians(50.0f), aspectRatio, 0.1f, 1000.0f);
 
-        if (auto commandBuffer = m_Renderer.BeginFrame({0.02f, 0.02f, 0.02f})) 
+        if (auto commandBuffer = m_Renderer->BeginFrame({0.02f, 0.02f, 0.02f})) 
         {
-            int frameIndex = m_Renderer.GetFrameIndex();
+            int frameIndex = m_Renderer->GetFrameIndex();
 
             GlobalUbo ubo{};
             ubo.projection = m_Camera.GetProjection();
@@ -145,10 +149,11 @@ void Application::Run()
 
             while (accumulator > 0.016f)
             {
-                Update(0.016f, 2500);
+                Update(frameInfo, 0.016f, 500);
                 accumulator -= 0.016f;
             }
-            m_Renderer.RenderGameObjects(frameInfo);
+            m_Renderer->RenderGameObjects(frameInfo);
+            m_Renderer->RenderLines(frameInfo, m_Lines);
 
             ImGui_ImplVulkan_NewFrame();
             ImGui_ImplGlfw_NewFrame();
@@ -180,7 +185,7 @@ void Application::Run()
             ImGui::Render();
             ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
 
-            m_Renderer.EndFrame();
+            m_Renderer->EndFrame();
         }
     }
 
@@ -224,9 +229,28 @@ void Application::LoadGameObjects()
     transform3.rotation = {0.0f, 0.0f, 0.0f};
     std::unique_ptr<Object> obj3 = std::make_unique<Planet>(m_Device, "assets/models/sphere.obj", transform3, properties3);
     m_GameObjects.emplace(obj3->GetObjectID(), std::move(obj3));
+    
+    std::vector<Model::Vertex> OrbitPositions1;
+    std::vector<Model::Vertex> OrbitPositions2;
+    // fill array with garbage
+    for (int i = 0; i < 200; i++)
+    {
+        OrbitPositions1.push_back({{0.0f, 0.0f, 0.0f}, {0.0f,0.0f,0.0f}, {0.0f,0.0f,0.0f}, {0.0f,0.0f}});
+    }
+
+    for (int i = 0; i < 200; i++)
+    {
+        OrbitPositions2.push_back({{0.0f, 0.0f, 0.0f}, {0.0f,0.0f,0.0f}, {0.0f,0.0f,0.0f}, {0.0f,0.0f}});
+    }
+    Properties prop{};
+    Transform trans{};
+    std::unique_ptr<Object> orbit1 = std::make_unique<Orbit>(m_Device, OrbitPositions1, trans, prop);
+    m_Lines.emplace(orbit1->GetObjectID(), std::move(orbit1));
+    std::unique_ptr<Object> orbit2 = std::make_unique<Orbit>(m_Device, OrbitPositions2, trans, prop);
+    m_Lines.emplace(orbit2->GetObjectID(), std::move(orbit2));
 }
 
-void Application::Update(float delta, uint32_t substeps)
+void Application::Update(FrameInfo frameInfo, float delta, uint32_t substeps)
 {
     for (auto& kv: m_GameObjects)
     {
@@ -235,6 +259,20 @@ void Application::Update(float delta, uint32_t substeps)
         for (int i = 0; i < substeps; i++)
         {
             obj->Update(m_GameObjects, stepDelta);
-        }
+        } 
     }
+    static std::vector<Model::Vertex> s_Positions1;
+    static std::vector<Model::Vertex> s_Positions2;
+    if (s_Positions1.size() >= 200)
+    {
+        s_Positions1.erase(s_Positions1.begin());
+    }
+    if (s_Positions2.size() >= 200)
+    {
+        s_Positions2.erase(s_Positions2.begin());
+    }
+    s_Positions1.push_back({m_GameObjects[0]->GetObjectTransform().translation, {0.0f,0.0f,0.0f}, {0.0f,0.0f,0.0f}, {0.0f,0.0f}});
+    m_Lines[0]->GetObjectModel()->UpdateVertexBuffer(frameInfo.commandBuffer, m_Lines[0]->GetObjectModel()->GetVertexBuffer(), s_Positions1);
+    s_Positions2.push_back({m_GameObjects[1]->GetObjectTransform().translation, {0.0f,0.0f,0.0f}, {0.0f,0.0f,0.0f}, {0.0f,0.0f}});
+    m_Lines[1]->GetObjectModel()->UpdateVertexBuffer(frameInfo.commandBuffer, m_Lines[1]->GetObjectModel()->GetVertexBuffer(), s_Positions2);
 }

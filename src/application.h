@@ -25,13 +25,15 @@ public:
     void Run();
 private:
     void LoadGameObjects();
-    void Update(float delta, uint32_t substeps);
+    void Update(FrameInfo frameInfo, float delta, uint32_t substeps);
 
     Window m_Window{800, 600, "Gravity"};
     Device m_Device{m_Window};
     Camera m_Camera{};
+    std::unique_ptr<Renderer> m_Renderer;
     CameraController m_CameraController{m_Window.GetGLFWwindow()};
 
     std::unique_ptr<DescriptorPool> m_GlobalPool{};
     Map m_GameObjects;
+    Map m_Lines;
 };

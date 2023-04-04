@@ -5,14 +5,12 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
 
-#include <chrono>
-
 #include <iostream>
 
 void Planet::Draw(VkCommandBuffer commandBuffer)
 {
-    m_Model.Bind(commandBuffer);
-    m_Model.Draw(commandBuffer);
+    m_Model->Bind(commandBuffer);
+    m_Model->Draw(commandBuffer);
 }
 
 void Planet::Update(std::unordered_map<int, std::shared_ptr<Object>> gameObjects, float delta)

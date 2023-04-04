@@ -39,7 +39,7 @@ Model::~Model()
 void Model::CreateVertexBuffer(const std::vector<Vertex> &vertices)
 {
     m_VertexCount = static_cast<uint32_t>(vertices.size());
-    assert(m_VertexCount >= 3 && "Vertex count me be at least 3");
+    //assert(m_VertexCount >= 3 && "Vertex count me be at least 3");
     VkDeviceSize bufferSize = sizeof(vertices[0]) * m_VertexCount;
     uint32_t vertexSize = sizeof(vertices[0]);
 
@@ -184,12 +184,12 @@ std::vector<VkVertexInputAttributeDescription> Model::Vertex::GetAttributeDescri
     return attributeDescriptions;
 }
 
-Model Model::CreateModelFromFile(Device& device, const std::string& filepath)
+std::unique_ptr<Model> Model::CreateModelFromFile(Device& device, const std::string& filepath)
 {
     Builder builder{};
     builder.LoadModel(filepath);
 
-    return Model(device, builder);
+    return std::make_unique<Model>(device, builder);
 }
 
 void Model::Builder::LoadModel(const std::string& filepath)
@@ -254,4 +254,11 @@ void Model::Builder::LoadModel(const std::string& filepath)
             indices.push_back(uniqueVertices[vertex]);
         }
     }
+}
+
+static int count = 0;
+void Model::UpdateVertexBuffer(VkCommandBuffer cmd, Buffer* buffer, const std::vector<Vertex> &vertices)
+{
+    this->m_VertexCount = 200;
+    vkCmdUpdateBuffer(cmd, buffer->GetBuffer(), 0, sizeof(vertices[0]) * vertices.size(), vertices.data());
 }

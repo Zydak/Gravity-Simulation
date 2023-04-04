@@ -17,6 +17,16 @@ struct PushConstants
     glm::mat4 modelMatrix{1.0f};
 };
 
+struct BillboardsPushConstants
+{
+    glm::vec3 position{0.0f};
+};
+
+struct LinesPushConstants
+{
+    glm::vec3 positions[2];
+};
+
 class Renderer
 {
 public:
@@ -46,19 +56,29 @@ public:
     void BeginSwapChainRenderPass(VkCommandBuffer commandBuffer, const glm::vec3& clearColor);
     void EndSwapChainRenderPass(VkCommandBuffer commandBuffer);
     void RenderGameObjects(FrameInfo& frameInfo);
+    void RenderBillboards(FrameInfo& frameInfo, glm::vec3 position);
+    void RenderLines(FrameInfo& frameInfo, std::unordered_map<int, std::shared_ptr<Object>> gameObjects);
 private:
     void CreateCommandBuffers();
     void FreeCommandBuffers();
     void RecreateSwapChain();
-    void CreatePipelineLayout(VkDescriptorSetLayout globalSetLayout);
-    void CreatePipeline();
+    void CreateObjectsPipelineLayout(VkDescriptorSetLayout globalSetLayout);
+    void CreateObjectsPipeline();
+    void CreateBillboardsPipelineLayout(VkDescriptorSetLayout globalSetLayout);
+    void CreateBillboardsPipeline();
+    void CreateLinesPipelineLayout(VkDescriptorSetLayout globalSetLayout);
+    void CreateLinesPipeline();
 
     Window& m_Window;
     Device& m_Device;
     std::unique_ptr<SwapChain> m_SwapChain;
     std::vector<VkCommandBuffer> m_CommandBuffers;
-    std::unique_ptr<Pipeline> m_Pipeline;
-    VkPipelineLayout m_PipelineLayout;
+    std::unique_ptr<Pipeline> m_ObjectsPipeline;
+    VkPipelineLayout m_ObjectsPipelineLayout;
+    std::unique_ptr<Pipeline> m_BillboardsPipeline;
+    VkPipelineLayout m_BillboardsPipelineLayout;
+    std::unique_ptr<Pipeline> m_LinesPipeline;
+    VkPipelineLayout m_LinesPipelineLayout;
 
     uint32_t m_CurrentImageIndex = 0;
     int m_CurrentFrameIndex = 0;

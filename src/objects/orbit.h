@@ -3,10 +3,12 @@
 #include "../model.h"
 #include "../object.h"
 
-class Planet : public Object
+#include <vector>
+
+class Orbit : public Object
 {
 public:
-    Planet(Device& device, const std::string& filepath, Transform transform, Properties properties);
+    Orbit(Device& device, std::vector<Model::Vertex> positions, Transform transform, Properties properties);
     virtual void Draw(VkCommandBuffer commandBuffer) override;
     virtual void Update(std::unordered_map<int, std::shared_ptr<Object>> gameObjects, float delta) override;
     inline virtual Transform& GetObjectTransform() override { return m_Transform; }
