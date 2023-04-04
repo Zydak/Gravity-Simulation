@@ -1,7 +1,6 @@
 #include "application.h"
 
 #include "objects/planet.h"
-#include "objects/orbit.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -119,11 +118,6 @@ void Application::Run()
         OrbitAccumulator += delta;
         //std::cout << frameTime * 3600 << std::endl;
 
-        if (!ImGui::GetIO().WantCaptureMouse)
-        {
-            m_CameraController.Update(delta, m_Camera);
-        }
-
         m_Camera.SetViewTarget(glm::vec3(0.0f, 0.0f, 0.0f));
 
         float aspectRatio = m_Renderer->GetAspectRatio();
@@ -149,11 +143,15 @@ void Application::Run()
 
             while (accumulator > 0.016f)
             {
-                Update(frameInfo, 0.016f, 500);
+                Update(frameInfo, 0.016f, 2500);
                 accumulator -= 0.016f;
+                if (!ImGui::GetIO().WantCaptureMouse)
+                {
+                    m_CameraController.Update(0.016f, m_Camera);
+                }
             }
             m_Renderer->RenderGameObjects(frameInfo);
-            m_Renderer->RenderLines(frameInfo, m_Lines);
+            m_Renderer->RenderOrbits(frameInfo);
 
             ImGui_ImplVulkan_NewFrame();
             ImGui_ImplGlfw_NewFrame();
@@ -198,6 +196,7 @@ void Application::LoadGameObjects()
     properties1.velocity = {0.0f, 0.0f, 22.0f};
     properties1.mass = 1;
     properties1.isStatic = false;
+    properties1.orbitTraceLenght = 200;
 
     Transform transform1{};
     transform1.translation = {8.0f, 0.0f, 0.0f};
@@ -210,6 +209,7 @@ void Application::LoadGameObjects()
     properties2.velocity = {0.0f, 0.0f, -15.0f};
     properties2.mass = 5;
     properties2.isStatic = false;
+    properties2.orbitTraceLenght = 200;
 
     Transform transform2{};
     transform2.translation = {-15.0f, 0.0f, 0.0f};
@@ -222,6 +222,7 @@ void Application::LoadGameObjects()
     properties3.velocity = {0.0f, 0.0f, 0.0f};
     properties3.mass = 500;
     properties3.isStatic = true;
+    properties3.orbitTraceLenght = 0;
 
     Transform transform3{};
     transform3.translation = {0.0f, 0.0f, 0.0f};
@@ -229,25 +230,6 @@ void Application::LoadGameObjects()
     transform3.rotation = {0.0f, 0.0f, 0.0f};
     std::unique_ptr<Object> obj3 = std::make_unique<Planet>(m_Device, "assets/models/sphere.obj", transform3, properties3);
     m_GameObjects.emplace(obj3->GetObjectID(), std::move(obj3));
-    
-    std::vector<Model::Vertex> OrbitPositions1;
-    std::vector<Model::Vertex> OrbitPositions2;
-    // fill array with garbage
-    for (int i = 0; i < 200; i++)
-    {
-        OrbitPositions1.push_back({{0.0f, 0.0f, 0.0f}, {0.0f,0.0f,0.0f}, {0.0f,0.0f,0.0f}, {0.0f,0.0f}});
-    }
-
-    for (int i = 0; i < 200; i++)
-    {
-        OrbitPositions2.push_back({{0.0f, 0.0f, 0.0f}, {0.0f,0.0f,0.0f}, {0.0f,0.0f,0.0f}, {0.0f,0.0f}});
-    }
-    Properties prop{};
-    Transform trans{};
-    std::unique_ptr<Object> orbit1 = std::make_unique<Orbit>(m_Device, OrbitPositions1, trans, prop);
-    m_Lines.emplace(orbit1->GetObjectID(), std::move(orbit1));
-    std::unique_ptr<Object> orbit2 = std::make_unique<Orbit>(m_Device, OrbitPositions2, trans, prop);
-    m_Lines.emplace(orbit2->GetObjectID(), std::move(orbit2));
 }
 
 void Application::Update(FrameInfo frameInfo, float delta, uint32_t substeps)
@@ -260,19 +242,6 @@ void Application::Update(FrameInfo frameInfo, float delta, uint32_t substeps)
         {
             obj->Update(m_GameObjects, stepDelta);
         } 
+        obj->OrbitUpdate(frameInfo.commandBuffer);
     }
-    static std::vector<Model::Vertex> s_Positions1;
-    static std::vector<Model::Vertex> s_Positions2;
-    if (s_Positions1.size() >= 200)
-    {
-        s_Positions1.erase(s_Positions1.begin());
-    }
-    if (s_Positions2.size() >= 200)
-    {
-        s_Positions2.erase(s_Positions2.begin());
-    }
-    s_Positions1.push_back({m_GameObjects[0]->GetObjectTransform().translation, {0.0f,0.0f,0.0f}, {0.0f,0.0f,0.0f}, {0.0f,0.0f}});
-    m_Lines[0]->GetObjectModel()->UpdateVertexBuffer(frameInfo.commandBuffer, m_Lines[0]->GetObjectModel()->GetVertexBuffer(), s_Positions1);
-    s_Positions2.push_back({m_GameObjects[1]->GetObjectTransform().translation, {0.0f,0.0f,0.0f}, {0.0f,0.0f,0.0f}, {0.0f,0.0f}});
-    m_Lines[1]->GetObjectModel()->UpdateVertexBuffer(frameInfo.commandBuffer, m_Lines[1]->GetObjectModel()->GetVertexBuffer(), s_Positions2);
 }

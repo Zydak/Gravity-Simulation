@@ -4,15 +4,14 @@
 #include <stdexcept>
 #include <iostream>
 #include <cassert>
-#include "model.h"
 
-Pipeline::Pipeline(Device& device, 
-        const std::string& vertexPath, 
-        const std::string& fragmentPath, 
-        const PipelineConfigInfo& configInfo)
+#include "model.h"
+#include "orbitModel.h"
+
+Pipeline::Pipeline(Device& device)
         : m_Device(device)
 {
-    CreateGraphicsPipeline(vertexPath, fragmentPath, configInfo);
+
 }
 
 Pipeline::~Pipeline()
@@ -69,6 +68,77 @@ void Pipeline::CreateGraphicsPipeline(const std::string& vertexPath, const std::
 
     auto bindingDescription = Model::Vertex::GetBindingDescriptions();
     auto attributeDescription = Model::Vertex::GetAttributeDescriptions();
+
+    VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+    vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    vertexInputInfo.vertexAttributeDescriptionCount = (uint32_t)attributeDescription.size();
+    vertexInputInfo.pVertexAttributeDescriptions = attributeDescription.data();
+    vertexInputInfo.vertexBindingDescriptionCount = (uint32_t)bindingDescription.size();
+    vertexInputInfo.pVertexBindingDescriptions = bindingDescription.data();
+
+    VkPipelineViewportStateCreateInfo viewportInfo{};
+    viewportInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    viewportInfo.viewportCount = 1;
+    viewportInfo.pViewports = &configInfo.viewport;
+    viewportInfo.scissorCount = 1;
+    viewportInfo.pScissors = &configInfo.scissor;
+
+    VkGraphicsPipelineCreateInfo pipelineInfo = {};
+    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    pipelineInfo.stageCount = 2;
+    pipelineInfo.pStages = shaderStages;
+    pipelineInfo.pVertexInputState = &vertexInputInfo;
+    pipelineInfo.pInputAssemblyState = &configInfo.inputAssemblyInfo;
+    pipelineInfo.pViewportState = &viewportInfo;
+    pipelineInfo.pRasterizationState = &configInfo.rasterizationInfo;
+    pipelineInfo.pMultisampleState = &configInfo.multisampleInfo;
+    pipelineInfo.pColorBlendState = &configInfo.colorBlendInfo;
+    pipelineInfo.pDynamicState = nullptr;
+    pipelineInfo.pDepthStencilState = &configInfo.depthStencilInfo;
+
+    pipelineInfo.layout = configInfo.pipelineLayout;
+    pipelineInfo.renderPass = configInfo.renderPass;
+    pipelineInfo.subpass = configInfo.subpass;
+
+    pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+    pipelineInfo.basePipelineIndex = -1;
+
+    if (vkCreateGraphicsPipelines( m_Device.GetDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_Pipeline) != VK_SUCCESS) 
+    {
+        throw std::runtime_error("failed to create graphics pipeline!");
+    }
+}
+
+void Pipeline::CreateLinesPipeline(const std::string& vertexPath, const std::string& fragmentPath, const PipelineConfigInfo& configInfo)
+{
+    assert(configInfo.pipelineLayout != nullptr &&"Cannot create graphics pipeline: no pipelineLayout provided in config info");
+    assert(configInfo.renderPass != nullptr &&"Cannot create graphics pipeline: no renderPass provided in config info");
+
+    auto vertCode = ReadFile(vertexPath);
+    auto fragCode = ReadFile(fragmentPath);
+
+    CreateShaderModule(vertCode, &m_VertexShaderModule);
+    CreateShaderModule(fragCode, &m_FragmentShaderModule);
+
+    VkPipelineShaderStageCreateInfo shaderStages[2];
+    shaderStages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    shaderStages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
+    shaderStages[0].module = m_VertexShaderModule;
+    shaderStages[0].pName = "main";
+    shaderStages[0].flags = 0;
+    shaderStages[0].pNext = nullptr;
+    shaderStages[0].pSpecializationInfo = nullptr;
+
+    shaderStages[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    shaderStages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+    shaderStages[1].module = m_FragmentShaderModule;
+    shaderStages[1].pName = "main";
+    shaderStages[1].flags = 0;
+    shaderStages[1].pNext = nullptr;
+    shaderStages[1].pSpecializationInfo = nullptr;
+
+    auto bindingDescription = OrbitModel::Vertex::GetBindingDescriptions();
+    auto attributeDescription = OrbitModel::Vertex::GetAttributeDescriptions();
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;

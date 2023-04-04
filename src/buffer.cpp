@@ -84,6 +84,8 @@ void Buffer::WriteToBuffer(void *data, VkDeviceSize size, VkDeviceSize offset)
 {
     assert(m_Mapped && "Cannot copy to unmapped buffer");
     
+    if (data == nullptr)
+        return;
     if (size == VK_WHOLE_SIZE) 
     {
         memcpy(m_Mapped, data, m_BufferSize);

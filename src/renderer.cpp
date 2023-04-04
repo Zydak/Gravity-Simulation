@@ -268,7 +268,8 @@ void Renderer::CreateObjectsPipeline()
     auto pipelineConfig = Pipeline::DefaultPipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight());
     pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
     pipelineConfig.pipelineLayout = m_ObjectsPipelineLayout;
-    m_ObjectsPipeline = std::make_unique<Pipeline>(m_Device, "shaders/shader.vert.spv", "shaders/shader.frag.spv", pipelineConfig);
+    m_ObjectsPipeline = std::make_unique<Pipeline>(m_Device);
+    m_ObjectsPipeline->CreateGraphicsPipeline("shaders/shader.vert.spv", "shaders/shader.frag.spv", pipelineConfig);
 }
 
 void Renderer::CreateBillboardsPipeline() 
@@ -276,7 +277,8 @@ void Renderer::CreateBillboardsPipeline()
     auto pipelineConfig = Pipeline::DefaultPipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight());
     pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
     pipelineConfig.pipelineLayout = m_BillboardsPipelineLayout;
-    m_BillboardsPipeline = std::make_unique<Pipeline>(m_Device, "shaders/billboard.vert.spv", "shaders/billboard.frag.spv", pipelineConfig);
+    m_BillboardsPipeline = std::make_unique<Pipeline>(m_Device);
+    m_BillboardsPipeline->CreateGraphicsPipeline("shaders/billboard.vert.spv", "shaders/billboard.frag.spv", pipelineConfig);
 }
 
 void Renderer::CreateLinesPipeline() 
@@ -284,7 +286,8 @@ void Renderer::CreateLinesPipeline()
     auto pipelineConfig = Pipeline::LinesPipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight());
     pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
     pipelineConfig.pipelineLayout = m_LinesPipelineLayout;
-    m_LinesPipeline = std::make_unique<Pipeline>(m_Device, "shaders/lines.vert.spv", "shaders/lines.frag.spv", pipelineConfig);
+    m_LinesPipeline = std::make_unique<Pipeline>(m_Device);
+    m_LinesPipeline->CreateLinesPipeline("shaders/lines.vert.spv", "shaders/lines.frag.spv", pipelineConfig);
 }
 
 void Renderer::RenderBillboards(FrameInfo& frameInfo, glm::vec3 position)
@@ -300,14 +303,16 @@ void Renderer::RenderBillboards(FrameInfo& frameInfo, glm::vec3 position)
     vkCmdDraw(frameInfo.commandBuffer, 6, 1, 0, 0);
 }
 
-void Renderer::RenderLines(FrameInfo& frameInfo, std::unordered_map<int, std::shared_ptr<Object>> gameObjects)
+void Renderer::RenderOrbits(FrameInfo& frameInfo)
 {
     m_LinesPipeline->Bind(frameInfo.commandBuffer);
 
-    for (auto& kv: gameObjects)
+    for (auto& kv: frameInfo.gameObjects)
     {
         auto& obj = kv.second;
+        if (obj->GetObjectProperties().orbitTraceLenght <= 0)
+            continue;
 
-        obj->Draw(frameInfo.commandBuffer);
+        obj->DrawOrbit(frameInfo.commandBuffer);
     }
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "orbitModel.h"
 #include "model.h"
 #include <memory>
 #include <unordered_map>
@@ -29,6 +30,7 @@ struct Properties
     glm::vec3 velocity;
     float mass;
     bool isStatic;
+    uint32_t orbitTraceLenght;
 };
 
 class Object
@@ -40,9 +42,12 @@ public:
     virtual Properties& GetObjectProperties() = 0;
     virtual Transform& GetObjectTransform() = 0;
     virtual uint32_t GetObjectID() = 0;
+    virtual OrbitModel* GetOrbitModel() = 0;
     virtual Model* GetObjectModel() = 0;
     virtual void Draw(VkCommandBuffer commandBuffer) = 0;
+    virtual void DrawOrbit(VkCommandBuffer commandBuffer) = 0;
     virtual void Update(std::unordered_map<int, std::shared_ptr<Object>> gameObjects, float delta) = 0;
+    virtual void OrbitUpdate(VkCommandBuffer commandBuffer) = 0;
 
     Transform m_Transform;
     Properties m_Properties;

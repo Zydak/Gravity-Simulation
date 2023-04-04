@@ -57,7 +57,7 @@ public:
     void EndSwapChainRenderPass(VkCommandBuffer commandBuffer);
     void RenderGameObjects(FrameInfo& frameInfo);
     void RenderBillboards(FrameInfo& frameInfo, glm::vec3 position);
-    void RenderLines(FrameInfo& frameInfo, std::unordered_map<int, std::shared_ptr<Object>> gameObjects);
+    void RenderOrbits(FrameInfo& frameInfo);
 private:
     void CreateCommandBuffers();
     void FreeCommandBuffers();

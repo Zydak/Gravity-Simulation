@@ -13,6 +13,12 @@ void Planet::Draw(VkCommandBuffer commandBuffer)
     m_Model->Draw(commandBuffer);
 }
 
+void Planet::DrawOrbit(VkCommandBuffer commandBuffer)
+{
+    m_OrbitModel->Bind(commandBuffer);
+    m_OrbitModel->Draw(commandBuffer);
+}
+
 void Planet::Update(std::unordered_map<int, std::shared_ptr<Object>> gameObjects, float delta)
 {
     for (auto i = gameObjects.begin(); i != gameObjects.end(); i++)
@@ -39,9 +45,37 @@ void Planet::Update(std::unordered_map<int, std::shared_ptr<Object>> gameObjects
     }
 }
 
+void Planet::OrbitUpdate(VkCommandBuffer commandBuffer)
+{
+    if (m_Properties.orbitTraceLenght > 0)
+    {
+        if (m_OrbitPositions.size() >= m_Properties.orbitTraceLenght)
+        {
+            m_OrbitPositions.erase(m_OrbitPositions.begin());
+        }
+        m_OrbitPositions.push_back({m_Transform.translation});
+        if (m_OrbitModel->m_Count < 200)
+        {
+            m_OrbitModel->m_Count++;
+        }
+        
+        m_OrbitModel->UpdateVertexBuffer(commandBuffer, m_OrbitModel->GetVertexBuffer(), m_OrbitPositions);
+    }
+}
+
 Planet::Planet(Device& device, const std::string& filepath, Transform transform, Properties properties)
     : m_Model(Model::CreateModelFromFile(device, filepath)), m_Transform(transform), m_Properties(properties)
 {
     static uint32_t currentID = 0;
     m_ID = currentID++;
+
+    OrbitModel::Builder builder;
+    if (properties.orbitTraceLenght > 0)
+    {
+        for (int i = 0; i < properties.orbitTraceLenght; i++)
+        {
+            builder.vertices.push_back({{0.0f, 0.0f, 0.0f}});
+        }
+        m_OrbitModel = std::make_unique<OrbitModel>(device, builder);
+    }
 }

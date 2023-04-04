@@ -35,5 +35,4 @@ private:
 
     std::unique_ptr<DescriptorPool> m_GlobalPool{};
     Map m_GameObjects;
-    Map m_Lines;
 };
