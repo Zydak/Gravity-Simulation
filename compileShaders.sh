@@ -6,3 +6,6 @@ glslc shaders/billboard.frag -o shaders/billboard.frag.spv
 
 glslc shaders/lines.vert -o shaders/lines.vert.spv
 glslc shaders/lines.frag -o shaders/lines.frag.spv
+
+glslc shaders/simple.vert -o shaders/simple.vert.spv
+glslc shaders/simple.frag -o shaders/simple.frag.spv

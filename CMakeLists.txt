@@ -16,6 +16,7 @@ ${CMAKE_CURRENT_SOURCE_DIR}/libraries/imgui/backends/imgui_impl_vulkan.cpp
 
 include_directories(/)
 include_directories(libraries/)
+include_directories(libraries/stb_image/)
 include_directories(libraries/imgui)
 include_directories(libraries/glfw/include/)
 

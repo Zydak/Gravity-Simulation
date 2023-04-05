@@ -5,7 +5,26 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
 
+#include <stbimage/stb_image.h>
+
 #include <iostream>
+
+Planet::Planet(Device& device, const std::string& modelfilepath, Transform transform, Properties properties, const std::string& texturefilepath)
+    : m_Model(Model::CreateModelFromFile(device, modelfilepath, texturefilepath)), m_Transform(transform), m_Properties(properties)
+{
+    static uint32_t currentID = 0;
+    m_ID = currentID++;
+
+    OrbitModel::Builder builder;
+    if (properties.orbitTraceLenght > 0)
+    {
+        for (int i = 0; i < properties.orbitTraceLenght; i++)
+        {
+            builder.vertices.push_back({{0.0f, 0.0f, 0.0f}});
+        }
+        m_OrbitModel = std::make_unique<OrbitModel>(device, builder);
+    }
+}
 
 void Planet::Draw(VkCommandBuffer commandBuffer)
 {
@@ -54,28 +73,12 @@ void Planet::OrbitUpdate(VkCommandBuffer commandBuffer)
             m_OrbitPositions.erase(m_OrbitPositions.begin());
         }
         m_OrbitPositions.push_back({m_Transform.translation});
-        if (m_OrbitModel->m_Count < 200)
+        if (!FirstTime && m_OrbitModel->m_Count < m_Properties.orbitTraceLenght)
         {
             m_OrbitModel->m_Count++;
         }
+        FirstTime = false;
         
         m_OrbitModel->UpdateVertexBuffer(commandBuffer, m_OrbitModel->GetVertexBuffer(), m_OrbitPositions);
-    }
-}
-
-Planet::Planet(Device& device, const std::string& filepath, Transform transform, Properties properties)
-    : m_Model(Model::CreateModelFromFile(device, filepath)), m_Transform(transform), m_Properties(properties)
-{
-    static uint32_t currentID = 0;
-    m_ID = currentID++;
-
-    OrbitModel::Builder builder;
-    if (properties.orbitTraceLenght > 0)
-    {
-        for (int i = 0; i < properties.orbitTraceLenght; i++)
-        {
-            builder.vertices.push_back({{0.0f, 0.0f, 0.0f}});
-        }
-        m_OrbitModel = std::make_unique<OrbitModel>(device, builder);
     }
 }

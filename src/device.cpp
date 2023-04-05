@@ -19,7 +19,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
     std::string messageLevel = "";
     
     if (messageType == 0x00000001)
-        //std::cerr << "Validation Layer: Info" << "\n\t" << pCallbackData->pMessage << std::endl;
+        std::cerr << "Validation Layer: Info" << "\n\t" << pCallbackData->pMessage << std::endl;
     if (messageType == 0x00000002)
         std::cerr << "Validation Layer: Validation Error" << "\n\t" << pCallbackData->pMessage << std::endl;
     if (messageType == 0x00000004)
@@ -329,6 +329,7 @@ void Device::CreateLogicalDevice()
     }
 
     VkPhysicalDeviceFeatures deviceFeatures = {};
+    deviceFeatures.samplerAnisotropy = VK_TRUE;
 
     VkDeviceCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;

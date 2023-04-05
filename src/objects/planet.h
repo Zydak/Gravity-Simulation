@@ -6,7 +6,7 @@
 class Planet : public Object
 {
 public:
-    Planet(Device& device, const std::string& filepath, Transform transform, Properties properties);
+    Planet(Device& device, const std::string& modelfilepath, Transform transform, Properties properties, const std::string& texturefilepath = "");
     virtual void Draw(VkCommandBuffer commandBuffer) override;
     virtual void DrawOrbit(VkCommandBuffer commandBuffer) override;
     virtual void Update(std::unordered_map<int, std::shared_ptr<Object>> gameObjects, float delta) override;
@@ -23,4 +23,6 @@ public:
     Transform m_Transform;
     Properties m_Properties;
     std::vector<OrbitModel::Vertex> m_OrbitPositions;
+
+    bool FirstTime = true;
 };

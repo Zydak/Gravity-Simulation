@@ -7,6 +7,7 @@
 #include "pipeline.h"
 #include "camera.h"
 #include "frameInfo.h"
+#include "simpleModel.h"
 
 #include <memory>
 #include <vector>
@@ -58,6 +59,7 @@ public:
     void RenderGameObjects(FrameInfo& frameInfo);
     void RenderBillboards(FrameInfo& frameInfo, glm::vec3 position);
     void RenderOrbits(FrameInfo& frameInfo);
+    void RenderSimpleGeometry(FrameInfo& frameInfo, SimpleModel* geometry);
 private:
     void CreateCommandBuffers();
     void FreeCommandBuffers();
@@ -68,6 +70,8 @@ private:
     void CreateBillboardsPipeline();
     void CreateLinesPipelineLayout(VkDescriptorSetLayout globalSetLayout);
     void CreateLinesPipeline();
+    void CreateSimplePipelineLayout(VkDescriptorSetLayout globalSetLayout);
+    void CreateSimplePipeline();
 
     Window& m_Window;
     Device& m_Device;
@@ -79,6 +83,8 @@ private:
     VkPipelineLayout m_BillboardsPipelineLayout;
     std::unique_ptr<Pipeline> m_LinesPipeline;
     VkPipelineLayout m_LinesPipelineLayout;
+    std::unique_ptr<Pipeline> m_SimplePipeline;
+    VkPipelineLayout m_SimplePipelineLayout;
 
     uint32_t m_CurrentImageIndex = 0;
     int m_CurrentFrameIndex = 0;

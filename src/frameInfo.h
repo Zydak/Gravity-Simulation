@@ -2,6 +2,8 @@
 
 #include "camera.h"
 #include "object.h"
+#include "descriptors.h"
+#include "sampler.h"
 
 #include <vulkan/vulkan.h>
 #include <unordered_map>
@@ -17,4 +19,7 @@ struct FrameInfo
     Camera* camera;
     VkDescriptorSet globalDescriptorSet;
     Map gameObjects;
+    DescriptorSetLayout* globalDescriptorSetLayout;
+    DescriptorPool* globalDescriptorPool;
+    Sampler* sampler;
 };

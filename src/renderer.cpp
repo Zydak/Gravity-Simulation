@@ -9,6 +9,7 @@ Renderer::Renderer(Window& window, Device& device, VkDescriptorSetLayout globalS
 {
     CreateObjectsPipelineLayout(globalSetLayout);
     CreateLinesPipelineLayout(globalSetLayout);
+    CreateSimplePipelineLayout(globalSetLayout);
     //CreateBillboardsPipelineLayout(globalSetLayout);
     RecreateSwapChain();
     CreateCommandBuffers();
@@ -19,6 +20,7 @@ Renderer::~Renderer()
     FreeCommandBuffers();
     vkDestroyPipelineLayout(m_Device.GetDevice(), m_ObjectsPipelineLayout, nullptr);
     vkDestroyPipelineLayout(m_Device.GetDevice(), m_LinesPipelineLayout, nullptr);
+    vkDestroyPipelineLayout(m_Device.GetDevice(), m_SimplePipelineLayout, nullptr);
     //vkDestroyPipelineLayout(m_Device.GetDevice(), m_BillboardsPipelineLayout, nullptr);
     m_CommandBuffers.clear();
 }
@@ -49,6 +51,7 @@ void Renderer::RecreateSwapChain()
     
     CreateObjectsPipeline();
     CreateLinesPipeline();
+    CreateSimplePipeline();
     //CreateBillboardsPipeline();
 }
 
@@ -102,15 +105,12 @@ VkCommandBuffer Renderer::BeginFrame(const glm::vec3& clearColor)
     {
         throw std::runtime_error("failed to begin recording command buffer!");
     }
-
-    BeginSwapChainRenderPass(commandBuffer, clearColor);
     return commandBuffer;
 }
 
 void Renderer::EndFrame()
 {
     auto commandBuffer = GetCurrentCommandBuffer();
-    EndSwapChainRenderPass(commandBuffer);
     assert(m_IsFrameStarted && "Can't call EndFrame while frame is not in progress");
 
     if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
@@ -172,14 +172,12 @@ void Renderer::EndSwapChainRenderPass(VkCommandBuffer commandBuffer)
     vkCmdEndRenderPass(commandBuffer);
 }
 
-void Renderer::RenderGameObjects(FrameInfo& frameInfo)
+void Renderer::RenderOrbits(FrameInfo& frameInfo)
 {
-    m_ObjectsPipeline->Bind(frameInfo.commandBuffer);
-
     vkCmdBindDescriptorSets(
         frameInfo.commandBuffer,
         VK_PIPELINE_BIND_POINT_GRAPHICS,
-        m_ObjectsPipelineLayout,
+        m_LinesPipelineLayout,
         0,
         1,
         &frameInfo.globalDescriptorSet,
@@ -187,9 +185,44 @@ void Renderer::RenderGameObjects(FrameInfo& frameInfo)
         nullptr
     );
 
+    m_LinesPipeline->Bind(frameInfo.commandBuffer);
+
     for (auto& kv: frameInfo.gameObjects)
     {
         auto& obj = kv.second;
+        if (obj->GetObjectProperties().orbitTraceLenght <= 0)
+            continue;
+
+        obj->DrawOrbit(frameInfo.commandBuffer);
+    }
+}
+
+void Renderer::RenderGameObjects(FrameInfo& frameInfo)
+{
+    m_ObjectsPipeline->Bind(frameInfo.commandBuffer);
+
+    for (auto& kv: frameInfo.gameObjects)
+    {
+        auto& obj = kv.second;
+
+        VkDescriptorImageInfo imageInfo{};
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfo.imageView = obj->GetObjectModel()->GetTextureImage()->GetImageView();
+        imageInfo.sampler = frameInfo.sampler->GetSampler();
+        static DescriptorWriter writer(*frameInfo.globalDescriptorSetLayout, *frameInfo.globalDescriptorPool);
+        writer.WriteImage(1, &imageInfo);
+        writer.Overwrite(frameInfo.globalDescriptorSet);
+        
+        vkCmdBindDescriptorSets(
+            frameInfo.commandBuffer,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            m_ObjectsPipelineLayout,
+            0,
+            1,
+            &frameInfo.globalDescriptorSet,
+            0,
+            nullptr
+        );
 
         PushConstants push{};
         push.modelMatrix = obj->GetObjectTransform().mat4();
@@ -198,6 +231,24 @@ void Renderer::RenderGameObjects(FrameInfo& frameInfo)
             VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstants), &push);
         obj->Draw(frameInfo.commandBuffer);
     }
+}
+
+void Renderer::RenderSimpleGeometry(FrameInfo& frameInfo, SimpleModel* geometry)
+{
+    vkCmdBindDescriptorSets(
+        frameInfo.commandBuffer,
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
+        m_SimplePipelineLayout,
+        0,
+        1,
+        &frameInfo.globalDescriptorSet,
+        0,
+        nullptr
+    );
+
+    m_SimplePipeline->Bind(frameInfo.commandBuffer);
+    geometry->Bind(frameInfo.commandBuffer);
+    geometry->Draw(frameInfo.commandBuffer);
 }
 
 void Renderer::CreateObjectsPipelineLayout(VkDescriptorSetLayout globalSetLayout)
@@ -242,27 +293,6 @@ void Renderer::CreateBillboardsPipelineLayout(VkDescriptorSetLayout globalSetLay
     }
 }
 
-void Renderer::CreateLinesPipelineLayout(VkDescriptorSetLayout globalSetLayout)
-{
-    VkPushConstantRange pushConstantRange{};
-    pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-    pushConstantRange.offset = 0;
-    pushConstantRange.size = sizeof(LinesPushConstants);
-
-    std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout};
-
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = (uint32_t)descriptorSetLayouts.size();
-    pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
-    pipelineLayoutInfo.pushConstantRangeCount = 1;
-    pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
-    if (vkCreatePipelineLayout(m_Device.GetDevice(), &pipelineLayoutInfo, nullptr, &m_LinesPipelineLayout) != VK_SUCCESS) 
-    {
-        throw std::runtime_error("failed to create pipeline layout!");
-    }
-}
-
 void Renderer::CreateObjectsPipeline() 
 {
     auto pipelineConfig = Pipeline::DefaultPipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight());
@@ -289,6 +319,26 @@ void Renderer::CreateLinesPipeline()
     m_LinesPipeline = std::make_unique<Pipeline>(m_Device);
     m_LinesPipeline->CreateLinesPipeline("shaders/lines.vert.spv", "shaders/lines.frag.spv", pipelineConfig);
 }
+void Renderer::CreateLinesPipelineLayout(VkDescriptorSetLayout globalSetLayout)
+{
+    VkPushConstantRange pushConstantRange{};
+    pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    pushConstantRange.offset = 0;
+    pushConstantRange.size = sizeof(LinesPushConstants);
+
+    std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout};
+
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.setLayoutCount = (uint32_t)descriptorSetLayouts.size();
+    pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+    pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
+    if (vkCreatePipelineLayout(m_Device.GetDevice(), &pipelineLayoutInfo, nullptr, &m_LinesPipelineLayout) != VK_SUCCESS) 
+    {
+        throw std::runtime_error("failed to create pipeline layout!");
+    }
+}
 
 void Renderer::RenderBillboards(FrameInfo& frameInfo, glm::vec3 position)
 {
@@ -303,16 +353,27 @@ void Renderer::RenderBillboards(FrameInfo& frameInfo, glm::vec3 position)
     vkCmdDraw(frameInfo.commandBuffer, 6, 1, 0, 0);
 }
 
-void Renderer::RenderOrbits(FrameInfo& frameInfo)
+void Renderer::CreateSimplePipelineLayout(VkDescriptorSetLayout globalSetLayout)
 {
-    m_LinesPipeline->Bind(frameInfo.commandBuffer);
+    std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout};
 
-    for (auto& kv: frameInfo.gameObjects)
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.setLayoutCount = (uint32_t)descriptorSetLayouts.size();
+    pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
+    pipelineLayoutInfo.pushConstantRangeCount = 0;
+    pipelineLayoutInfo.pPushConstantRanges = nullptr;
+    if (vkCreatePipelineLayout(m_Device.GetDevice(), &pipelineLayoutInfo, nullptr, &m_SimplePipelineLayout) != VK_SUCCESS) 
     {
-        auto& obj = kv.second;
-        if (obj->GetObjectProperties().orbitTraceLenght <= 0)
-            continue;
-
-        obj->DrawOrbit(frameInfo.commandBuffer);
+        throw std::runtime_error("failed to create pipeline layout!");
     }
+}
+
+void Renderer::CreateSimplePipeline()
+{
+    auto pipelineConfig = Pipeline::SimplePipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight());
+    pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
+    pipelineConfig.pipelineLayout = m_SimplePipelineLayout;
+    m_SimplePipeline = std::make_unique<Pipeline>(m_Device);
+    m_SimplePipeline->CreateSimplePipeline("shaders/simple.vert.spv", "shaders/simple.frag.spv", pipelineConfig);
 }

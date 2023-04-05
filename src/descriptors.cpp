@@ -193,5 +193,6 @@ void DescriptorWriter::Overwrite(VkDescriptorSet &set)
         write.dstSet = set;
     }
     vkUpdateDescriptorSets(m_Pool.m_Device.GetDevice(), m_Writes.size(), m_Writes.data(), 0, nullptr);
+    m_Writes.clear();
 }
  

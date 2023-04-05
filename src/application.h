@@ -10,6 +10,9 @@
 #include "cameraController.h"
 #include "buffer.h"
 #include "descriptors.h"
+#include "simpleModel.h"
+#include "textureImage.h"
+#include "sampler.h"
 
 #include <iostream>
 #include <memory>
@@ -35,4 +38,8 @@ private:
 
     std::unique_ptr<DescriptorPool> m_GlobalPool{};
     Map m_GameObjects;
+    std::unique_ptr<SimpleModel> m_Obj;
+    
+    TextureImage m_Texture{m_Device, "assets/textures/viking_room.png"};
+    Sampler m_Sampler{m_Device};
 };

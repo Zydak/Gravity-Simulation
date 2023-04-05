@@ -25,11 +25,16 @@ namespace std
     };
 }
 
-Model::Model(Device& device, const Model::Builder& builder)
+Model::Model(Device& device, const Model::Builder& builder, const std::string& textureFilepath)
     : m_Device(device)
 {
     CreateVertexBuffer(builder.vertices);
     CreateIndexBuffer(builder.indices);
+
+    if (textureFilepath != "")
+    {
+        m_TextureImage = std::make_unique<TextureImage>(m_Device, textureFilepath);
+    }
 }
 Model::~Model()
 {
@@ -179,27 +184,28 @@ std::vector<VkVertexInputAttributeDescription> Model::Vertex::GetAttributeDescri
     attributeDescriptions.push_back({0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, position)});
     attributeDescriptions.push_back({1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color)});
     attributeDescriptions.push_back({2, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal)});
-    attributeDescriptions.push_back({3, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, uv)});
+    attributeDescriptions.push_back({3, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, texCoord)});
+    attributeDescriptions.push_back({4, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, uv)});
 
     return attributeDescriptions;
 }
 
-std::unique_ptr<Model> Model::CreateModelFromFile(Device& device, const std::string& filepath)
+std::unique_ptr<Model> Model::CreateModelFromFile(Device& device, const std::string& modelFilepath, const std::string& textureFilepath)
 {
     Builder builder{};
-    builder.LoadModel(filepath);
+    builder.LoadModel(modelFilepath);
 
-    return std::make_unique<Model>(device, builder);
+    return std::make_unique<Model>(device, builder, textureFilepath);
 }
 
-void Model::Builder::LoadModel(const std::string& filepath)
+void Model::Builder::LoadModel(const std::string& modelFilepath)
 {
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
     std::vector<tinyobj::material_t> materials;
     std::string warn, err;
 
-    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, filepath.c_str()))
+    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, modelFilepath.c_str()))
     {
         throw std::runtime_error(warn + err);
     }
@@ -226,6 +232,14 @@ void Model::Builder::LoadModel(const std::string& filepath)
                     attrib.colors[3 * index.vertex_index + 0],
                     attrib.colors[3 * index.vertex_index + 1],
                     attrib.colors[3 * index.vertex_index + 2],
+                };
+            }
+
+            if (index.texcoord_index >= 0)
+            {
+                vertex.texCoord = {
+                    attrib.texcoords[2 * index.texcoord_index + 0],
+                    1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
                 };
             }
 

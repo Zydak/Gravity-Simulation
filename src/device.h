@@ -51,12 +51,12 @@ public:
     VkPhysicalDeviceProperties m_Properties;
     void EndSingleTimeCommands(VkCommandBuffer commandBuffer);
     void BeginSingleTimeCommands(VkCommandBuffer& buffer);
+    uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 private:
     std::vector<const char *> GetRequiredGlfwExtensions();
     void CheckRequiredGlfwExtensions();
     bool IsDeviceSuitable(VkPhysicalDevice device);
     QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
-    uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
     void CreateInstance();
     void SetupDebugMessenger();

@@ -2,6 +2,7 @@
 
 #include "device.h"
 #include "buffer.h"
+#include "textureImage.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -18,6 +19,7 @@ public:
         glm::vec3 position;
         glm::vec3 color;
         glm::vec3 normal;
+        glm::vec2 texCoord;
         glm::vec2 uv;
 
         static std::vector<VkVertexInputBindingDescription> GetBindingDescriptions();
@@ -33,16 +35,18 @@ public:
         std::vector<Vertex> vertices{};
         std::vector<uint32_t> indices;
 
-        void LoadModel(const std::string& filepath);
+        void LoadModel(const std::string& modelFilepath);
     };
 
-    Model(Device& device, const Model::Builder& builder);
+    Model(Device& device, const Model::Builder& builder, const std::string& textureFilepath);
     ~Model();
 
     Model(const Model&) = delete;
     Model& operator=(const Model&) = delete;
 
-    static std::unique_ptr<Model> CreateModelFromFile(Device& device, const std::string& filepath);
+    inline TextureImage* GetTextureImage() { return m_TextureImage.get(); }
+
+    static std::unique_ptr<Model> CreateModelFromFile(Device& device, const std::string& modelFilepath, const std::string& textureFilepath);
 
     void Bind(VkCommandBuffer commandBuffer);
     void Draw(VkCommandBuffer commandBuffer);
@@ -61,4 +65,6 @@ private:
     bool m_HasIndexBuffer = false;
     std::unique_ptr<Buffer> m_IndexBuffer;
     uint32_t m_IndexCount;
+
+    std::unique_ptr<TextureImage> m_TextureImage;
 };
