@@ -34,10 +34,10 @@ struct GlobalUbo
 Application::Application()
 {
     m_GlobalPool = DescriptorPool::Builder(m_Device)
-        .SetMaxSets(SwapChain::MAX_FRAMES_IN_FLIGHT * 2) // * 2 for imgui
+        .SetMaxSets(SwapChain::MAX_FRAMES_IN_FLIGHT * 2 + 3) // * 2 for imgui
         .SetPoolFlags(VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT)
         .AddPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, SwapChain::MAX_FRAMES_IN_FLIGHT)
-        .AddPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, SwapChain::MAX_FRAMES_IN_FLIGHT * 2)
+        .AddPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, SwapChain::MAX_FRAMES_IN_FLIGHT * 2 + 3)
         .Build();
     
     LoadGameObjects();
@@ -70,7 +70,6 @@ void Application::Run()
 
     auto globalSetLayout = DescriptorSetLayout::Builder(m_Device)
         .AddBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
-        .AddBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
         .Build();
 
     m_Renderer = std::make_unique<Renderer>(m_Window, m_Device, globalSetLayout->GetDescriptorSetLayout());
@@ -79,13 +78,8 @@ void Application::Run()
     for (int i = 0; i < globalDescriptorSets.size(); i++)
     {
         VkDescriptorBufferInfo bufferInfo = uboBuffers[i]->DescriptorInfo();
-        VkDescriptorImageInfo imageInfo{};
-        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = m_Texture.GetImageView();
-        imageInfo.sampler = m_Sampler.GetSampler();
         DescriptorWriter(*globalSetLayout, *m_GlobalPool)
             .WriteBuffer(0, &bufferInfo)
-            .WriteImage(1, &imageInfo)
             .Build(globalDescriptorSets[i]);
     }
     ImGui_ImplGlfw_InitForVulkan(m_Window.GetGLFWwindow(), true);
@@ -214,6 +208,11 @@ void Application::Run()
 
 void Application::LoadGameObjects()
 {
+    ObjectInfo objInfo{};
+    objInfo.descriptorPool = m_GlobalPool.get();
+    objInfo.device = &m_Device;
+    objInfo.sampler = &m_Sampler;
+
     Properties properties1{};
     properties1.velocity = {0.0f, 0.0f, 24.0f};
     properties1.mass = 1;
@@ -224,7 +223,7 @@ void Application::LoadGameObjects()
     transform1.translation = {8.0f, 0.0f, 0.0f};
     transform1.scale = glm::vec3{1.0f, 1.0f, 1.0f} * properties1.mass/2.0f;
     transform1.rotation = {0.0f, 0.0f, 0.0f};
-    std::unique_ptr<Object> obj1 = std::make_unique<Planet>(m_Device, "assets/models/sphere.obj", transform1, properties1, "assets/textures/statue.jpg");
+    std::unique_ptr<Object> obj1 = std::make_unique<Planet>(objInfo, "assets/models/sphere.obj", transform1, properties1, "assets/textures/statue.jpg");
     m_GameObjects.emplace(obj1->GetObjectID(), std::move(obj1));
 
     Properties properties2{};
@@ -237,7 +236,7 @@ void Application::LoadGameObjects()
     transform2.translation = {-15.0f, 0.0f, 0.0f};
     transform2.scale = glm::vec3{1.0f, 1.0f, 1.0f} * properties2.mass/6.0f;
     transform2.rotation = {0.0f, 0.0f, 0.0f};
-    std::unique_ptr<Object> obj2 = std::make_unique<Planet>(m_Device, "assets/models/sphere.obj", transform2, properties2, "assets/textures/viking_room.png");
+    std::unique_ptr<Object> obj2 = std::make_unique<Planet>(objInfo, "assets/models/sphere.obj", transform2, properties2, "assets/textures/viking_room.png");
     m_GameObjects.emplace(obj2->GetObjectID(), std::move(obj2));
 
     Properties properties3{};
@@ -250,7 +249,7 @@ void Application::LoadGameObjects()
     transform3.translation = {00.0f, 0.0f, 0.0f};
     transform3.scale = glm::vec3{1.0f, 1.0f, 1.0f};
     transform3.rotation = {0.0f, 0.0f, 0.0f};
-    std::unique_ptr<Object> obj3 = std::make_unique<Planet>(m_Device, "assets/models/sphere.obj", transform3, properties3, "assets/textures/statue.jpg");
+    std::unique_ptr<Object> obj3 = std::make_unique<Planet>(objInfo, "assets/models/sphere.obj", transform3, properties3, "assets/textures/statue.jpg");
     m_GameObjects.emplace(obj3->GetObjectID(), std::move(obj3));
 
     // Simple Geometry

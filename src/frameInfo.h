@@ -23,3 +23,10 @@ struct FrameInfo
     DescriptorPool* globalDescriptorPool;
     Sampler* sampler;
 };
+
+struct ObjectInfo
+{
+    Device* device;
+    Sampler* sampler;
+    DescriptorPool* descriptorPool;
+};

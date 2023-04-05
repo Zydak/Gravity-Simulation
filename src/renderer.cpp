@@ -200,19 +200,20 @@ void Renderer::RenderOrbits(FrameInfo& frameInfo)
 void Renderer::RenderGameObjects(FrameInfo& frameInfo)
 {
     m_ObjectsPipeline->Bind(frameInfo.commandBuffer);
-
+    
     for (auto& kv: frameInfo.gameObjects)
     {
         auto& obj = kv.second;
 
-        VkDescriptorImageInfo imageInfo{};
-        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = obj->GetObjectModel()->GetTextureImage()->GetImageView();
-        imageInfo.sampler = frameInfo.sampler->GetSampler();
-        static DescriptorWriter writer(*frameInfo.globalDescriptorSetLayout, *frameInfo.globalDescriptorPool);
-        writer.WriteImage(1, &imageInfo);
-        writer.Overwrite(frameInfo.globalDescriptorSet);
-        
+        //VkDescriptorImageInfo imageInfo{};
+        //imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        //imageInfo.imageView = obj->GetObjectModel()->GetTextureImage()->GetImageView();
+        //imageInfo.sampler = frameInfo.sampler->GetSampler();
+        //static DescriptorWriter writer(*frameInfo.globalDescriptorSetLayout, *frameInfo.globalDescriptorPool);
+        //writer.WriteImage(1, &imageInfo);
+        //writer.Overwrite(frameInfo.globalDescriptorSet);
+        //
+
         vkCmdBindDescriptorSets(
             frameInfo.commandBuffer,
             VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -223,13 +224,14 @@ void Renderer::RenderGameObjects(FrameInfo& frameInfo)
             0,
             nullptr
         );
+        
 
         PushConstants push{};
         push.modelMatrix = obj->GetObjectTransform().mat4();
 
         vkCmdPushConstants(frameInfo.commandBuffer, m_ObjectsPipelineLayout, 
             VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstants), &push);
-        obj->Draw(frameInfo.commandBuffer);
+        obj->Draw(m_ObjectsPipelineLayout, frameInfo.commandBuffer);
     }
 }
 
@@ -258,7 +260,10 @@ void Renderer::CreateObjectsPipelineLayout(VkDescriptorSetLayout globalSetLayout
     pushConstantRange.offset = 0;
     pushConstantRange.size = sizeof(PushConstants);
 
-    std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout};
+    auto m_SetLayout = DescriptorSetLayout::Builder(m_Device)
+        .AddBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+        .Build();
+    std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout, m_SetLayout->GetDescriptorSetLayout()};
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;

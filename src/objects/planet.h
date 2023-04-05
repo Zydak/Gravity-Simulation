@@ -2,12 +2,15 @@
 
 #include "../model.h"
 #include "../object.h"
+#include "../frameInfo.h"
+
+#include "../descriptors.h"
 
 class Planet : public Object
 {
 public:
-    Planet(Device& device, const std::string& modelfilepath, Transform transform, Properties properties, const std::string& texturefilepath = "");
-    virtual void Draw(VkCommandBuffer commandBuffer) override;
+    Planet(ObjectInfo objInfo, const std::string& modelfilepath, Transform transform, Properties properties, const std::string& texturefilepath = "");
+    virtual void Draw(VkPipelineLayout layout, VkCommandBuffer commandBuffer) override;
     virtual void DrawOrbit(VkCommandBuffer commandBuffer) override;
     virtual void Update(std::unordered_map<int, std::shared_ptr<Object>> gameObjects, float delta) override;
     virtual void OrbitUpdate(VkCommandBuffer commandBuffer) override;
@@ -23,6 +26,8 @@ public:
     Transform m_Transform;
     Properties m_Properties;
     std::vector<OrbitModel::Vertex> m_OrbitPositions;
+    VkDescriptorSet m_DescriptorSet;
+    std::unique_ptr<DescriptorSetLayout> m_SetLayout;
 
     bool FirstTime = true;
 };

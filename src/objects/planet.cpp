@@ -9,8 +9,8 @@
 
 #include <iostream>
 
-Planet::Planet(Device& device, const std::string& modelfilepath, Transform transform, Properties properties, const std::string& texturefilepath)
-    : m_Model(Model::CreateModelFromFile(device, modelfilepath, texturefilepath)), m_Transform(transform), m_Properties(properties)
+Planet::Planet(ObjectInfo objInfo, const std::string& modelfilepath, Transform transform, Properties properties, const std::string& texturefilepath)
+    : m_Model(Model::CreateModelFromFile(*objInfo.device, modelfilepath, texturefilepath)), m_Transform(transform), m_Properties(properties)
 {
     static uint32_t currentID = 0;
     m_ID = currentID++;
@@ -22,12 +22,34 @@ Planet::Planet(Device& device, const std::string& modelfilepath, Transform trans
         {
             builder.vertices.push_back({{0.0f, 0.0f, 0.0f}});
         }
-        m_OrbitModel = std::make_unique<OrbitModel>(device, builder);
+        m_OrbitModel = std::make_unique<OrbitModel>(*objInfo.device, builder);
     }
+
+    auto m_SetLayout = DescriptorSetLayout::Builder(*objInfo.device)
+        .AddBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+        .Build();
+    VkDescriptorImageInfo imageInfo{};
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfo.imageView = m_Model->GetTextureImage()->GetImageView();
+    imageInfo.sampler = objInfo.sampler->GetSampler();
+    DescriptorWriter(*m_SetLayout, *objInfo.descriptorPool)
+        .WriteImage(0, &imageInfo)
+        .Build(m_DescriptorSet);
 }
 
-void Planet::Draw(VkCommandBuffer commandBuffer)
+void Planet::Draw(VkPipelineLayout layout, VkCommandBuffer commandBuffer)
 {
+    vkCmdBindDescriptorSets(
+            commandBuffer,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            layout,
+            1,
+            1,
+            &m_DescriptorSet,
+            0,
+            nullptr
+        );
+    
     m_Model->Bind(commandBuffer);
     m_Model->Draw(commandBuffer);
 }

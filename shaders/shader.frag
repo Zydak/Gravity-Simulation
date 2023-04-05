@@ -15,7 +15,7 @@ layout(set = 0, binding = 0) uniform GlobalUbo
     vec4 lightColor;
 } ubo;
 
-layout(set = 0, binding = 1) uniform sampler2D texSampler;
+layout(set = 1, binding = 0) uniform sampler2D texSampler;
 
 void main()
 {
