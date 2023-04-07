@@ -5,9 +5,9 @@
 #include <iostream>
 #include <cassert>
 
-#include "model.h"
-#include "orbitModel.h"
-#include "simpleModel.h"
+#include "models/model.h"
+#include "models/orbitModel.h"
+#include "models/simpleModel.h"
 
 Pipeline::Pipeline(Device& device)
         : m_Device(device)

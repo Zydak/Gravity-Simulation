@@ -10,7 +10,7 @@
 #include "cameraController.h"
 #include "buffer.h"
 #include "descriptors.h"
-#include "simpleModel.h"
+#include "models/simpleModel.h"
 #include "textureImage.h"
 #include "sampler.h"
 

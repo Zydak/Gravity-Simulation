@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../model.h"
+#include "../models/model.h"
 #include "../object.h"
 #include "../frameInfo.h"
 

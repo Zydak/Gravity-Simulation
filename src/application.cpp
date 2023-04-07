@@ -214,7 +214,7 @@ void Application::LoadGameObjects()
     objInfo.sampler = &m_Sampler;
 
     Properties properties1{};
-    properties1.velocity = {0.0f, 0.0f, 24.0f};
+    properties1.velocity = {0.0f, 0.0f, 24.5f};
     properties1.mass = 1;
     properties1.isStatic = false;
     properties1.orbitTraceLenght = 200;
