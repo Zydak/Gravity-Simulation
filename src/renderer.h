@@ -7,7 +7,7 @@
 #include "pipeline.h"
 #include "camera.h"
 #include "frameInfo.h"
-#include "simpleModel.h"
+#include "models/simpleModel.h"
 
 #include <memory>
 #include <vector>
