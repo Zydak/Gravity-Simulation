@@ -50,7 +50,7 @@ CameraController::~CameraController()
 /*
     * @brief Updates camera position based on mouse movement
 */
-void CameraController::Update(float delta, Camera& camera)
+void CameraController::Update(float delta, Camera& camera, glm::vec3 target)
 {
     float radius = scrollY;
     if (glfwGetMouseButton(m_Window, 0) == GLFW_PRESS)
@@ -76,9 +76,9 @@ void CameraController::Update(float delta, Camera& camera)
     }
     
     // Equation for camera positioning around a sphere
-    camera.m_Transform.translation.x = radius * -sinf(yaw*(M_PI/180)) * cosf((pitch)*(M_PI/180));
-    camera.m_Transform.translation.y = radius * -sinf((pitch)*(M_PI/180));
-    camera.m_Transform.translation.z = -radius * cosf((yaw)*(M_PI/180)) * cosf((pitch)*(M_PI/180));
+    camera.m_Transform.translation.x = target.x + radius * -sinf(yaw*(M_PI/180)) * cosf((pitch)*(M_PI/180));
+    camera.m_Transform.translation.y = target.y + radius * -sinf((pitch)*(M_PI/180));
+    camera.m_Transform.translation.z = target.z + -radius * cosf((yaw)*(M_PI/180)) * cosf((pitch)*(M_PI/180));
 
     // only for debuging info
     camera.m_Transform.rotation.x = yaw;

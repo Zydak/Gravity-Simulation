@@ -1,6 +1,7 @@
 #include "application.h"
 
 #include "objects/planet.h"
+#include "objects/star.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -121,6 +122,7 @@ void Application::Run()
 
         float aspectRatio = m_Renderer->GetAspectRatio();
         m_Camera.SetPerspectiveProjection(glm::radians(50.0f), aspectRatio, 0.1f, 1000.0f);
+        m_Camera.SetViewTarget(m_GameObjects[2]->GetObjectTransform().translation);
 
         if (auto commandBuffer = m_Renderer->BeginFrame({0.02f, 0.02f, 0.02f})) 
         {
@@ -151,17 +153,16 @@ void Application::Run()
                     Update(frameInfo, 0.016f, stepCount);
                 }
                 accumulator -= 0.016f;
-                m_Camera.SetViewTarget({0.0f, 0.0f, 0.0f});
+
                 if (!ImGui::GetIO().WantCaptureMouse)
                 {
-                    m_CameraController.Update(0.016f, m_Camera);
+                    m_CameraController.Update(0.016f, m_Camera, m_GameObjects[2]->GetObjectTransform().translation);
                 }
             }
 
             // ------------------- RENDER PASS -----------------
             m_Renderer->BeginSwapChainRenderPass(commandBuffer, {0.02f, 0.02f, 0.02f});
-            
-            m_Renderer->RenderOrbits(frameInfo);
+
             m_Renderer->RenderGameObjects(frameInfo);
             //m_Renderer->RenderSimpleGeometry(frameInfo, m_Obj.get());
 
@@ -170,7 +171,7 @@ void Application::Run()
             ImGui::NewFrame();
  
             ImGui::Begin("Settings", (bool*)false, 0);
-            ImGui::SliderInt("Speed", &speed, 1, 10);
+            ImGui::SliderInt("Speed", &speed, 1, 20);
             ImGui::SliderInt("StepCount", &stepCount, 1, 2500);
             if (FPSaccumulator > 0.5f)
             {
@@ -214,42 +215,45 @@ void Application::LoadGameObjects()
     objInfo.sampler = &m_Sampler;
 
     Properties properties1{};
-    properties1.velocity = {0.0f, 0.0f, 24.5f};
+    properties1.velocity = {0.0f, 0.0f, -19.0f};
     properties1.mass = 1;
     properties1.isStatic = false;
     properties1.orbitTraceLenght = 200;
+    properties1.rotationSpeed = {0.0f, 0.05f, 0.0f};
 
     Transform transform1{};
     transform1.translation = {8.0f, 0.0f, 0.0f};
     transform1.scale = glm::vec3{1.0f, 1.0f, 1.0f} * properties1.mass/2.0f;
     transform1.rotation = {0.0f, 0.0f, 0.0f};
-    std::unique_ptr<Object> obj1 = std::make_unique<Planet>(objInfo, "assets/models/sphere.obj", transform1, properties1, "assets/textures/statue.jpg");
+    std::unique_ptr<Object> obj1 = std::make_unique<Planet>(0, objInfo, "assets/models/sphere.obj", transform1, properties1, "assets/textures/earth.jpg");
     m_GameObjects.emplace(obj1->GetObjectID(), std::move(obj1));
 
     Properties properties2{};
-    properties2.velocity = {0.0f, 0.0f, -16.0f};
+    properties2.velocity = {0.0f, 0.0f, 12.5f};
     properties2.mass = 5;
     properties2.isStatic = false;
     properties2.orbitTraceLenght = 200;
+    properties2.rotationSpeed = {0.0f, 0.05f, 0.0f};
 
     Transform transform2{};
     transform2.translation = {-15.0f, 0.0f, 0.0f};
     transform2.scale = glm::vec3{1.0f, 1.0f, 1.0f} * properties2.mass/6.0f;
     transform2.rotation = {0.0f, 0.0f, 0.0f};
-    std::unique_ptr<Object> obj2 = std::make_unique<Planet>(objInfo, "assets/models/sphere.obj", transform2, properties2, "assets/textures/viking_room.png");
+    std::unique_ptr<Object> obj2 = std::make_unique<Planet>(1, objInfo, "assets/models/sphere.obj", transform2, properties2, "assets/textures/jupiter.jpg");
     m_GameObjects.emplace(obj2->GetObjectID(), std::move(obj2));
 
     Properties properties3{};
     properties3.velocity = {0.0f, 0.0f, 0.0f};
     properties3.mass = 500;
-    properties3.isStatic = true;
-    properties3.orbitTraceLenght = 0;
+    properties3.isStatic = true; // static means other object can't affect velocity but it is still applied
+    properties3.orbitTraceLenght = 200;
+    properties3.rotationSpeed = {0.0f, 0.01f, 0.0f};
 
     Transform transform3{};
-    transform3.translation = {00.0f, 0.0f, 0.0f};
+    transform3.translation = {0.0f, 0.0f, 0.0f};
     transform3.scale = glm::vec3{1.0f, 1.0f, 1.0f};
     transform3.rotation = {0.0f, 0.0f, 0.0f};
-    std::unique_ptr<Object> obj3 = std::make_unique<Planet>(objInfo, "assets/models/sphere.obj", transform3, properties3, "assets/textures/statue.jpg");
+    std::unique_ptr<Object> obj3 = std::make_unique<Star>(2, objInfo, "assets/models/sphere.obj", transform3, properties3, "assets/textures/sun.jpg");
     m_GameObjects.emplace(obj3->GetObjectID(), std::move(obj3));
 
     // Simple Geometry
@@ -278,7 +282,30 @@ void Application::Update(FrameInfo frameInfo, float delta, uint32_t substeps)
         for (int i = 0; i < substeps; i++)
         {
             obj->Update(m_GameObjects, stepDelta);
+            // for (auto iterA = m_GameObjects.begin(); iterA != m_GameObjects.end(); iterA++)
+            // {
+            //     auto& objA = iterA->second;
+            //     for(auto iterB = iterA; iterB != m_GameObjects.end(); iterB++)
+            //     {
+            //         if (iterA == iterB) continue;
+            //         auto& objB = iterB->second;
+
+            //         auto offset = objB->GetObjectTransform().translation - objA->GetObjectTransform().translation;
+            //         float distanceSquared = glm::dot(offset, offset);
+
+            //         float force = 15.0 * objB->GetObjectProperties().mass * objA->GetObjectProperties().mass / distanceSquared;
+            //         glm::vec3 trueForce = force * offset / glm::sqrt(distanceSquared);
+            //         auto aVel = stepDelta * (stepDelta * trueForce / objA->GetObjectProperties().mass);
+            //         auto bVel = stepDelta * -trueForce / objB->GetObjectProperties().mass;
+            //         objA->GetObjectProperties().velocity   += stepDelta * trueForce / objA->GetObjectProperties().mass;
+            //         objB->GetObjectProperties().velocity   += stepDelta * -trueForce / objB->GetObjectProperties().mass;
+            //         objA->GetObjectTransform().translation += stepDelta * objA->GetObjectProperties().velocity;
+            //         objB->GetObjectTransform().translation += stepDelta * objB->GetObjectProperties().velocity;
+            //     }
+            // }
         } 
+        auto sralnia = obj->GetObjectTransform();
         obj->OrbitUpdate(frameInfo.commandBuffer);
+        obj->GetObjectTransform().rotation += obj->GetObjectProperties().rotationSpeed;
     }
 }

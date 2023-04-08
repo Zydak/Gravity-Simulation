@@ -30,7 +30,7 @@ private:
     void LoadGameObjects();
     void Update(FrameInfo frameInfo, float delta, uint32_t substeps);
 
-    Window m_Window{800, 600, "Gravity"};
+    Window m_Window{1600, 900, "Gravity"};
     Device m_Device{m_Window};
     Camera m_Camera{};
     std::unique_ptr<Renderer> m_Renderer;

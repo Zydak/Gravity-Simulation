@@ -7,6 +7,9 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
+#define OBJ_TYPE_PLANET 0
+#define OBJ_TYPE_STAR 1
+
 struct Transform
 {
     glm::vec3 translation{};
@@ -31,6 +34,7 @@ struct Properties
     float mass;
     bool isStatic;
     uint32_t orbitTraceLenght;
+    glm::vec3 rotationSpeed;
 };
 
 class Object
@@ -48,6 +52,7 @@ public:
     virtual void DrawOrbit(VkCommandBuffer commandBuffer) = 0;
     virtual void Update(std::unordered_map<int, std::shared_ptr<Object>> gameObjects, float delta) = 0;
     virtual void OrbitUpdate(VkCommandBuffer commandBuffer) = 0;
+    virtual uint32_t GetObjectType() = 0;
 
     Transform m_Transform;
     Properties m_Properties;
