@@ -108,6 +108,7 @@ void Application::Run()
     float accumulator = 0;
     float FPSaccumulator = 0;
     float FPS = 0;
+    int TargetLock = 2;
 
     while(!m_Window.ShouldClose())
     {
@@ -119,20 +120,12 @@ void Application::Run()
         accumulator += delta;
         FPSaccumulator += delta;
         OrbitAccumulator += delta;
-
-        float aspectRatio = m_Renderer->GetAspectRatio();
-        m_Camera.SetPerspectiveProjection(glm::radians(50.0f), aspectRatio, 0.1f, 1000.0f);
-        m_Camera.SetViewTarget(m_GameObjects[2]->GetObjectTransform().translation);
+        
 
         if (auto commandBuffer = m_Renderer->BeginFrame({0.02f, 0.02f, 0.02f})) 
         {
             int frameIndex = m_Renderer->GetFrameIndex();
-            GlobalUbo ubo{};
-            ubo.projection = m_Camera.GetProjection();
-            ubo.view = m_Camera.GetView();
-            uboBuffers[frameIndex]->WriteToBuffer(&ubo);
-            uboBuffers[frameIndex]->Flush();
-
+            
             FrameInfo frameInfo{};
             frameInfo.frameIndex = frameIndex;
             frameInfo.camera = &m_Camera;
@@ -154,10 +147,15 @@ void Application::Run()
                 }
                 accumulator -= 0.016f;
 
-                if (!ImGui::GetIO().WantCaptureMouse)
-                {
-                    m_CameraController.Update(0.016f, m_Camera, m_GameObjects[2]->GetObjectTransform().translation);
-                }
+                float aspectRatio = m_Renderer->GetAspectRatio();
+                m_Camera.SetPerspectiveProjection(glm::radians(50.0f), aspectRatio, 0.1f, 1000.0f);
+                m_CameraController.Update(0.016f, m_Camera, m_GameObjects[TargetLock]->GetObjectTransform().translation);
+                m_Camera.SetViewTarget(m_GameObjects[TargetLock]->GetObjectTransform().translation);
+                GlobalUbo ubo{};
+                ubo.projection = m_Camera.GetProjection();
+                ubo.view = m_Camera.GetView();
+                uboBuffers[frameIndex]->WriteToBuffer(&ubo);
+                uboBuffers[frameIndex]->Flush();
             }
 
             // ------------------- RENDER PASS -----------------
@@ -188,6 +186,18 @@ void Application::Run()
                     obj->GetObjectTransform().translation.y,
                     obj->GetObjectTransform().translation.z
                 );
+                ImGui::Text("velocity ID: %d velocity: x %f | y %f, z %f", 
+                    obj->GetObjectID(), 
+                    obj->GetObjectProperties().velocity.x,
+                    obj->GetObjectProperties().velocity.y,
+                    obj->GetObjectProperties().velocity.z
+                );
+                
+                if (ImGui::Button(std::string("Camera Lock on " + std::to_string(obj->GetObjectID())).c_str()))
+                {
+                    TargetLock = obj->GetObjectID();
+                    std::cout << TargetLock << std::endl;
+                }
                 ImGui::DragFloat((std::to_string(obj->GetObjectID()) + std::string(" Obj Mass")).c_str(), &obj->GetObjectProperties().mass, 0.05f);
             }
             ImGui::Text("Camera Position: x %0.1f y %0.1f z %0.1f", 

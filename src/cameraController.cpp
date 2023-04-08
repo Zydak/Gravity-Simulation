@@ -2,6 +2,8 @@
 
 #include <iostream>
 
+#include "imgui.h"
+
 static float yaw = 0;
 static float pitch = 89;
 static float lastX;
@@ -53,7 +55,7 @@ CameraController::~CameraController()
 void CameraController::Update(float delta, Camera& camera, glm::vec3 target)
 {
     float radius = scrollY;
-    if (glfwGetMouseButton(m_Window, 0) == GLFW_PRESS)
+    if (glfwGetMouseButton(m_Window, 0) == GLFW_PRESS && !ImGui::GetIO().WantCaptureMouse)
     {
         double x, y;
         glfwGetCursorPos(m_Window, &x, &y);
