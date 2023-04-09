@@ -33,8 +33,8 @@ void scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
 {
     scrollY -= yoffset*50;
     
-    if (scrollY < 5)
-        scrollY = 5;
+    if (scrollY < 50)
+        scrollY = 50;
 }
 
 CameraController::CameraController(GLFWwindow* window)

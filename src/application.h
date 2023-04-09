@@ -29,6 +29,7 @@ public:
 private:
     void LoadGameObjects();
     void Update(FrameInfo frameInfo, float delta, uint32_t substeps);
+    void RenderImGui(FrameInfo frameInfo);
 
     Window m_Window{1600, 900, "Gravity"};
     Device m_Device{m_Window};
@@ -42,4 +43,12 @@ private:
     
     TextureImage m_Texture{m_Device, "assets/textures/viking_room.png"};
     Sampler m_Sampler{m_Device};
+
+private:
+    float accumulator = 0;
+    float FPSaccumulator = 0;
+    float FPS = 0;
+    int TargetLock = 0;
+    int stepCount = 1;
+    int gameSpeed = 1;
 };

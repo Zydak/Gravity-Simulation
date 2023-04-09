@@ -106,10 +106,6 @@ void Application::Run()
     ImGui_ImplVulkan_DestroyFontUploadObjects();
 
     auto lastUpdate = std::chrono::high_resolution_clock::now();
-    float accumulator = 0;
-    float FPSaccumulator = 0;
-    float FPS = 0;
-    int TargetLock = 1;
 
     while(!m_Window.ShouldClose())
     {
@@ -137,14 +133,9 @@ void Application::Run()
             frameInfo.globalDescriptorPool = m_GlobalPool.get();
             frameInfo.sampler = &m_Sampler;
 
-            static int speed = 1;
-            static int stepCount = 1;
             while (accumulator > 0.016f)
             {
-                for(int i = 0; i < speed; i++)
-                {
-                    Update(frameInfo, 0.016f, stepCount);
-                }
+                Update(frameInfo, 0.016f, stepCount);
                 accumulator -= 0.016f;
             }
 
@@ -164,50 +155,7 @@ void Application::Run()
             m_Renderer->RenderGameObjects(frameInfo);
             //m_Renderer->RenderSimpleGeometry(frameInfo, m_Obj.get());
 
-            ImGui_ImplVulkan_NewFrame();
-            ImGui_ImplGlfw_NewFrame();
-            ImGui::NewFrame();
- 
-            ImGui::Begin("Settings", (bool*)false, 0);
-            ImGui::SliderInt("Speed", &speed, 1, 200);
-            ImGui::SliderInt("StepCount", &stepCount, 1, 2500);
-            if (FPSaccumulator > 0.5f)
-            {
-                FPS = 1/frameInfo.frameTime;
-                FPSaccumulator -= 0.5f;
-            }
-            ImGui::Text("FPS %.1f", FPS);
-            for (auto& kv : m_GameObjects)
-            {
-                auto& obj = kv.second;
-                ImGui::Text("Obj ID: %d Pos: x %f | y %f, z %f", 
-                    obj->GetObjectID(), 
-                    obj->GetObjectTransform().translation.x,
-                    obj->GetObjectTransform().translation.y,
-                    obj->GetObjectTransform().translation.z
-                );
-                ImGui::Text("velocity ID: %d velocity: x %f | y %f, z %f", 
-                    obj->GetObjectID(), 
-                    obj->GetObjectProperties().velocity.x,
-                    obj->GetObjectProperties().velocity.y,
-                    obj->GetObjectProperties().velocity.z
-                );
-                
-                if (ImGui::Button(std::string("Camera Lock on " + std::to_string(obj->GetObjectID())).c_str()))
-                {
-                    TargetLock = obj->GetObjectID();
-                }
-                ImGui::DragFloat((std::to_string(obj->GetObjectID()) + std::string(" Obj Mass")).c_str(), &obj->GetObjectProperties().mass, 0.05f);
-            }
-            ImGui::Text("Camera Position: x %0.1f y %0.1f z %0.1f", 
-                m_Camera.m_Transform.translation.x,
-                m_Camera.m_Transform.translation.y,
-                m_Camera.m_Transform.translation.z);
-
-            ImGui::End();
- 
-            ImGui::Render();
-            ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
+            RenderImGui(frameInfo);
 
             m_Renderer->EndSwapChainRenderPass(commandBuffer);
             m_Renderer->EndFrame();
@@ -240,7 +188,7 @@ void Application::LoadGameObjects()
     m_GameObjects.emplace(obj0->GetObjectID(), std::move(obj0));
 
     Properties properties1{};
-    properties1.velocity = {0.0f, 0.0f, -10.5f};
+    properties1.velocity = {0.0f, 0.0f, -10.0f};
     properties1.mass = 1000;
     properties1.isStatic = false;
     properties1.orbitTraceLenght = 200;
@@ -291,16 +239,67 @@ static void UpdateObj(Object* obj, std::unordered_map<int, std::shared_ptr<Objec
 void Application::Update(FrameInfo frameInfo, float delta, uint32_t substeps)
 {
     //std::vector<std::future<void>> futures;
-    for (auto& kv: m_GameObjects)
+    for (int i = 0; i < gameSpeed; i++)
+    {
+        for (auto& kv: m_GameObjects)
+        {
+            auto& obj = kv.second;
+
+            const float stepDelta = delta / substeps;
+            std::async(std::launch::async, UpdateObj, obj.get(), m_GameObjects, stepDelta, substeps);
+            //futures.push_back(std::async(std::launch::async, UpdateObj, obj.get(), m_GameObjects, stepDelta, substeps));
+            //obj->Update(m_GameObjects, stepDelta, substeps);
+            auto sralnia = obj->GetObjectTransform();
+            obj->OrbitUpdate(frameInfo.commandBuffer);
+            obj->GetObjectTransform().rotation += obj->GetObjectProperties().rotationSpeed;
+        }
+    }
+}
+
+void Application::RenderImGui(FrameInfo frameInfo)
+{
+    ImGui_ImplVulkan_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+ 
+    ImGui::Begin("Settings", (bool*)false, 0);
+    ImGui::SliderInt("Speed", &gameSpeed, 1, 200);
+    ImGui::SliderInt("StepCount", &stepCount, 1, 2500);
+    if (FPSaccumulator > 0.5f)
+    {
+        FPS = 1/frameInfo.frameTime;
+        FPSaccumulator -= 0.5f;
+    }
+    ImGui::Text("FPS %.1f", FPS);
+    for (auto& kv : m_GameObjects)
     {
         auto& obj = kv.second;
-
-        const float stepDelta = delta / substeps;
-        std::async(std::launch::async, UpdateObj, obj.get(), m_GameObjects, stepDelta, substeps);
-        //futures.push_back(std::async(std::launch::async, UpdateObj, obj.get(), m_GameObjects, stepDelta, substeps));
-        //obj->Update(m_GameObjects, stepDelta, substeps);
-        auto sralnia = obj->GetObjectTransform();
-        obj->OrbitUpdate(frameInfo.commandBuffer);
-        obj->GetObjectTransform().rotation += obj->GetObjectProperties().rotationSpeed;
+        ImGui::Text("Obj ID: %d Pos: x %f | y %f, z %f", 
+            obj->GetObjectID(), 
+            obj->GetObjectTransform().translation.x,
+            obj->GetObjectTransform().translation.y,
+            obj->GetObjectTransform().translation.z
+        );
+        ImGui::Text("velocity ID: %d velocity: x %f | y %f, z %f", 
+            obj->GetObjectID(), 
+            obj->GetObjectProperties().velocity.x,
+            obj->GetObjectProperties().velocity.y,
+            obj->GetObjectProperties().velocity.z
+        );
+                    
+        if (ImGui::Button(std::string("Camera Lock on " + std::to_string(obj->GetObjectID())).c_str()))
+        {
+            TargetLock = obj->GetObjectID();
+        }
+        ImGui::DragFloat((std::to_string(obj->GetObjectID()) + std::string(" Obj Mass")).c_str(), &obj->GetObjectProperties().mass, 5.0f);
     }
+    ImGui::Text("Camera Position: x %0.1f y %0.1f z %0.1f", 
+        m_Camera.m_Transform.translation.x,
+        m_Camera.m_Transform.translation.y,
+        m_Camera.m_Transform.translation.z);
+
+    ImGui::End();
+ 
+    ImGui::Render();
+    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), frameInfo.commandBuffer);
 }
