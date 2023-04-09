@@ -32,6 +32,9 @@ struct Properties
 {
     glm::vec3 velocity;
     float mass;
+    /*
+        @brief static means other object can't affect velocity but it is still applied
+    */
     bool isStatic;
     uint32_t orbitTraceLenght;
     glm::vec3 rotationSpeed;
@@ -50,7 +53,7 @@ public:
     virtual Model* GetObjectModel() = 0;
     virtual void Draw(VkPipelineLayout layout, VkCommandBuffer commandBuffer) = 0;
     virtual void DrawOrbit(VkCommandBuffer commandBuffer) = 0;
-    virtual void Update(std::unordered_map<int, std::shared_ptr<Object>> gameObjects, float delta) = 0;
+    virtual void Update(std::unordered_map<int, std::shared_ptr<Object>> gameObjects, float delta, uint32_t substeps) = 0;
     virtual void OrbitUpdate(VkCommandBuffer commandBuffer) = 0;
     virtual uint32_t GetObjectType() = 0;
 

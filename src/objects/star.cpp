@@ -12,9 +12,9 @@
 Star::Star(uint32_t ID, ObjectInfo objInfo, const std::string& modelfilepath, Transform transform, Properties properties, const std::string& texturefilepath)
     : m_ID(ID), m_Model(Model::CreateModelFromFile(*objInfo.device, modelfilepath, texturefilepath)), m_Transform(transform), m_Properties(properties)
 {
-    OrbitModel::Builder builder;
     if (properties.orbitTraceLenght > 0)
     {
+        OrbitModel::Builder builder;
         for (int i = 0; i < properties.orbitTraceLenght; i++)
         {
             builder.vertices.push_back({{0.0f, 0.0f, 0.0f}});
@@ -57,38 +57,43 @@ void Star::DrawOrbit(VkCommandBuffer commandBuffer)
     m_OrbitModel->Draw(commandBuffer);
 }
 
-void Star::Update(std::unordered_map<int, std::shared_ptr<Object>> gameObjects, float delta)
+void Star::Update(std::unordered_map<int, std::shared_ptr<Object>> gameObjects, float delta, uint32_t substeps)
 {
     if (m_Properties.isStatic == false)
     {
-        auto i1 = gameObjects.begin();
-        auto i2 = gameObjects.end();
         for (auto i = gameObjects.begin(); i != gameObjects.end(); i++)
         {
+            auto& otherObj = i->second;
+            auto otherObjTranslation = otherObj->GetObjectTransform().translation;
+            auto otherObjMass = otherObj->GetObjectProperties().mass;
             if (i->first != m_ID)
             {
-                auto& otherObj = i->second;
-                
-                auto otherObjTranslation = otherObj->GetObjectTransform().translation;
-                auto otherObjMass = otherObj->GetObjectProperties().mass;
+                for (int j = 0; j < substeps; j++)
+                {
+                    auto offset = otherObjTranslation - m_Transform.translation;
+                    float distanceSquared = glm::dot(offset, offset);
 
-                auto offset = otherObjTranslation - m_Transform.translation;
-                float distanceSquared = glm::dot(offset, offset);
-
-                float force = 15.0 * otherObjMass * m_Properties.mass / distanceSquared;
-                glm::vec3 trueForce = force * offset / glm::sqrt(distanceSquared);
-                m_Properties.velocity += delta * trueForce / m_Properties.mass;
-                m_Transform.translation += delta * m_Properties.velocity;
+                    float force = 15.0 * otherObjMass * m_Properties.mass / distanceSquared;
+                    glm::vec3 trueForce = force * offset / glm::sqrt(distanceSquared);
+                    m_Properties.velocity += delta * trueForce / m_Properties.mass;
+                    m_Transform.translation += delta * m_Properties.velocity;
+                }
             }
             else
             {
-                m_Transform.translation += delta * m_Properties.velocity;
+                for (int j = 0; j < substeps; j++)
+                {
+                    m_Transform.translation += delta * m_Properties.velocity;
+                }
             }
         }
     }
     else
     {
-        m_Transform.translation += delta * m_Properties.velocity;
+        for (int j = 0; j < substeps; j++)
+        {
+            m_Transform.translation += delta * m_Properties.velocity;
+        }
     }
 }
 

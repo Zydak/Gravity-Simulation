@@ -230,7 +230,6 @@ void Renderer::RenderGameObjects(FrameInfo& frameInfo)
             0,
             nullptr
         );
-        
 
         PushConstants push{};
         push.modelMatrix = obj->GetObjectTransform().mat4();
