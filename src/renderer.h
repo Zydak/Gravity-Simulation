@@ -64,12 +64,19 @@ private:
     void CreateCommandBuffers();
     void FreeCommandBuffers();
     void RecreateSwapChain();
-    void CreateObjectsPipelineLayout(VkDescriptorSetLayout globalSetLayout);
-    void CreateObjectsPipeline();
+
+    void CreatePlanetsPipelineLayout(VkDescriptorSetLayout globalSetLayout);
+    void CreatePlanetsPipeline();
+
+    void CreateStarsPipelineLayout(VkDescriptorSetLayout globalSetLayout);
+    void CreateStarsPipeline();
+
     void CreateBillboardsPipelineLayout(VkDescriptorSetLayout globalSetLayout);
     void CreateBillboardsPipeline();
+
     void CreateLinesPipelineLayout(VkDescriptorSetLayout globalSetLayout);
     void CreateLinesPipeline();
+
     void CreateSimplePipelineLayout(VkDescriptorSetLayout globalSetLayout);
     void CreateSimplePipeline();
 
@@ -77,12 +84,19 @@ private:
     Device& m_Device;
     std::unique_ptr<SwapChain> m_SwapChain;
     std::vector<VkCommandBuffer> m_CommandBuffers;
-    std::unique_ptr<Pipeline> m_ObjectsPipeline;
-    VkPipelineLayout m_ObjectsPipelineLayout;
+
+    std::unique_ptr<Pipeline> m_PlanetsPipeline;
+    VkPipelineLayout m_PlanetsPipelineLayout;
+
+    std::unique_ptr<Pipeline> m_StarsPipeline;
+    VkPipelineLayout m_StarsPipelineLayout;
+
     std::unique_ptr<Pipeline> m_BillboardsPipeline;
     VkPipelineLayout m_BillboardsPipelineLayout;
+
     std::unique_ptr<Pipeline> m_LinesPipeline;
     VkPipelineLayout m_LinesPipelineLayout;
+
     std::unique_ptr<Pipeline> m_SimplePipeline;
     VkPipelineLayout m_SimplePipelineLayout;
 

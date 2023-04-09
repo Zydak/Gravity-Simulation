@@ -6,8 +6,7 @@
 #include <unordered_set>
 #include <cstring>
 #include <set>
-
-/**
+/*
    *  @brief Callback function for Vulkan to be called by validation layers when needed
 */
 static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(

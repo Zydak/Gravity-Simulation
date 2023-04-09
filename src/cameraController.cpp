@@ -2,6 +2,8 @@
 
 #include <iostream>
 
+#include "imgui.h"
+
 static float yaw = 0;
 static float pitch = 89;
 static float lastX;
@@ -26,13 +28,13 @@ static void mouseCallback(GLFWwindow* window, int button, int action, int mods)
         }
     }
 }
-static double scrollY = 50;
+static double scrollY = 500;
 void scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
 {
-    scrollY -= yoffset*1;
+    scrollY -= yoffset*50;
     
-    if (scrollY < 1)
-        scrollY = 1;
+    if (scrollY < 5)
+        scrollY = 5;
 }
 
 CameraController::CameraController(GLFWwindow* window)
@@ -50,10 +52,10 @@ CameraController::~CameraController()
 /*
     * @brief Updates camera position based on mouse movement
 */
-void CameraController::Update(float delta, Camera& camera)
+void CameraController::Update(float delta, Camera& camera, glm::vec3 target)
 {
     float radius = scrollY;
-    if (glfwGetMouseButton(m_Window, 0) == GLFW_PRESS)
+    if (glfwGetMouseButton(m_Window, 0) == GLFW_PRESS && !ImGui::GetIO().WantCaptureMouse)
     {
         double x, y;
         glfwGetCursorPos(m_Window, &x, &y);
@@ -76,9 +78,9 @@ void CameraController::Update(float delta, Camera& camera)
     }
     
     // Equation for camera positioning around a sphere
-    camera.m_Transform.translation.x = radius * -sinf(yaw*(M_PI/180)) * cosf((pitch)*(M_PI/180));
-    camera.m_Transform.translation.y = radius * -sinf((pitch)*(M_PI/180));
-    camera.m_Transform.translation.z = -radius * cosf((yaw)*(M_PI/180)) * cosf((pitch)*(M_PI/180));
+    camera.m_Transform.translation.x = target.x + radius * -sinf(yaw*(M_PI/180)) * cosf((pitch)*(M_PI/180));
+    camera.m_Transform.translation.y = target.y + radius * -sinf((pitch)*(M_PI/180));
+    camera.m_Transform.translation.z = target.z + -radius * cosf((yaw)*(M_PI/180)) * cosf((pitch)*(M_PI/180));
 
     // only for debuging info
     camera.m_Transform.rotation.x = yaw;

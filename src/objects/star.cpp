@@ -1,4 +1,4 @@
-#include "planet.h"
+#include "star.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -9,10 +9,8 @@
 
 #include <iostream>
 
-Planet::Planet(uint32_t ID, ObjectInfo objInfo, const std::string& modelfilepath, 
-    Transform transform, Properties properties, const std::string& texturefilepath)
-    :   m_ID(ID), m_Model(Model::CreateModelFromFile(*objInfo.device, modelfilepath, texturefilepath)),
-        m_Transform(transform), m_Properties(properties)
+Star::Star(uint32_t ID, ObjectInfo objInfo, const std::string& modelfilepath, Transform transform, Properties properties, const std::string& texturefilepath)
+    : m_ID(ID), m_Model(Model::CreateModelFromFile(*objInfo.device, modelfilepath, texturefilepath)), m_Transform(transform), m_Properties(properties)
 {
     if (properties.orbitTraceLenght > 0)
     {
@@ -36,7 +34,7 @@ Planet::Planet(uint32_t ID, ObjectInfo objInfo, const std::string& modelfilepath
         .Build(m_DescriptorSet);
 }
 
-void Planet::Draw(VkPipelineLayout layout, VkCommandBuffer commandBuffer)
+void Star::Draw(VkPipelineLayout layout, VkCommandBuffer commandBuffer)
 {
     vkCmdBindDescriptorSets(
             commandBuffer,
@@ -53,13 +51,13 @@ void Planet::Draw(VkPipelineLayout layout, VkCommandBuffer commandBuffer)
     m_Model->Draw(commandBuffer);
 }
 
-void Planet::DrawOrbit(VkCommandBuffer commandBuffer)
+void Star::DrawOrbit(VkCommandBuffer commandBuffer)
 {
     m_OrbitModel->Bind(commandBuffer);
     m_OrbitModel->Draw(commandBuffer);
 }
 
-void Planet::Update(std::unordered_map<int, std::shared_ptr<Object>> gameObjects, float delta, uint32_t substeps)
+void Star::Update(std::unordered_map<int, std::shared_ptr<Object>> gameObjects, float delta, uint32_t substeps)
 {
     if (m_Properties.isStatic == false)
     {
@@ -99,7 +97,7 @@ void Planet::Update(std::unordered_map<int, std::shared_ptr<Object>> gameObjects
     }
 }
 
-void Planet::OrbitUpdate(VkCommandBuffer commandBuffer)
+void Star::OrbitUpdate(VkCommandBuffer commandBuffer)
 {
     if (m_Properties.orbitTraceLenght > 0)
     {

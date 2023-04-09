@@ -1,6 +1,9 @@
 glslc shaders/shader.vert -o shaders/shader.vert.spv
 glslc shaders/shader.frag -o shaders/shader.frag.spv
 
+glslc shaders/stars.vert -o shaders/stars.vert.spv
+glslc shaders/stars.frag -o shaders/stars.frag.spv
+
 glslc shaders/billboard.vert -o shaders/billboard.vert.spv
 glslc shaders/billboard.frag -o shaders/billboard.frag.spv
 

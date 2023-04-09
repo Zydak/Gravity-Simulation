@@ -7,9 +7,10 @@
 Renderer::Renderer(Window& window, Device& device, VkDescriptorSetLayout globalSetLayout)
     :   m_Window(window), m_Device(device)
 {
-    CreateObjectsPipelineLayout(globalSetLayout);
+    CreatePlanetsPipelineLayout(globalSetLayout);
     CreateLinesPipelineLayout(globalSetLayout);
     CreateSimplePipelineLayout(globalSetLayout);
+    CreateStarsPipelineLayout(globalSetLayout);
     //CreateBillboardsPipelineLayout(globalSetLayout);
     RecreateSwapChain();
     CreateCommandBuffers();
@@ -18,7 +19,8 @@ Renderer::Renderer(Window& window, Device& device, VkDescriptorSetLayout globalS
 Renderer::~Renderer()
 {
     FreeCommandBuffers();
-    vkDestroyPipelineLayout(m_Device.GetDevice(), m_ObjectsPipelineLayout, nullptr);
+    vkDestroyPipelineLayout(m_Device.GetDevice(), m_PlanetsPipelineLayout, nullptr);
+    vkDestroyPipelineLayout(m_Device.GetDevice(), m_StarsPipelineLayout, nullptr);
     vkDestroyPipelineLayout(m_Device.GetDevice(), m_LinesPipelineLayout, nullptr);
     vkDestroyPipelineLayout(m_Device.GetDevice(), m_SimplePipelineLayout, nullptr);
     //vkDestroyPipelineLayout(m_Device.GetDevice(), m_BillboardsPipelineLayout, nullptr);
@@ -49,7 +51,8 @@ void Renderer::RecreateSwapChain()
         }
     }
     
-    CreateObjectsPipeline();
+    CreatePlanetsPipeline();
+    CreateStarsPipeline();
     CreateLinesPipeline();
     CreateSimplePipeline();
     //CreateBillboardsPipeline();
@@ -199,11 +202,15 @@ void Renderer::RenderOrbits(FrameInfo& frameInfo)
 
 void Renderer::RenderGameObjects(FrameInfo& frameInfo)
 {
-    m_ObjectsPipeline->Bind(frameInfo.commandBuffer);
-    
+    RenderOrbits(frameInfo);
+
     for (auto& kv: frameInfo.gameObjects)
     {
         auto& obj = kv.second;
+        if (obj->GetObjectType() == OBJ_TYPE_PLANET)
+            m_PlanetsPipeline->Bind(frameInfo.commandBuffer);
+        if (obj->GetObjectType() == OBJ_TYPE_STAR)
+            m_StarsPipeline->Bind(frameInfo.commandBuffer);
 
         //VkDescriptorImageInfo imageInfo{};
         //imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -212,26 +219,24 @@ void Renderer::RenderGameObjects(FrameInfo& frameInfo)
         //static DescriptorWriter writer(*frameInfo.globalDescriptorSetLayout, *frameInfo.globalDescriptorPool);
         //writer.WriteImage(1, &imageInfo);
         //writer.Overwrite(frameInfo.globalDescriptorSet);
-        //
 
         vkCmdBindDescriptorSets(
             frameInfo.commandBuffer,
             VK_PIPELINE_BIND_POINT_GRAPHICS,
-            m_ObjectsPipelineLayout,
+            m_PlanetsPipelineLayout,
             0,
             1,
             &frameInfo.globalDescriptorSet,
             0,
             nullptr
         );
-        
 
         PushConstants push{};
         push.modelMatrix = obj->GetObjectTransform().mat4();
 
-        vkCmdPushConstants(frameInfo.commandBuffer, m_ObjectsPipelineLayout, 
+        vkCmdPushConstants(frameInfo.commandBuffer, m_PlanetsPipelineLayout, 
             VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstants), &push);
-        obj->Draw(m_ObjectsPipelineLayout, frameInfo.commandBuffer);
+        obj->Draw(m_PlanetsPipelineLayout, frameInfo.commandBuffer);
     }
 }
 
@@ -253,7 +258,7 @@ void Renderer::RenderSimpleGeometry(FrameInfo& frameInfo, SimpleModel* geometry)
     geometry->Draw(frameInfo.commandBuffer);
 }
 
-void Renderer::CreateObjectsPipelineLayout(VkDescriptorSetLayout globalSetLayout)
+void Renderer::CreatePlanetsPipelineLayout(VkDescriptorSetLayout globalSetLayout)
 {
     VkPushConstantRange pushConstantRange{};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -271,10 +276,52 @@ void Renderer::CreateObjectsPipelineLayout(VkDescriptorSetLayout globalSetLayout
     pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
     pipelineLayoutInfo.pushConstantRangeCount = 1;
     pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
-    if (vkCreatePipelineLayout(m_Device.GetDevice(), &pipelineLayoutInfo, nullptr, &m_ObjectsPipelineLayout) != VK_SUCCESS) 
+    if (vkCreatePipelineLayout(m_Device.GetDevice(), &pipelineLayoutInfo, nullptr, &m_PlanetsPipelineLayout) != VK_SUCCESS) 
     {
         throw std::runtime_error("failed to create pipeline layout!");
     }
+}
+
+void Renderer::CreatePlanetsPipeline() 
+{
+    auto pipelineConfig = Pipeline::DefaultPipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight());
+    pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
+    pipelineConfig.pipelineLayout = m_PlanetsPipelineLayout;
+    m_PlanetsPipeline = std::make_unique<Pipeline>(m_Device);
+    m_PlanetsPipeline->CreateGraphicsPipeline("shaders/shader.vert.spv", "shaders/shader.frag.spv", pipelineConfig);
+}
+
+void Renderer::CreateStarsPipelineLayout(VkDescriptorSetLayout globalSetLayout)
+{
+    VkPushConstantRange pushConstantRange{};
+    pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    pushConstantRange.offset = 0;
+    pushConstantRange.size = sizeof(PushConstants);
+
+    auto m_SetLayout = DescriptorSetLayout::Builder(m_Device)
+        .AddBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+        .Build();
+    std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout, m_SetLayout->GetDescriptorSetLayout()};
+
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.setLayoutCount = (uint32_t)descriptorSetLayouts.size();
+    pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+    pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
+    if (vkCreatePipelineLayout(m_Device.GetDevice(), &pipelineLayoutInfo, nullptr, &m_StarsPipelineLayout) != VK_SUCCESS) 
+    {
+        throw std::runtime_error("failed to create pipeline layout!");
+    }
+}
+
+void Renderer::CreateStarsPipeline() 
+{
+    auto pipelineConfig = Pipeline::DefaultPipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight());
+    pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
+    pipelineConfig.pipelineLayout = m_StarsPipelineLayout;
+    m_StarsPipeline = std::make_unique<Pipeline>(m_Device);
+    m_StarsPipeline->CreateGraphicsPipeline("shaders/stars.vert.spv", "shaders/stars.frag.spv", pipelineConfig);
 }
 
 void Renderer::CreateBillboardsPipelineLayout(VkDescriptorSetLayout globalSetLayout)
@@ -296,15 +343,6 @@ void Renderer::CreateBillboardsPipelineLayout(VkDescriptorSetLayout globalSetLay
     {
         throw std::runtime_error("failed to create pipeline layout!");
     }
-}
-
-void Renderer::CreateObjectsPipeline() 
-{
-    auto pipelineConfig = Pipeline::DefaultPipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight());
-    pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
-    pipelineConfig.pipelineLayout = m_ObjectsPipelineLayout;
-    m_ObjectsPipeline = std::make_unique<Pipeline>(m_Device);
-    m_ObjectsPipeline->CreateGraphicsPipeline("shaders/shader.vert.spv", "shaders/shader.frag.spv", pipelineConfig);
 }
 
 void Renderer::CreateBillboardsPipeline() 
@@ -352,7 +390,7 @@ void Renderer::RenderBillboards(FrameInfo& frameInfo, glm::vec3 position)
     BillboardsPushConstants push{};
     push.position = position;
 
-    vkCmdPushConstants(frameInfo.commandBuffer, m_ObjectsPipelineLayout, 
+    vkCmdPushConstants(frameInfo.commandBuffer, m_PlanetsPipelineLayout, 
         VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstants), &push);
 
     vkCmdDraw(frameInfo.commandBuffer, 6, 1, 0, 0);
