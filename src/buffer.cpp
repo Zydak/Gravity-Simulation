@@ -4,8 +4,6 @@
 #include <cassert>
 #include <cstring>
 
-#include <iostream>
-
 /**
  * Returns the minimum instance size required to be compatible with devices minOffsetAlignment
  *
@@ -122,7 +120,7 @@ VkResult Buffer::Flush(VkDeviceSize size, VkDeviceSize offset)
 }
  
 /**
- * Invalidate a memory range of the buffer to make it visible to the host
+ * @brief a memory range of the buffer to make it visible to the host
  *
  * @note Only required for non-coherent memory
  *
@@ -158,53 +156,4 @@ VkDescriptorBufferInfo Buffer::DescriptorInfo(VkDeviceSize size, VkDeviceSize of
         offset,
         size,
     };
-}
- 
-/**
- * Copies "instanceSize" bytes of data to the mapped buffer at an offset of index * alignmentSize
- *
- * @param data Pointer to the data to copy
- * @param index Used in offset calculation
- *
- */
-void Buffer::WriteToIndex(void *data, int index) 
-{
-    WriteToBuffer(data, m_InstanceSize, index * m_AlignmentSize);
-}
- 
-/**
- *  Flush the memory range at index * alignmentSize of the buffer to make it visible to the device
- *
- * @param index Used in offset calculation
- *
- */
-VkResult Buffer::FlushIndex(int index) 
-{ 
-    return Flush(m_AlignmentSize, index * m_AlignmentSize); 
-}
- 
-/**
- * Create a buffer info descriptor
- *
- * @param index Specifies the region given by index * alignmentSize
- *
- * @return VkDescriptorBufferInfo for instance at index
- */
-VkDescriptorBufferInfo Buffer::DescriptorInfoForIndex(int index) 
-{
-    return DescriptorInfo(m_AlignmentSize, index * m_AlignmentSize);
-}
- 
-/**
- * Invalidate a memory range of the buffer to make it visible to the host
- *
- * @note Only required for non-coherent memory
- *
- * @param index Specifies the region to invalidate: index * alignmentSize
- *
- * @return VkResult of the invalidate call
- */
-VkResult Buffer::InvalidateIndex(int index) 
-{
-    return Invalidate(m_AlignmentSize, index * m_AlignmentSize);
 }

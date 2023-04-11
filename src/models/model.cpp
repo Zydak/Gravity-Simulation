@@ -1,7 +1,6 @@
 #include "model.h"
 #include "../utils.h"
 
-#include <cassert>
 #include <cstring>
 #include <unordered_map>
 

@@ -28,8 +28,8 @@ public:
     void Run();
 private:
     void LoadGameObjects();
-    void Update(FrameInfo frameInfo, float delta, uint32_t substeps);
-    void RenderImGui(FrameInfo frameInfo);
+    void Update(const FrameInfo& frameInfo, float delta, uint32_t substeps);
+    void RenderImGui(const FrameInfo& frameInfo);
 
     Window m_Window{1600, 900, "Gravity"};
     Device m_Device{m_Window};
@@ -39,16 +39,17 @@ private:
 
     std::unique_ptr<DescriptorPool> m_GlobalPool{};
     Map m_GameObjects;
-    std::unique_ptr<SimpleModel> m_Obj;
-    
-    TextureImage m_Texture{m_Device, "assets/textures/viking_room.png"};
+	// Used for simple geometry
+    //std::unique_ptr<SimpleModel> m_Obj;
+
     Sampler m_Sampler{m_Device};
 
 private:
-    float accumulator = 0;
-    float FPSaccumulator = 0;
-    float FPS = 0;
-    int TargetLock = 0;
-    int stepCount = 1;
-    int gameSpeed = 1;
+    float m_MainLoopAccumulator = 0;
+    float m_FPSaccumulator = 0;
+    float m_FPS = 0;
+    uint32_t m_TargetLock = 0;
+    int m_StepCount = 1; // TODO: fix step count, when step count is high float starts to break because we're dividing 0.016 by something like 2500
+    int m_GameSpeed = 1;
+    bool m_Pause = false;
 };
