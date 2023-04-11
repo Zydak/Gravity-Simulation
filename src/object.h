@@ -30,14 +30,14 @@ struct Transform
 
 struct Properties
 {
-    glm::vec3 velocity;
-    float mass;
+    glm::vec3 velocity = {0.0f, 0.0f, 0.0f};
+    float mass = 1000;
     /*
         @brief static means other object can't affect velocity but it is still applied
     */
-    bool isStatic;
-    uint32_t orbitTraceLenght;
-    glm::vec3 rotationSpeed;
+    bool isStatic = false;
+    uint32_t orbitTraceLenght = 200;
+    glm::vec3 rotationSpeed = {0.0f, 0.0f, 0.0f};
 };
 
 class Object

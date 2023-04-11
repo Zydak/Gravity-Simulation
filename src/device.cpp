@@ -15,8 +15,6 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
     const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
     void *pUserData)
 {
-    std::string messageLevel = "";
-    
     if (messageType == 0x00000001)
         std::cerr << "Validation Layer: Info" << "\n\t" << pCallbackData->pMessage << std::endl;
     if (messageType == 0x00000002)

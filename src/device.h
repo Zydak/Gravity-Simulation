@@ -42,13 +42,13 @@ public:
     inline VkCommandPool GetCommandPool() { return m_CommandPool; }
     inline VkQueue GetGraphicsQueue() { return m_GraphicsQueue; }
     inline VkQueue GetPresentQueue() { return m_PresentQueue; }
+    inline VkPhysicalDeviceProperties GetDeviceProperties() { return m_Properties; }
 
     VkFormat FindSupportedFormat(const std::vector<VkFormat> &candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
     void CreateImageWithInfo(const VkImageCreateInfo &imageInfo, VkMemoryPropertyFlags properties, VkImage &image, VkDeviceMemory &imageMemory);
     void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer &buffer, VkDeviceMemory &bufferMemory);
     void CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 
-    VkPhysicalDeviceProperties m_Properties;
     void EndSingleTimeCommands(VkCommandBuffer commandBuffer);
     void BeginSingleTimeCommands(VkCommandBuffer& buffer);
     uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
@@ -70,7 +70,7 @@ private:
     bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
     SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device);
     
-
+    VkPhysicalDeviceProperties m_Properties;
     VkInstance m_Instance;
     VkDebugUtilsMessengerEXT m_DebugMessenger;
     VkPhysicalDevice m_PhysicalDevice;

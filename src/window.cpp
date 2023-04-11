@@ -30,7 +30,7 @@ void Window::CreateWindowSurface(VkInstance instance, VkSurfaceKHR* surface)
 
 void Window::ResizeCallback(GLFWwindow* window, int width, int height)
 {
-    auto _window = reinterpret_cast<Window*>(glfwGetWindowUserPointer(window));
+    auto _window = (Window*)(glfwGetWindowUserPointer(window));
     _window->m_Resized = true;
     _window->m_Width = width;
     _window->m_Height = height;

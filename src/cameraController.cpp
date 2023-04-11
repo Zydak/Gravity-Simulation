@@ -8,7 +8,6 @@ static float yaw = 0;
 static float pitch = 89;
 static float lastX;
 static float lastY;
-static bool canClick = false;
 
 static void mouseCallback(GLFWwindow* window, int button, int action, int mods)
 {
@@ -20,19 +19,20 @@ static void mouseCallback(GLFWwindow* window, int button, int action, int mods)
         {
             lastX = x;
             lastY = y;
-            canClick = true;
         }
         else if(GLFW_RELEASE == action)
         {
-            canClick = false;
         }
     }
 }
 static double scrollY = 500;
-void scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
+void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
 {
-    scrollY -= yoffset*50;
-    
+	if (yoffset > 0)
+    	scrollY += yoffset - scrollY/4;
+	if (yoffset < 0)
+    	scrollY -= yoffset - scrollY/4;
+
     if (scrollY < 5)
         scrollY = 5;
 }
@@ -40,7 +40,7 @@ void scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
 CameraController::CameraController(GLFWwindow* window)
     : m_Window(window)
 {
-    glfwSetScrollCallback(m_Window, scrollCallback);
+    glfwSetScrollCallback(m_Window, ScrollCallback);
     glfwSetMouseButtonCallback(m_Window, mouseCallback);
 }
 

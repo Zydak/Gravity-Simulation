@@ -24,11 +24,6 @@ public:
     VkDescriptorBufferInfo DescriptorInfo(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
     VkResult Invalidate(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
     
-    void WriteToIndex(void* data, int index);
-    VkResult FlushIndex(int index);
-    VkDescriptorBufferInfo DescriptorInfoForIndex(int index);
-    VkResult InvalidateIndex(int index);
-    
     inline VkBuffer GetBuffer() const { return m_Buffer; }
     inline void* GetMappedMemory() const { return m_Mapped; }
     inline uint32_t GetInstanceCount() const { return m_InstanceCount; }
