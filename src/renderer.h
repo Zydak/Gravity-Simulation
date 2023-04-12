@@ -8,6 +8,7 @@
 #include "camera.h"
 #include "frameInfo.h"
 #include "models/simpleModel.h"
+#include "models/skybox.h"
 
 #include <memory>
 #include <vector>
@@ -60,6 +61,7 @@ public:
     void RenderBillboards(FrameInfo& frameInfo, glm::vec3 position);
     void RenderOrbits(FrameInfo& frameInfo);
     void RenderSimpleGeometry(FrameInfo& frameInfo, SimpleModel* geometry);
+    void RenderSkybox(FrameInfo& frameInfo, Skybox* skybox);
 private:
     void CreateCommandBuffers();
     void FreeCommandBuffers();
@@ -80,6 +82,9 @@ private:
     void CreateSimplePipelineLayout(VkDescriptorSetLayout globalSetLayout);
     void CreateSimplePipeline();
 
+    void CreateSkyboxPipelineLayout(VkDescriptorSetLayout globalSetLayout);
+    void CreateSkyboxPipeline();
+
     Window& m_Window;
     Device& m_Device;
     std::unique_ptr<SwapChain> m_SwapChain;
@@ -99,6 +104,9 @@ private:
 
     std::unique_ptr<Pipeline> m_SimplePipeline;
     VkPipelineLayout m_SimplePipelineLayout;
+
+    std::unique_ptr<Pipeline> m_SkyboxPipeline;
+    VkPipelineLayout m_SkyboxPipelineLayout;
 
     uint32_t m_CurrentImageIndex = 0;
     int m_CurrentFrameIndex = 0;

@@ -11,6 +11,7 @@ Renderer::Renderer(Window& window, Device& device, VkDescriptorSetLayout globalS
     CreateLinesPipelineLayout(globalSetLayout);
     CreateSimplePipelineLayout(globalSetLayout);
     CreateStarsPipelineLayout(globalSetLayout);
+    CreateSkyboxPipelineLayout(globalSetLayout);
     //CreateBillboardsPipelineLayout(globalSetLayout);
     RecreateSwapChain();
     CreateCommandBuffers();
@@ -23,6 +24,7 @@ Renderer::~Renderer()
     vkDestroyPipelineLayout(m_Device.GetDevice(), m_StarsPipelineLayout, nullptr);
     vkDestroyPipelineLayout(m_Device.GetDevice(), m_LinesPipelineLayout, nullptr);
     vkDestroyPipelineLayout(m_Device.GetDevice(), m_SimplePipelineLayout, nullptr);
+    vkDestroyPipelineLayout(m_Device.GetDevice(), m_SkyboxPipelineLayout, nullptr);
     //vkDestroyPipelineLayout(m_Device.GetDevice(), m_BillboardsPipelineLayout, nullptr);
     m_CommandBuffers.clear();
 }
@@ -55,6 +57,7 @@ void Renderer::RecreateSwapChain()
     CreateStarsPipeline();
     CreateLinesPipeline();
     CreateSimplePipeline();
+    CreateSkyboxPipeline();
     //CreateBillboardsPipeline();
 }
 
@@ -240,6 +243,42 @@ void Renderer::RenderGameObjects(FrameInfo& frameInfo)
     }
 }
 
+void Renderer::RenderSkybox(FrameInfo& frameInfo, Skybox* skybox)
+{
+    m_SkyboxPipeline->Bind(frameInfo.commandBuffer);
+
+    vkCmdBindDescriptorSets(
+            frameInfo.commandBuffer,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            m_SkyboxPipelineLayout,
+            0,
+            1,
+            &frameInfo.globalDescriptorSet,
+            0,
+            nullptr
+        );
+    
+    
+    glm::vec3 translation = frameInfo.camera->m_Transform.translation;
+    glm::vec3 rotation = {0.0f, 0.0f, 0.0f};
+    glm::vec3 scale = glm::vec3{10.0f, 10.0f, 10.0f} * 20000.0f;
+    auto transform = glm::translate(glm::mat4{1.0f}, translation);
+
+    transform = glm::rotate(transform, rotation.y, {0.0f, 1.0f, 0.0f});
+    transform = glm::rotate(transform, rotation.x, {1.0f, 0.0f, 0.0f});
+    transform = glm::rotate(transform, rotation.z, {0.0f, 0.0f, 1.0f});
+    transform = glm::scale(transform, scale);
+
+    PushConstants push{};
+    push.modelMatrix = transform;
+
+    vkCmdPushConstants(frameInfo.commandBuffer, m_SkyboxPipelineLayout, 
+        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstants), &push);
+    
+    skybox->Bind(frameInfo.commandBuffer);
+    skybox->Draw(frameInfo.commandBuffer);
+}
+
 void Renderer::RenderSimpleGeometry(FrameInfo& frameInfo, SimpleModel* geometry)
 {
     vkCmdBindDescriptorSets(
@@ -419,4 +458,34 @@ void Renderer::CreateSimplePipeline()
     pipelineConfig.pipelineLayout = m_SimplePipelineLayout;
     m_SimplePipeline = std::make_unique<Pipeline>(m_Device);
     m_SimplePipeline->CreateSimplePipeline("shaders/simple.vert.spv", "shaders/simple.frag.spv", pipelineConfig);
+}
+
+void Renderer::CreateSkyboxPipelineLayout(VkDescriptorSetLayout globalSetLayout)
+{
+    std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout};
+
+    VkPushConstantRange pushConstantRange{};
+    pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    pushConstantRange.offset = 0;
+    pushConstantRange.size = sizeof(PushConstants);
+
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.setLayoutCount = (uint32_t)descriptorSetLayouts.size();
+    pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+    pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
+    if (vkCreatePipelineLayout(m_Device.GetDevice(), &pipelineLayoutInfo, nullptr, &m_SkyboxPipelineLayout) != VK_SUCCESS) 
+    {
+        throw std::runtime_error("failed to create pipeline layout!");
+    }
+}
+
+void Renderer::CreateSkyboxPipeline()
+{
+    auto pipelineConfig = Pipeline::DefaultPipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight());
+    pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
+    pipelineConfig.pipelineLayout = m_SkyboxPipelineLayout;
+    m_SkyboxPipeline = std::make_unique<Pipeline>(m_Device);
+    m_SkyboxPipeline->CreateGraphicsPipeline("shaders/skybox.vert.spv", "shaders/skybox.frag.spv", pipelineConfig);
 }

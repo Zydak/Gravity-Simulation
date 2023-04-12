@@ -13,6 +13,8 @@
 #include "models/simpleModel.h"
 #include "textureImage.h"
 #include "sampler.h"
+#include "image.h"
+#include "models/skybox.h"
 
 #include <iostream>
 #include <memory>
@@ -30,6 +32,7 @@ private:
     void LoadGameObjects();
     void Update(const FrameInfo& frameInfo, float delta, uint32_t substeps);
     void RenderImGui(const FrameInfo& frameInfo);
+    void CreateCubemap();
 
     Window m_Window{1600, 900, "Gravity"};
     Device m_Device{m_Window};
@@ -42,8 +45,10 @@ private:
 	// Used for simple geometry
     //std::unique_ptr<SimpleModel> m_Obj;
 
-    Sampler m_Sampler{m_Device};
+    std::unique_ptr<Skybox> m_Skybox;
 
+    Sampler m_Sampler{m_Device};
+    std::vector<std::unique_ptr<Buffer>> m_UboBuffers;
 private:
     float m_MainLoopAccumulator = 0;
     float m_FPSaccumulator = 0;
