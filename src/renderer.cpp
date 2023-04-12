@@ -273,7 +273,7 @@ void Renderer::RenderSkybox(FrameInfo& frameInfo, Skybox& skybox, VkDescriptorSe
     
     glm::vec3 translation = frameInfo.camera->m_Transform.translation;
     glm::vec3 rotation = {0.0f, 0.0f, 0.0f};
-    glm::vec3 scale = glm::vec3{10.0f, 10.0f, 10.0f} * 20000.0f;
+    glm::vec3 scale = glm::vec3{1.0f, 1.0f, 1.0f} * 100000.0f;
     auto transform = glm::translate(glm::mat4{1.0f}, translation);
 
     transform = glm::rotate(transform, rotation.y, {0.0f, 1.0f, 0.0f});

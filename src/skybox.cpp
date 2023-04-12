@@ -32,6 +32,14 @@ Skybox::Skybox(Device& device, uint32_t image)
             filepaths[4] = "assets/textures/cubemaps/stars/StarsTex_PositiveX.png";
             filepaths[5] = "assets/textures/cubemaps/stars/StarsTex_NegativeX.png";
             break;
+        case SKYBOX_RED_GALAXY:
+            filepaths[0] = "assets/textures/cubemaps/redGalaxy/GalaxyTex_NegativeZ.png";
+            filepaths[1] = "assets/textures/cubemaps/redGalaxy/GalaxyTex_PositiveZ.png";
+            filepaths[2] = "assets/textures/cubemaps/redGalaxy/GalaxyTex_PositiveY.png";
+            filepaths[3] = "assets/textures/cubemaps/redGalaxy/GalaxyTex_NegativeY.png";
+            filepaths[4] = "assets/textures/cubemaps/redGalaxy/GalaxyTex_PositiveX.png";
+            filepaths[5] = "assets/textures/cubemaps/redGalaxy/GalaxyTex_NegativeX.png";
+            break;
     }
 
     m_Cubemap.CreateImageFromTexture(filepaths);

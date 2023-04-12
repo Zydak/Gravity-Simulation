@@ -9,6 +9,7 @@
 #define SKYBOX_MILKY_WAY 0
 #define SKYBOX_NEBULA 1
 #define SKYBOX_STARS 2
+#define SKYBOX_RED_GALAXY 3
 
 class Skybox
 {

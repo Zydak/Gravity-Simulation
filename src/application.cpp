@@ -18,7 +18,8 @@
 
 static float orbitAccumulator = 0;
 
-static int skyboxImageSelected = 0;
+const char* Skyboxes[] = { "Milky Way", "Nebula", "Stars", "Red Galaxy"};
+static int skyboxImageSelected = SKYBOX_RED_GALAXY;
 
 static void CheckVkResult(VkResult err)
 {
@@ -47,7 +48,7 @@ Application::Application()
         .Build();
     
     LoadGameObjects();
-    m_Skybox = std::make_unique<Skybox>(m_Device, 0);
+    m_Skybox = std::make_unique<Skybox>(m_Device, skyboxImageSelected);
 }
 
 Application::~Application()
@@ -339,7 +340,6 @@ void Application::Update(const FrameInfo& frameInfo, float delta, uint32_t subst
     }
 }
 
-const char* items[] = { "Milky Way", "Nebula", "Stars" };
 void Application::RenderImGui(const FrameInfo& frameInfo)
 {
     ImGui_ImplVulkan_NewFrame();
@@ -356,7 +356,7 @@ void Application::RenderImGui(const FrameInfo& frameInfo)
     ImGui::Text("FPS %.1f (%fms)", m_FPS, frameInfo.frameTime);
     ImGui::Checkbox("Pause", &m_Pause);
 
-    ImGui::Combo("Skybox", &skyboxImageSelected, items, IM_ARRAYSIZE(items));
+    ImGui::Combo("Skybox", &skyboxImageSelected, Skyboxes, IM_ARRAYSIZE(Skyboxes));
 
     ImGui::SliderInt("Speed", &m_GameSpeed, 1, 200);
     ImGui::SliderInt("StepCount", &m_StepCount, 1, 2500);
