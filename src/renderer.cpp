@@ -7,10 +7,10 @@
 Renderer::Renderer(Window& window, Device& device, VkDescriptorSetLayout globalSetLayout)
     :   m_Window(window), m_Device(device)
 {
-    CreatePlanetsPipelineLayout(globalSetLayout);
+    CreateDefaultPipelineLayout(globalSetLayout);
     CreateLinesPipelineLayout(globalSetLayout);
     CreateSimplePipelineLayout(globalSetLayout);
-    CreateStarsPipelineLayout(globalSetLayout);
+    CreateSkyboxPipelineLayout(globalSetLayout);
     //CreateBillboardsPipelineLayout(globalSetLayout);
     RecreateSwapChain();
     CreateCommandBuffers();
@@ -19,10 +19,10 @@ Renderer::Renderer(Window& window, Device& device, VkDescriptorSetLayout globalS
 Renderer::~Renderer()
 {
     FreeCommandBuffers();
-    vkDestroyPipelineLayout(m_Device.GetDevice(), m_PlanetsPipelineLayout, nullptr);
-    vkDestroyPipelineLayout(m_Device.GetDevice(), m_StarsPipelineLayout, nullptr);
+    vkDestroyPipelineLayout(m_Device.GetDevice(), m_DefaultPipelineLayout, nullptr);
     vkDestroyPipelineLayout(m_Device.GetDevice(), m_LinesPipelineLayout, nullptr);
     vkDestroyPipelineLayout(m_Device.GetDevice(), m_SimplePipelineLayout, nullptr);
+    vkDestroyPipelineLayout(m_Device.GetDevice(), m_SkyboxPipelineLayout, nullptr);
     //vkDestroyPipelineLayout(m_Device.GetDevice(), m_BillboardsPipelineLayout, nullptr);
     m_CommandBuffers.clear();
 }
@@ -55,6 +55,7 @@ void Renderer::RecreateSwapChain()
     CreateStarsPipeline();
     CreateLinesPipeline();
     CreateSimplePipeline();
+    CreateSkyboxPipeline();
     //CreateBillboardsPipeline();
 }
 
@@ -180,6 +181,17 @@ void Renderer::RenderOrbits(FrameInfo& frameInfo)
     vkCmdBindDescriptorSets(
         frameInfo.commandBuffer,
         VK_PIPELINE_BIND_POINT_GRAPHICS,
+        m_DefaultPipelineLayout,
+        0,
+        1,
+        &frameInfo.globalDescriptorSet,
+        0,
+        nullptr
+    );
+
+    vkCmdBindDescriptorSets(
+        frameInfo.commandBuffer,
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
         m_LinesPipelineLayout,
         0,
         1,
@@ -204,6 +216,17 @@ void Renderer::RenderGameObjects(FrameInfo& frameInfo)
 {
     RenderOrbits(frameInfo);
 
+    vkCmdBindDescriptorSets(
+        frameInfo.commandBuffer,
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
+        m_DefaultPipelineLayout,
+        0,
+        1,
+        &frameInfo.globalDescriptorSet,
+        0,
+        nullptr
+    );
+
     for (auto& kv: frameInfo.gameObjects)
     {
         auto& obj = kv.second;
@@ -212,32 +235,60 @@ void Renderer::RenderGameObjects(FrameInfo& frameInfo)
         if (obj->GetObjectType() == OBJ_TYPE_STAR)
             m_StarsPipeline->Bind(frameInfo.commandBuffer);
 
-        //VkDescriptorImageInfo imageInfo{};
-        //imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        //imageInfo.imageView = obj->GetObjectModel()->GetTextureImage()->GetImageView();
-        //imageInfo.sampler = frameInfo.sampler->GetSampler();
-        //static DescriptorWriter writer(*frameInfo.globalDescriptorSetLayout, *frameInfo.globalDescriptorPool);
-        //writer.WriteImage(1, &imageInfo);
-        //writer.Overwrite(frameInfo.globalDescriptorSet);
-
-        vkCmdBindDescriptorSets(
-            frameInfo.commandBuffer,
-            VK_PIPELINE_BIND_POINT_GRAPHICS,
-            m_PlanetsPipelineLayout,
-            0,
-            1,
-            &frameInfo.globalDescriptorSet,
-            0,
-            nullptr
-        );
-
         PushConstants push{};
         push.modelMatrix = obj->GetObjectTransform().mat4();
 
-        vkCmdPushConstants(frameInfo.commandBuffer, m_PlanetsPipelineLayout, 
+        vkCmdPushConstants(frameInfo.commandBuffer, m_DefaultPipelineLayout, 
             VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstants), &push);
-        obj->Draw(m_PlanetsPipelineLayout, frameInfo.commandBuffer);
+        obj->Draw(m_DefaultPipelineLayout, frameInfo.commandBuffer);
     }
+}
+
+void Renderer::RenderSkybox(FrameInfo& frameInfo, Skybox& skybox, VkDescriptorSet skyboxDescriptorSet)
+{
+    m_SkyboxPipeline->Bind(frameInfo.commandBuffer);
+
+    vkCmdBindDescriptorSets(
+        frameInfo.commandBuffer,
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
+        m_SkyboxPipelineLayout,
+        0,
+        1,
+        &frameInfo.globalDescriptorSet,
+        0,
+        nullptr
+    );
+
+    vkCmdBindDescriptorSets(
+        frameInfo.commandBuffer,
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
+        m_SkyboxPipelineLayout,
+        1,
+        1,
+        &skyboxDescriptorSet,
+        0,
+        nullptr
+    );
+    
+    
+    glm::vec3 translation = frameInfo.camera->m_Transform.translation;
+    glm::vec3 rotation = {0.0f, 0.0f, 0.0f};
+    glm::vec3 scale = glm::vec3{1.0f, 1.0f, 1.0f} * 100000.0f;
+    auto transform = glm::translate(glm::mat4{1.0f}, translation);
+
+    transform = glm::rotate(transform, rotation.y, {0.0f, 1.0f, 0.0f});
+    transform = glm::rotate(transform, rotation.x, {1.0f, 0.0f, 0.0f});
+    transform = glm::rotate(transform, rotation.z, {0.0f, 0.0f, 1.0f});
+    transform = glm::scale(transform, scale);
+
+    PushConstants push{};
+    push.modelMatrix = transform;
+
+    vkCmdPushConstants(frameInfo.commandBuffer, m_SkyboxPipelineLayout, 
+        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstants), &push);
+    
+    skybox.GetSkyboxModel()->Bind(frameInfo.commandBuffer);
+    skybox.GetSkyboxModel()->Draw(frameInfo.commandBuffer);
 }
 
 void Renderer::RenderSimpleGeometry(FrameInfo& frameInfo, SimpleModel* geometry)
@@ -258,7 +309,7 @@ void Renderer::RenderSimpleGeometry(FrameInfo& frameInfo, SimpleModel* geometry)
     geometry->Draw(frameInfo.commandBuffer);
 }
 
-void Renderer::CreatePlanetsPipelineLayout(VkDescriptorSetLayout globalSetLayout)
+void Renderer::CreateDefaultPipelineLayout(VkDescriptorSetLayout globalSetLayout)
 {
     VkPushConstantRange pushConstantRange{};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -276,7 +327,7 @@ void Renderer::CreatePlanetsPipelineLayout(VkDescriptorSetLayout globalSetLayout
     pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
     pipelineLayoutInfo.pushConstantRangeCount = 1;
     pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
-    if (vkCreatePipelineLayout(m_Device.GetDevice(), &pipelineLayoutInfo, nullptr, &m_PlanetsPipelineLayout) != VK_SUCCESS) 
+    if (vkCreatePipelineLayout(m_Device.GetDevice(), &pipelineLayoutInfo, nullptr, &m_DefaultPipelineLayout) != VK_SUCCESS) 
     {
         throw std::runtime_error("failed to create pipeline layout!");
     }
@@ -286,40 +337,16 @@ void Renderer::CreatePlanetsPipeline()
 {
     auto pipelineConfig = Pipeline::DefaultPipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight());
     pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
-    pipelineConfig.pipelineLayout = m_PlanetsPipelineLayout;
+    pipelineConfig.pipelineLayout = m_DefaultPipelineLayout;
     m_PlanetsPipeline = std::make_unique<Pipeline>(m_Device);
     m_PlanetsPipeline->CreateGraphicsPipeline("shaders/shader.vert.spv", "shaders/shader.frag.spv", pipelineConfig);
-}
-
-void Renderer::CreateStarsPipelineLayout(VkDescriptorSetLayout globalSetLayout)
-{
-    VkPushConstantRange pushConstantRange{};
-    pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-    pushConstantRange.offset = 0;
-    pushConstantRange.size = sizeof(PushConstants);
-
-    auto m_SetLayout = DescriptorSetLayout::Builder(m_Device)
-        .AddBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
-        .Build();
-    std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout, m_SetLayout->GetDescriptorSetLayout()};
-
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = (uint32_t)descriptorSetLayouts.size();
-    pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
-    pipelineLayoutInfo.pushConstantRangeCount = 1;
-    pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
-    if (vkCreatePipelineLayout(m_Device.GetDevice(), &pipelineLayoutInfo, nullptr, &m_StarsPipelineLayout) != VK_SUCCESS) 
-    {
-        throw std::runtime_error("failed to create pipeline layout!");
-    }
 }
 
 void Renderer::CreateStarsPipeline() 
 {
     auto pipelineConfig = Pipeline::DefaultPipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight());
     pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
-    pipelineConfig.pipelineLayout = m_StarsPipelineLayout;
+    pipelineConfig.pipelineLayout = m_DefaultPipelineLayout;
     m_StarsPipeline = std::make_unique<Pipeline>(m_Device);
     m_StarsPipeline->CreateGraphicsPipeline("shaders/stars.vert.spv", "shaders/stars.frag.spv", pipelineConfig);
 }
@@ -390,7 +417,7 @@ void Renderer::RenderBillboards(FrameInfo& frameInfo, glm::vec3 position)
     BillboardsPushConstants push{};
     push.position = position;
 
-    vkCmdPushConstants(frameInfo.commandBuffer, m_PlanetsPipelineLayout, 
+    vkCmdPushConstants(frameInfo.commandBuffer, m_DefaultPipelineLayout, 
         VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstants), &push);
 
     vkCmdDraw(frameInfo.commandBuffer, 6, 1, 0, 0);
@@ -419,4 +446,38 @@ void Renderer::CreateSimplePipeline()
     pipelineConfig.pipelineLayout = m_SimplePipelineLayout;
     m_SimplePipeline = std::make_unique<Pipeline>(m_Device);
     m_SimplePipeline->CreateSimplePipeline("shaders/simple.vert.spv", "shaders/simple.frag.spv", pipelineConfig);
+}
+
+void Renderer::CreateSkyboxPipelineLayout(VkDescriptorSetLayout globalSetLayout)
+{
+    auto m_SkyboxLayout = DescriptorSetLayout::Builder(m_Device)
+        .AddBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+        .Build();
+
+    std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout, m_SkyboxLayout->GetDescriptorSetLayout()};
+
+    VkPushConstantRange pushConstantRange{};
+    pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    pushConstantRange.offset = 0;
+    pushConstantRange.size = sizeof(PushConstants);
+
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.setLayoutCount = (uint32_t)descriptorSetLayouts.size();
+    pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+    pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
+    if (vkCreatePipelineLayout(m_Device.GetDevice(), &pipelineLayoutInfo, nullptr, &m_SkyboxPipelineLayout) != VK_SUCCESS) 
+    {
+        throw std::runtime_error("failed to create pipeline layout!");
+    }
+}
+
+void Renderer::CreateSkyboxPipeline()
+{
+    auto pipelineConfig = Pipeline::DefaultPipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight());
+    pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
+    pipelineConfig.pipelineLayout = m_SkyboxPipelineLayout;
+    m_SkyboxPipeline = std::make_unique<Pipeline>(m_Device);
+    m_SkyboxPipeline->CreateSkyboxPipeline("shaders/skybox.vert.spv", "shaders/skybox.frag.spv", pipelineConfig);
 }

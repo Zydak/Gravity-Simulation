@@ -13,6 +13,8 @@
 #include "models/simpleModel.h"
 #include "textureImage.h"
 #include "sampler.h"
+#include "image.h"
+#include "skybox.h"
 
 #include <iostream>
 #include <memory>
@@ -43,7 +45,11 @@ private:
     //std::unique_ptr<SimpleModel> m_Obj;
 
     Sampler m_Sampler{m_Device};
+    std::vector<std::unique_ptr<Buffer>> m_UboBuffers;
 
+    std::unique_ptr<Skybox> m_Skybox;
+    VkDescriptorSet m_SkyboxDescriptorSet{};
+    std::unique_ptr<DescriptorSetLayout> m_SkyboxSetLayout;
 private:
     float m_MainLoopAccumulator = 0;
     float m_FPSaccumulator = 0;

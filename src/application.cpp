@@ -7,13 +7,19 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 
+#include "stbimage/stb_image.h"
+
 #include "imgui.h"
 #include "imgui/backends/imgui_impl_glfw.h"
 #include "imgui/backends/imgui_impl_vulkan.h"
 #include <stbimage/stb_image.h>
 #include <future>
+#include <array>
 
 static float orbitAccumulator = 0;
+
+const char* Skyboxes[] = { "Milky Way", "Nebula", "Stars", "Red Galaxy"};
+static int skyboxImageSelected = SKYBOX_RED_GALAXY;
 
 static void CheckVkResult(VkResult err)
 {
@@ -35,13 +41,14 @@ struct GlobalUbo
 Application::Application()
 {
     m_GlobalPool = DescriptorPool::Builder(m_Device)
-        .SetMaxSets(SwapChain::MAX_FRAMES_IN_FLIGHT * 2 + 3) // * 2 for ImGui
+        .SetMaxSets(SwapChain::MAX_FRAMES_IN_FLIGHT * 3 + 3) // * 2 for ImGui
         .SetPoolFlags(VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT)
         .AddPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, SwapChain::MAX_FRAMES_IN_FLIGHT)
-        .AddPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, SwapChain::MAX_FRAMES_IN_FLIGHT + 3)
+        .AddPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, SwapChain::MAX_FRAMES_IN_FLIGHT * 3 + 3)
         .Build();
     
     LoadGameObjects();
+    m_Skybox = std::make_unique<Skybox>(m_Device, skyboxImageSelected);
 }
 
 Application::~Application()
@@ -53,8 +60,8 @@ Application::~Application()
 void Application::Run()
 {
 	// Main Uniform Buffer Creation
-    std::vector<std::unique_ptr<Buffer>> uboBuffers(SwapChain::MAX_FRAMES_IN_FLIGHT);
-    for (auto & uboBuffer : uboBuffers)
+    m_UboBuffers.resize(SwapChain::MAX_FRAMES_IN_FLIGHT);
+    for (auto & uboBuffer : m_UboBuffers)
     {
         uboBuffer = std::make_unique<Buffer>(
             m_Device,
@@ -70,6 +77,10 @@ void Application::Run()
         .AddBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
         .Build();
 
+    m_SkyboxSetLayout = DescriptorSetLayout::Builder(m_Device)
+        .AddBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+        .Build();
+
 	//Renderer Creation
     m_Renderer = std::make_unique<Renderer>(m_Window, m_Device, globalSetLayout->GetDescriptorSetLayout());
 
@@ -77,11 +88,19 @@ void Application::Run()
     std::vector<VkDescriptorSet> globalDescriptorSets(SwapChain::MAX_FRAMES_IN_FLIGHT);
     for (int i = 0; i < globalDescriptorSets.size(); i++)
     {
-        VkDescriptorBufferInfo bufferInfo = uboBuffers[i]->DescriptorInfo();
+        VkDescriptorBufferInfo bufferInfo = m_UboBuffers[i]->DescriptorInfo();
         DescriptorWriter(*globalSetLayout, *m_GlobalPool)
             .WriteBuffer(0, &bufferInfo)
             .Build(globalDescriptorSets[i]);
     }
+
+    VkDescriptorImageInfo skyboxDescriptor{};
+    skyboxDescriptor.sampler = m_Skybox->GetCubemap().GetCubeMapImageSampler();
+    skyboxDescriptor.imageView = m_Skybox->GetCubemap().GetCubeMapImageView();
+    skyboxDescriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    DescriptorWriter(*m_SkyboxSetLayout, *m_GlobalPool)
+        .WriteImage(0, &skyboxDescriptor)
+        .Build(m_SkyboxDescriptorSet);
 
 	// ImGui Creation
 	ImGui::CreateContext();
@@ -102,19 +121,32 @@ void Application::Run()
 	ImGui_ImplVulkan_Init(&info, m_Renderer->GetSwapChainRenderPass());
 
 	VkCommandBuffer cmdBuffer;
-	m_Device.BeginSingleTimeCommands(cmdBuffer);
+    m_Device.BeginSingleTimeCommands(cmdBuffer);
 	ImGui_ImplVulkan_CreateFontsTexture(cmdBuffer);
 	m_Device.EndSingleTimeCommands(cmdBuffer);
 
 	vkDeviceWaitIdle(m_Device.GetDevice());
 	ImGui_ImplVulkan_DestroyFontUploadObjects();
-
-
+    
     auto lastUpdate = std::chrono::high_resolution_clock::now();
 	// Main Loop
     while(!m_Window.ShouldClose())
     {
         glfwPollEvents();
+
+        static int currentSkyboxImageSelected = skyboxImageSelected;
+        if (currentSkyboxImageSelected != skyboxImageSelected)
+        {
+            currentSkyboxImageSelected = skyboxImageSelected;
+            m_Skybox.reset(new Skybox(m_Device, skyboxImageSelected));
+            VkDescriptorImageInfo skyboxDescriptor{};
+            skyboxDescriptor.sampler = m_Skybox->GetCubemap().GetCubeMapImageSampler();
+            skyboxDescriptor.imageView = m_Skybox->GetCubemap().GetCubeMapImageView();
+            skyboxDescriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            DescriptorWriter(*m_SkyboxSetLayout, *m_GlobalPool)
+                .WriteImage(0, &skyboxDescriptor)
+                .Overwrite(m_SkyboxDescriptorSet);
+        }
 
 		// Delta Time
         auto now = std::chrono::high_resolution_clock::now();
@@ -156,19 +188,31 @@ void Application::Run()
 
 			// Camera Update
             float aspectRatio = m_Renderer->GetAspectRatio();
-            m_Camera.SetPerspectiveProjection(glm::radians(50.0f), aspectRatio, 0.1f, 50000.0f);
+            m_Camera.SetPerspectiveProjection(glm::radians(50.0f), aspectRatio, 0.1f, 10000000.0f);
             m_CameraController.Update(0.016f, m_Camera, m_GameObjects[m_TargetLock]->GetObjectTransform().translation);
             m_Camera.SetViewTarget(m_GameObjects[m_TargetLock]->GetObjectTransform().translation);
-            GlobalUbo ubo{};
-            ubo.projection = m_Camera.GetProjection();
-            ubo.view = m_Camera.GetView();
-            uboBuffers[frameIndex]->WriteToBuffer(&ubo);
-            uboBuffers[frameIndex]->Flush();
+            
+            // UBO update
+            {
+                GlobalUbo ubo{};
+                ubo.projection = m_Camera.GetProjection();
+                ubo.view = m_Camera.GetView();
+                for (auto& kv : m_GameObjects)
+                {
+                    if (kv.second->GetObjectType() == OBJ_TYPE_STAR)
+                    {
+                        ubo.lightPosition = kv.second->GetObjectTransform().translation;
+                    }
+                }
+                m_UboBuffers[frameIndex]->WriteToBuffer(&ubo);
+                m_UboBuffers[frameIndex]->Flush();
+            }
 
             // ------------------- RENDER PASS -----------------
-            m_Renderer->BeginSwapChainRenderPass(commandBuffer, {0.02f, 0.02f, 0.02f});
+            m_Renderer->BeginSwapChainRenderPass(commandBuffer, {0.8f, 0.1f, 0.8f});
 
             m_Renderer->RenderGameObjects(frameInfo);
+            m_Renderer->RenderSkybox(frameInfo, *m_Skybox, m_SkyboxDescriptorSet);
             //m_Renderer->RenderSimpleGeometry(frameInfo, m_Obj.get());
 
             RenderImGui(frameInfo);
@@ -186,6 +230,9 @@ void Application::Run()
 */
 void Application::LoadGameObjects()
 {
+    // Main texture sampler creation
+    m_Sampler.CreateSimpleSampler();
+
     int id = 0;
     ObjectInfo objInfo{};
     objInfo.descriptorPool = m_GlobalPool.get();
@@ -196,7 +243,7 @@ void Application::LoadGameObjects()
     properties0.velocity = {0.0f, 0.0f, 0.0f};
     properties0.mass = 5000000;
     properties0.isStatic = false;
-    properties0.orbitTraceLenght = 0;
+    properties0.orbitTraceLenght = 200;
     properties0.rotationSpeed = {0.0f, 0.01f, 0.0f};
 
     Transform transform0{};
@@ -215,7 +262,7 @@ void Application::LoadGameObjects()
 
     Transform transform1{};
     transform1.translation = {2500.0f, 0.0f, 0.0f};
-    transform1.scale = glm::vec3{0.1f, 0.1f, 0.1f} * properties1.mass/200.0f;
+    transform1.scale = glm::vec3{1.0f, 1.0f, 1.0f} * properties1.mass/200.0f;
     transform1.rotation = {0.0f, 0.0f, 0.0f};
     std::unique_ptr<Object> obj1 = std::make_unique<Planet>(id++, objInfo, "assets/models/smooth_sphere.obj", transform1, properties1, "assets/textures/blue.png");
     m_GameObjects.emplace(obj1->GetObjectID(), std::move(obj1));
@@ -229,7 +276,7 @@ void Application::LoadGameObjects()
 
     Transform transform2{};
     transform2.translation = {-1000.0f, 0.0f, 0.0f};
-    transform2.scale = glm::vec3{0.1f, 0.1f, 0.1f} * properties2.mass/6.0f;
+    transform2.scale = glm::vec3{1.0f, 1.0f, 1.0f} * properties2.mass/6.0f;
     transform2.rotation = {0.0f, 0.0f, 0.0f};
     std::unique_ptr<Object> obj2 = std::make_unique<Planet>(id++, objInfo, "assets/models/smooth_sphere.obj", transform2, properties2, "assets/textures/red.png");
     m_GameObjects.emplace(obj2->GetObjectID(), std::move(obj2));
@@ -298,19 +345,21 @@ void Application::RenderImGui(const FrameInfo& frameInfo)
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
- 
+
     ImGui::Begin("Settings", (bool*)false, 0);
 
-    ImGui::Checkbox("Pause", &m_Pause);
-
-    ImGui::SliderInt("Speed", &m_GameSpeed, 1, 200);
-    ImGui::SliderInt("StepCount", &m_StepCount, 1, 2500);
     if (m_FPSaccumulator > 0.5f)
     {
         m_FPS = 1/frameInfo.frameTime;
         m_FPSaccumulator -= 0.5f;
     }
     ImGui::Text("FPS %.1f (%fms)", m_FPS, frameInfo.frameTime);
+    ImGui::Checkbox("Pause", &m_Pause);
+
+    ImGui::Combo("Skybox", &skyboxImageSelected, Skyboxes, IM_ARRAYSIZE(Skyboxes));
+
+    ImGui::SliderInt("Speed", &m_GameSpeed, 1, 200);
+    ImGui::SliderInt("StepCount", &m_StepCount, 1, 2500);
     for (auto& kv : m_GameObjects)
     {
         auto& obj = kv.second;
@@ -331,7 +380,7 @@ void Application::RenderImGui(const FrameInfo& frameInfo)
         {
             m_TargetLock = obj->GetObjectID();
         }
-        ImGui::DragFloat((std::to_string(obj->GetObjectID()) + std::string(" Obj Mass")).c_str(), &obj->GetObjectProperties().mass, 5.0f);
+        ImGui::DragFloat((std::to_string(obj->GetObjectID()) + std::string(" Obj Mass")).c_str(), &obj->GetObjectProperties().mass, 500.0f, 1000.0f, 10000000, "%.3f", 0);
     }
     ImGui::Text("Camera Position: x %0.1f y %0.1f z %0.1f", 
         m_Camera.m_Transform.translation.x,

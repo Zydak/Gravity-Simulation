@@ -25,7 +25,7 @@ static void mouseCallback(GLFWwindow* window, int button, int action, int mods)
         }
     }
 }
-static double scrollY = 500;
+static double scrollY = 5000;
 void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
 {
 	if (yoffset > 0)
@@ -33,8 +33,8 @@ void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
 	if (yoffset < 0)
     	scrollY -= yoffset - scrollY/4;
 
-    if (scrollY < 5)
-        scrollY = 5;
+    if (scrollY < 10)
+        scrollY = 10;
 }
 
 CameraController::CameraController(GLFWwindow* window)

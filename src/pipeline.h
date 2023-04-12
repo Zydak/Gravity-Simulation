@@ -32,13 +32,14 @@ public:
     static PipelineConfigInfo DefaultPipelineConfigInfo(uint32_t width, uint32_t height);
     static PipelineConfigInfo LinesPipelineConfigInfo(uint32_t width, uint32_t height);
     static PipelineConfigInfo SimplePipelineConfigInfo(uint32_t width, uint32_t height);
+    
     void Bind(VkCommandBuffer commandBuffer);
     void CreateGraphicsPipeline(const std::string& vertexPath, const std::string& fragmentPath, const PipelineConfigInfo& configInfo);
     void CreateLinesPipeline(const std::string& vertexPath, const std::string& fragmentPath, const PipelineConfigInfo& configInfo);
     void CreateSimplePipeline(const std::string& vertexPath, const std::string& fragmentPath, const PipelineConfigInfo& configInfo);
+    void CreateSkyboxPipeline(const std::string& vertexPath, const std::string& fragmentPath, const PipelineConfigInfo& configInfo);
 private:
     static std::vector<char> ReadFile(const std::string& filepath);
-
 
     void CreateShaderModule(const std::vector<char>& code, VkShaderModule* shaderModule);
 

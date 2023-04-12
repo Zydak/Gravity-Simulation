@@ -12,3 +12,6 @@ glslc ../shaders/lines.frag -o ../shaders/lines.frag.spv
 
 glslc ../shaders/simple.vert -o ../shaders/simple.vert.spv
 glslc ../shaders/simple.frag -o ../shaders/simple.frag.spv
+
+glslc ../shaders/skybox.vert -o ../shaders/skybox.vert.spv
+glslc ../shaders/skybox.frag -o ../shaders/skybox.frag.spv

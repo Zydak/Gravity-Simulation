@@ -27,7 +27,8 @@ void TextureImage::CreateTextureImage(const std::string& filepath)
         throw std::runtime_error("failed to load texture image!");
     }
     
-    m_Device.CreateBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_Buffer, m_BufferMemory);
+    m_Device.CreateBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_Buffer, m_BufferMemory);
 
     void* data;
     vkMapMemory(m_Device.GetDevice(), m_BufferMemory, 0, imageSize, 0, &data);
@@ -36,11 +37,13 @@ void TextureImage::CreateTextureImage(const std::string& filepath)
 
     stbi_image_free(pixels);
 
-    m_Image = std::make_unique<Image>(m_Device, m_TexWidth, m_TexHeight, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    m_Image = std::make_unique<Image>(m_Device, m_TexWidth, m_TexHeight, 
+        VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, 
+        VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    m_Image->TransitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    Image::TransitionImageLayout(m_Device, m_Image->GetImage(), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
     m_Image->CopyBufferToImage(m_Buffer, static_cast<uint32_t>(m_TexWidth), static_cast<uint32_t>(m_TexHeight));
-    m_Image->TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    Image::TransitionImageLayout(m_Device, m_Image->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     
     vkDestroyBuffer(m_Device.GetDevice(), m_Buffer, nullptr);
     vkFreeMemory(m_Device.GetDevice(), m_BufferMemory, nullptr);
