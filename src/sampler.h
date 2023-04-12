@@ -10,9 +10,10 @@ public:
 
     inline VkSampler GetSampler() { return m_Sampler; }
 
-private:
-    void CreateSampler();
+    void CreateSimpleSampler();
+    void CreateCubemapSampler();
 
+private:
     Device& m_Device;
     VkSampler m_Sampler;
 };

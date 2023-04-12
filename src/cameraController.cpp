@@ -25,7 +25,7 @@ static void mouseCallback(GLFWwindow* window, int button, int action, int mods)
         }
     }
 }
-static double scrollY = 500;
+static double scrollY = 5000;
 void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
 {
 	if (yoffset > 0)

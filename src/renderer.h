@@ -8,7 +8,7 @@
 #include "camera.h"
 #include "frameInfo.h"
 #include "models/simpleModel.h"
-#include "models/skybox.h"
+#include "skybox.h"
 
 #include <memory>
 #include <vector>
@@ -61,16 +61,14 @@ public:
     void RenderBillboards(FrameInfo& frameInfo, glm::vec3 position);
     void RenderOrbits(FrameInfo& frameInfo);
     void RenderSimpleGeometry(FrameInfo& frameInfo, SimpleModel* geometry);
-    void RenderSkybox(FrameInfo& frameInfo, Skybox* skybox);
+    void RenderSkybox(FrameInfo& frameInfo, Skybox& skybox, VkDescriptorSet skyboxDescriptorSet);
 private:
     void CreateCommandBuffers();
     void FreeCommandBuffers();
     void RecreateSwapChain();
 
-    void CreatePlanetsPipelineLayout(VkDescriptorSetLayout globalSetLayout);
+    void CreateDefaultPipelineLayout(VkDescriptorSetLayout globalSetLayout);
     void CreatePlanetsPipeline();
-
-    void CreateStarsPipelineLayout(VkDescriptorSetLayout globalSetLayout);
     void CreateStarsPipeline();
 
     void CreateBillboardsPipelineLayout(VkDescriptorSetLayout globalSetLayout);
@@ -90,11 +88,9 @@ private:
     std::unique_ptr<SwapChain> m_SwapChain;
     std::vector<VkCommandBuffer> m_CommandBuffers;
 
+    VkPipelineLayout m_DefaultPipelineLayout;
     std::unique_ptr<Pipeline> m_PlanetsPipeline;
-    VkPipelineLayout m_PlanetsPipelineLayout;
-
     std::unique_ptr<Pipeline> m_StarsPipeline;
-    VkPipelineLayout m_StarsPipelineLayout;
 
     std::unique_ptr<Pipeline> m_BillboardsPipeline;
     VkPipelineLayout m_BillboardsPipelineLayout;

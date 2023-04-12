@@ -11,23 +11,19 @@
 #include <vector>
 #include <memory>
 
-class Skybox
+class SkyboxModel
 {
 public:
     struct Vertex 
     {
         glm::vec3 position;
-        glm::vec3 color;
-        glm::vec3 normal;
-        glm::vec2 texCoord;
-        glm::vec2 uv;
 
         static std::vector<VkVertexInputBindingDescription> GetBindingDescriptions();
         static std::vector<VkVertexInputAttributeDescription> GetAttributeDescriptions();
 
         bool operator==(const Vertex& other) const
         {
-            return position == other.position && color == other.color && normal == other.normal && uv == other.uv;
+            return position == other.position;
         }
     };
     struct Builder
@@ -38,15 +34,15 @@ public:
         void LoadModel(const std::string& modelFilepath);
     };
 
-    Skybox(Device& device, const Skybox::Builder& builder);
-    ~Skybox();
+    SkyboxModel(Device& device, const SkyboxModel::Builder& builder);
+    ~SkyboxModel();
 
-    Skybox(const Skybox&) = delete;
-    Skybox& operator=(const Skybox&) = delete;
+    SkyboxModel(const SkyboxModel&) = delete;
+    SkyboxModel& operator=(const SkyboxModel&) = delete;
 
     inline TextureImage* GetTextureImage() { return m_TextureImage.get(); }
 
-    static std::unique_ptr<Skybox> CreateModelFromFile(Device& device, const std::string& modelFilepath);
+    static std::unique_ptr<SkyboxModel> CreateModelFromFile(Device& device, const std::string& modelFilepath);
 
     void Bind(VkCommandBuffer commandBuffer);
     void Draw(VkCommandBuffer commandBuffer);

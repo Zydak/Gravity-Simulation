@@ -1,4 +1,4 @@
-#include "skybox.h"
+#include "skyboxModel.h"
 #include "../utils.h"
 
 #include <cstring>
@@ -12,29 +12,29 @@
 namespace std
 {
     template<>
-    struct hash<Skybox::Vertex>
+    struct hash<SkyboxModel::Vertex>
     {
-        size_t operator()(Skybox::Vertex const& vertex) const
+        size_t operator()(SkyboxModel::Vertex const& vertex) const
         {
             size_t seed = 0;
-            HashCombine(seed, vertex.position, vertex.color, vertex.normal, vertex.uv);
+            HashCombine(seed, vertex.position);
             return seed;
         }
     };
 }
 
-Skybox::Skybox(Device& device, const Skybox::Builder& builder)
+SkyboxModel::SkyboxModel(Device& device, const SkyboxModel::Builder& builder)
     : m_Device(device)
 {
     CreateVertexBuffer(builder.vertices);
     CreateIndexBuffer(builder.indices);
 }
-Skybox::~Skybox()
+SkyboxModel::~SkyboxModel()
 {
 
 }
 
-void Skybox::CreateVertexBuffer(const std::vector<Vertex> &vertices)
+void SkyboxModel::CreateVertexBuffer(const std::vector<Vertex> &vertices)
 {
     m_VertexCount = static_cast<uint32_t>(vertices.size());
     //assert(m_VertexCount >= 3 && "Vertex count me be at least 3");
@@ -81,7 +81,7 @@ void Skybox::CreateVertexBuffer(const std::vector<Vertex> &vertices)
     m_Device.CopyBuffer(stagingBuffer.GetBuffer(), m_VertexBuffer->GetBuffer(), bufferSize);
 }
 
-void Skybox::CreateIndexBuffer(const std::vector<uint32_t> &indices)
+void SkyboxModel::CreateIndexBuffer(const std::vector<uint32_t> &indices)
 {
     m_IndexCount = static_cast<uint32_t>(indices.size());
     m_HasIndexBuffer = m_IndexCount > 0;
@@ -137,7 +137,7 @@ void Skybox::CreateIndexBuffer(const std::vector<uint32_t> &indices)
 /*
     @brief this function call vkCmdBindVertexBuffers which is used to bind vertex buffers to bindings
 */
-void Skybox::Bind(VkCommandBuffer commandBuffer)
+void SkyboxModel::Bind(VkCommandBuffer commandBuffer)
 {
     VkBuffer buffers[] = {m_VertexBuffer->GetBuffer()};
     VkDeviceSize offsets[] = {0};
@@ -149,7 +149,7 @@ void Skybox::Bind(VkCommandBuffer commandBuffer)
     }
 }
 
-void Skybox::Draw(VkCommandBuffer commandBuffer)
+void SkyboxModel::Draw(VkCommandBuffer commandBuffer)
 {
     if (m_HasIndexBuffer)
     {
@@ -161,7 +161,7 @@ void Skybox::Draw(VkCommandBuffer commandBuffer)
     }
 }
 
-std::vector<VkVertexInputBindingDescription> Skybox::Vertex::GetBindingDescriptions()
+std::vector<VkVertexInputBindingDescription> SkyboxModel::Vertex::GetBindingDescriptions()
 {
     std::vector<VkVertexInputBindingDescription> bindingDescription(1);
     bindingDescription[0].binding = 0;
@@ -171,27 +171,23 @@ std::vector<VkVertexInputBindingDescription> Skybox::Vertex::GetBindingDescripti
     return bindingDescription;
 }
 
-std::vector<VkVertexInputAttributeDescription> Skybox::Vertex::GetAttributeDescriptions()
+std::vector<VkVertexInputAttributeDescription> SkyboxModel::Vertex::GetAttributeDescriptions()
 {
     std::vector<VkVertexInputAttributeDescription> attributeDescriptions{};
     attributeDescriptions.push_back({0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, position)});
-    attributeDescriptions.push_back({1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color)});
-    attributeDescriptions.push_back({2, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal)});
-    attributeDescriptions.push_back({3, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, texCoord)});
-    attributeDescriptions.push_back({4, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, uv)});
 
     return attributeDescriptions;
 }
 
-std::unique_ptr<Skybox> Skybox::CreateModelFromFile(Device& device, const std::string& modelFilepath)
+std::unique_ptr<SkyboxModel> SkyboxModel::CreateModelFromFile(Device& device, const std::string& modelFilepath)
 {
     Builder builder{};
     builder.LoadModel(modelFilepath);
 
-    return std::make_unique<Skybox>(device, builder);
+    return std::make_unique<SkyboxModel>(device, builder);
 }
 
-void Skybox::Builder::LoadModel(const std::string& modelFilepath)
+void SkyboxModel::Builder::LoadModel(const std::string& modelFilepath)
 {
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
@@ -220,37 +216,6 @@ void Skybox::Builder::LoadModel(const std::string& modelFilepath)
                     attrib.vertices[3 * index.vertex_index + 1],
                     attrib.vertices[3 * index.vertex_index + 2],
                 };
-
-                vertex.color = {
-                    attrib.colors[3 * index.vertex_index + 0],
-                    attrib.colors[3 * index.vertex_index + 1],
-                    attrib.colors[3 * index.vertex_index + 2],
-                };
-            }
-
-            if (index.texcoord_index >= 0)
-            {
-                vertex.texCoord = {
-                    attrib.texcoords[2 * index.texcoord_index + 0],
-                    1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
-                };
-            }
-
-            if (index.normal_index >= 0) 
-            {
-                vertex.normal = {
-                    attrib.normals[3 * index.normal_index + 0],
-                    attrib.normals[3 * index.normal_index + 1],
-                    attrib.normals[3 * index.normal_index + 2],
-                };
-            }
-
-            if (index.texcoord_index >= 0) 
-            {
-                vertex.uv = {
-                    attrib.texcoords[2 * index.texcoord_index + 0],
-                    attrib.texcoords[2 * index.texcoord_index + 1],
-                };
             }
 
             if (uniqueVertices.count(vertex) == 0) 
@@ -263,7 +228,7 @@ void Skybox::Builder::LoadModel(const std::string& modelFilepath)
     }
 }
 
-void Skybox::UpdateVertexBuffer(VkCommandBuffer cmd, Buffer* buffer, const std::vector<Vertex> &vertices)
+void SkyboxModel::UpdateVertexBuffer(VkCommandBuffer cmd, Buffer* buffer, const std::vector<Vertex> &vertices)
 {
     vkCmdUpdateBuffer(cmd, buffer->GetBuffer(), 0, sizeof(vertices[0]) * vertices.size(), vertices.data());
 }
