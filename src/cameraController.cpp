@@ -60,7 +60,7 @@ void CameraController::Update(float delta, Camera& camera, glm::vec3 target)
         double x, y;
         glfwGetCursorPos(m_Window, &x, &y);
             
-        float sensitivity = -25.0f;
+        float sensitivity = -10.0f;
         static float xOffset = 0;
         static float yOffset = 0;
         xOffset = (lastX - x) * sensitivity;

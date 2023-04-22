@@ -17,10 +17,7 @@ Planet::Planet(uint32_t ID, ObjectInfo objInfo, const std::string& modelfilepath
     if (properties.orbitTraceLenght > 0)
     {
         OrbitModel::Builder builder;
-        for (int i = 0; i < properties.orbitTraceLenght; i++)
-        {
-            builder.vertices.push_back({{0.0f, 0.0f, 0.0f}});
-        }
+        builder.vertices.resize(properties.orbitTraceLenght);
         m_OrbitModel = std::make_unique<OrbitModel>(*objInfo.device, builder);
     }
 

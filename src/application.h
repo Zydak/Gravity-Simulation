@@ -1,20 +1,12 @@
 #pragma once
-#include "window.h"
-#include "pipeline.h"
-#include "device.h"
-#include "pipeline.h"
-#include "swapchain.h"
+#include "vulkan/window.h"
+#include "vulkan/device.h"
 #include "object.h"
 #include "renderer.h"
 #include "camera.h"
 #include "cameraController.h"
-#include "buffer.h"
-#include "descriptors.h"
-#include "models/simpleModel.h"
-#include "textureImage.h"
-#include "sampler.h"
-#include "image.h"
-#include "skybox.h"
+#include "vulkan/descriptors.h"
+#include "vulkan/skybox.h"
 
 #include <iostream>
 #include <memory>
@@ -41,8 +33,6 @@ private:
 
     std::unique_ptr<DescriptorPool> m_GlobalPool{};
     Map m_GameObjects;
-	// Used for simple geometry
-    //std::unique_ptr<SimpleModel> m_Obj;
 
     Sampler m_Sampler{m_Device};
     std::vector<std::unique_ptr<Buffer>> m_UboBuffers;

@@ -1,5 +1,5 @@
 #include "orbitModel.h"
-#include "../utils.h"
+#include "../vulkan/utils.h"
 
 #include <cstring>
 

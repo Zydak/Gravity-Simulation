@@ -1,7 +1,7 @@
 #pragma once
 
 #include "models/orbitModel.h"
-#include "models/model.h"
+#include "models/sphereModel.h"
 #include <memory>
 #include <unordered_map>
 

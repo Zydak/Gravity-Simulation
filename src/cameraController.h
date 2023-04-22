@@ -1,6 +1,6 @@
 #pragma once
 
-#include "window.h"
+#include "vulkan/window.h"
 #include "camera.h"
 
 class CameraController

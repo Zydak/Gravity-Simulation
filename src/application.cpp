@@ -19,7 +19,7 @@
 static float orbitAccumulator = 0;
 
 const char* Skyboxes[] = { "Milky Way", "Nebula", "Stars", "Red Galaxy"};
-static int skyboxImageSelected = SKYBOX_RED_GALAXY;
+static int skyboxImageSelected = SkyboxTextureImage::Stars;
 
 static void CheckVkResult(VkResult err)
 {
@@ -44,7 +44,7 @@ Application::Application()
         .SetMaxSets(SwapChain::MAX_FRAMES_IN_FLIGHT * 3 + 3) // * 2 for ImGui
         .SetPoolFlags(VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT)
         .AddPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, SwapChain::MAX_FRAMES_IN_FLIGHT)
-        .AddPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, SwapChain::MAX_FRAMES_IN_FLIGHT * 3 + 3)
+        .AddPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, SwapChain::MAX_FRAMES_IN_FLIGHT * 3)
         .Build();
     
     LoadGameObjects();
@@ -146,6 +146,7 @@ void Application::Run()
             DescriptorWriter(*m_SkyboxSetLayout, *m_GlobalPool)
                 .WriteImage(0, &skyboxDescriptor)
                 .Overwrite(m_SkyboxDescriptorSet);
+            lastUpdate = std::chrono::high_resolution_clock::now();
         }
 
 		// Delta Time
@@ -213,7 +214,6 @@ void Application::Run()
 
             m_Renderer->RenderGameObjects(frameInfo);
             m_Renderer->RenderSkybox(frameInfo, *m_Skybox, m_SkyboxDescriptorSet);
-            //m_Renderer->RenderSimpleGeometry(frameInfo, m_Obj.get());
 
             RenderImGui(frameInfo);
 
@@ -254,7 +254,7 @@ void Application::LoadGameObjects()
     m_GameObjects.emplace(obj0->GetObjectID(), std::move(obj0));
 
     Properties properties1{};
-    properties1.velocity = {0.0f, 0.0f, -100.0f};
+    properties1.velocity = {0.0f, 0.0f, -75.0f};
     properties1.mass = 1000;
     properties1.isStatic = false;
     properties1.orbitTraceLenght = 200;
@@ -264,37 +264,39 @@ void Application::LoadGameObjects()
     transform1.translation = {2500.0f, 0.0f, 0.0f};
     transform1.scale = glm::vec3{1.0f, 1.0f, 1.0f} * properties1.mass/200.0f;
     transform1.rotation = {0.0f, 0.0f, 0.0f};
-    std::unique_ptr<Object> obj1 = std::make_unique<Planet>(id++, objInfo, "assets/models/smooth_sphere.obj", transform1, properties1, "assets/textures/blue.png");
+    std::unique_ptr<Object> obj1 = std::make_unique<Planet>(id++, objInfo, 
+        "assets/models/smooth_sphere.obj", transform1, properties1, "assets/textures/blue.png");
     m_GameObjects.emplace(obj1->GetObjectID(), std::move(obj1));
 
     Properties properties2{};
     properties2.velocity = {0.0f, 0.0f, 150.0f};
-    properties2.mass = 5;
+    properties2.mass = 1000;
     properties2.isStatic = false;
     properties2.orbitTraceLenght = 200;
     properties2.rotationSpeed = {0.0f, 0.05f, 0.0f};
 
     Transform transform2{};
     transform2.translation = {-1000.0f, 0.0f, 0.0f};
-    transform2.scale = glm::vec3{1.0f, 1.0f, 1.0f} * properties2.mass/6.0f;
+    transform2.scale = glm::vec3{1.0f, 1.0f, 1.0f} * properties2.mass/200.0f;
     transform2.rotation = {0.0f, 0.0f, 0.0f};
-    std::unique_ptr<Object> obj2 = std::make_unique<Planet>(id++, objInfo, "assets/models/smooth_sphere.obj", transform2, properties2, "assets/textures/red.png");
+    std::unique_ptr<Object> obj2 = std::make_unique<Planet>(id++, objInfo, 
+        "assets/models/smooth_sphere.obj", transform2, properties2, "assets/textures/red.png");
     m_GameObjects.emplace(obj2->GetObjectID(), std::move(obj2));
 
-    // Simple Geometry
-    //
-    //const std::vector<SimpleModel::Vertex> vertices = 
-    //{
-    //    {{-1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-    //    {{ 1.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-    //    {{ 1.0f,  1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-    //    {{-1.0f,  1.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
-    //};
-    //const std::vector<uint32_t> indices = 
-    //{
-    //    0, 1, 2, 2, 3, 0
-    //};
-    //m_Obj = std::make_unique<SimpleModel>(m_Device, vertices, indices);
+    Properties properties3{};
+    properties3.velocity = {0.0f, 0.0f, 100.0f};
+    properties3.mass = 1000;
+    properties3.isStatic = false;
+    properties3.orbitTraceLenght = 200;
+    properties3.rotationSpeed = {0.0f, 0.05f, 0.0f};
+
+    Transform transform3{};
+    transform3.translation = {-1750.0f, 0.0f, 0.0f};
+    transform3.scale = glm::vec3{1.0f, 1.0f, 1.0f} * properties3.mass/200.0f;
+    transform3.rotation = {0.0f, 0.0f, 0.0f};
+    std::unique_ptr<Object> obj3 = std::make_unique<Planet>(id++, objInfo, 
+        "assets/models/smooth_sphere.obj", transform3, properties3, "assets/textures/red.png");
+    m_GameObjects.emplace(obj3->GetObjectID(), std::move(obj3));
 }
 
 /**
@@ -311,7 +313,6 @@ static void UpdateObj(Object* obj, std::unordered_map<int, std::shared_ptr<Objec
 void Application::Update(const FrameInfo& frameInfo, float delta, uint32_t substeps)
 {
     static int OrbitUpdateCount = 0;
-    //std::vector<std::future<void>> futures;
     for (int i = 0; i < m_GameSpeed; i++)
     {
         for (auto& kv: m_GameObjects)
@@ -319,11 +320,7 @@ void Application::Update(const FrameInfo& frameInfo, float delta, uint32_t subst
             auto& obj = kv.second;
 
             const float stepDelta = delta / (float)substeps;
-			// If I don't ignore return value it doesn't work properly
-            std::async(std::launch::async, UpdateObj, obj.get(), m_GameObjects, stepDelta, substeps);
-            //futures.push_back(std::async(std::launch::async, UpdateObj, obj.get(), m_GameObjects, stepDelta, substeps));
-            //obj->Update(m_GameObjects, stepDelta, substeps);
-            //obj->OrbitUpdate(frameInfo.commandBuffer);
+            obj->Update(m_GameObjects, stepDelta, substeps);
             
             obj->GetObjectTransform().rotation += obj->GetObjectProperties().rotationSpeed;
         }

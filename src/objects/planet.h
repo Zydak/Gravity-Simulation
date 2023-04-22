@@ -1,10 +1,10 @@
 #pragma once
 
-#include "../models/model.h"
+#include "../models/sphereModel.h"
 #include "../object.h"
 #include "../frameInfo.h"
 
-#include "../descriptors.h"
+#include "../vulkan/descriptors.h"
 
 class Planet : public Object
 {

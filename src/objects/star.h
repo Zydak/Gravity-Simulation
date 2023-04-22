@@ -1,10 +1,10 @@
 #pragma once
 
-#include "../models/model.h"
+#include "../models/sphereModel.h"
 #include "../object.h"
 #include "../frameInfo.h"
 
-#include "../descriptors.h"
+#include "../vulkan/descriptors.h"
 
 class Star : public Object
 {
@@ -21,6 +21,7 @@ public:
     inline virtual uint32_t GetObjectID() override { return m_ID; };
     inline virtual uint32_t GetObjectType() override { return OBJ_TYPE_STAR; }
 
+    int m_ObjType;
     uint32_t m_ID;
     std::unique_ptr<OrbitModel> m_OrbitModel;
     std::unique_ptr<Model> m_Model;

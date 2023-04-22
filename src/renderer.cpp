@@ -7,11 +7,10 @@
 Renderer::Renderer(Window& window, Device& device, VkDescriptorSetLayout globalSetLayout)
     :   m_Window(window), m_Device(device)
 {
-    CreateDefaultPipelineLayout(globalSetLayout);
-    CreateLinesPipelineLayout(globalSetLayout);
-    CreateSimplePipelineLayout(globalSetLayout);
-    CreateSkyboxPipelineLayout(globalSetLayout);
-    //CreateBillboardsPipelineLayout(globalSetLayout);
+    CreatePipelineLayouts(globalSetLayout);
+    // CreateDefaultPipelineLayout(globalSetLayout);
+    // CreateLinesPipelineLayout(globalSetLayout);
+    // CreateSkyboxPipelineLayout(globalSetLayout);
     RecreateSwapChain();
     CreateCommandBuffers();
 }
@@ -20,10 +19,8 @@ Renderer::~Renderer()
 {
     FreeCommandBuffers();
     vkDestroyPipelineLayout(m_Device.GetDevice(), m_DefaultPipelineLayout, nullptr);
-    vkDestroyPipelineLayout(m_Device.GetDevice(), m_LinesPipelineLayout, nullptr);
-    vkDestroyPipelineLayout(m_Device.GetDevice(), m_SimplePipelineLayout, nullptr);
+    vkDestroyPipelineLayout(m_Device.GetDevice(), m_OrbitsPipelineLayout, nullptr);
     vkDestroyPipelineLayout(m_Device.GetDevice(), m_SkyboxPipelineLayout, nullptr);
-    //vkDestroyPipelineLayout(m_Device.GetDevice(), m_BillboardsPipelineLayout, nullptr);
     m_CommandBuffers.clear();
 }
 
@@ -51,12 +48,7 @@ void Renderer::RecreateSwapChain()
         }
     }
     
-    CreatePlanetsPipeline();
-    CreateStarsPipeline();
-    CreateLinesPipeline();
-    CreateSimplePipeline();
-    CreateSkyboxPipeline();
-    //CreateBillboardsPipeline();
+    CreatePipelines();
 }
 
 void Renderer::CreateCommandBuffers()
@@ -192,7 +184,7 @@ void Renderer::RenderOrbits(FrameInfo& frameInfo)
     vkCmdBindDescriptorSets(
         frameInfo.commandBuffer,
         VK_PIPELINE_BIND_POINT_GRAPHICS,
-        m_LinesPipelineLayout,
+        m_OrbitsPipelineLayout,
         0,
         1,
         &frameInfo.globalDescriptorSet,
@@ -200,7 +192,7 @@ void Renderer::RenderOrbits(FrameInfo& frameInfo)
         nullptr
     );
 
-    m_LinesPipeline->Bind(frameInfo.commandBuffer);
+    m_OrbitsPipeline->Bind(frameInfo.commandBuffer);
 
     for (auto& kv: frameInfo.gameObjects)
     {
@@ -291,193 +283,126 @@ void Renderer::RenderSkybox(FrameInfo& frameInfo, Skybox& skybox, VkDescriptorSe
     skybox.GetSkyboxModel()->Draw(frameInfo.commandBuffer);
 }
 
-void Renderer::RenderSimpleGeometry(FrameInfo& frameInfo, SimpleModel* geometry)
+void Renderer::CreatePipelineLayouts(VkDescriptorSetLayout globalSetLayout)
 {
-    vkCmdBindDescriptorSets(
-        frameInfo.commandBuffer,
-        VK_PIPELINE_BIND_POINT_GRAPHICS,
-        m_SimplePipelineLayout,
-        0,
-        1,
-        &frameInfo.globalDescriptorSet,
-        0,
-        nullptr
-    );
-
-    m_SimplePipeline->Bind(frameInfo.commandBuffer);
-    geometry->Bind(frameInfo.commandBuffer);
-    geometry->Draw(frameInfo.commandBuffer);
-}
-
-void Renderer::CreateDefaultPipelineLayout(VkDescriptorSetLayout globalSetLayout)
-{
-    VkPushConstantRange pushConstantRange{};
-    pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-    pushConstantRange.offset = 0;
-    pushConstantRange.size = sizeof(PushConstants);
-
-    auto m_SetLayout = DescriptorSetLayout::Builder(m_Device)
-        .AddBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
-        .Build();
-    std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout, m_SetLayout->GetDescriptorSetLayout()};
-
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = (uint32_t)descriptorSetLayouts.size();
-    pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
-    pipelineLayoutInfo.pushConstantRangeCount = 1;
-    pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
-    if (vkCreatePipelineLayout(m_Device.GetDevice(), &pipelineLayoutInfo, nullptr, &m_DefaultPipelineLayout) != VK_SUCCESS) 
+    //
+    // DEFAULT
+    //
+    // stars and planets have the same pipeline layout
     {
-        throw std::runtime_error("failed to create pipeline layout!");
+        VkPushConstantRange pushConstantRange{};
+        pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+        pushConstantRange.offset = 0;
+        pushConstantRange.size = sizeof(PushConstants);
+
+        auto m_SetLayout = DescriptorSetLayout::Builder(m_Device)
+            .AddBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+            .Build();
+        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout, m_SetLayout->GetDescriptorSetLayout()};
+
+        Pipeline::CreatePipelineLayout(m_Device, descriptorSetLayouts, pushConstantRange, m_DefaultPipelineLayout);
+    }
+
+    //
+    // ORBITS
+    //
+    {
+        VkPushConstantRange pushConstantRange{};
+        pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+        pushConstantRange.offset = 0;
+        pushConstantRange.size = sizeof(OrbitsPushConstants);
+
+        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout};
+
+        Pipeline::CreatePipelineLayout(m_Device, descriptorSetLayouts, pushConstantRange, m_OrbitsPipelineLayout);
+    }
+
+    //
+    // SKYBOX
+    //
+    {
+        auto m_SkyboxLayout = DescriptorSetLayout::Builder(m_Device)
+            .AddBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+            .Build();
+
+        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout, m_SkyboxLayout->GetDescriptorSetLayout()};
+
+        VkPushConstantRange pushConstantRange{};
+        pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+        pushConstantRange.offset = 0;
+        pushConstantRange.size = sizeof(PushConstants);
+
+        Pipeline::CreatePipelineLayout(m_Device, descriptorSetLayouts, pushConstantRange, m_SkyboxPipelineLayout);
     }
 }
 
-void Renderer::CreatePlanetsPipeline() 
+void Renderer::CreatePipelines()
 {
-    auto pipelineConfig = Pipeline::DefaultPipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight());
-    pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
-    pipelineConfig.pipelineLayout = m_DefaultPipelineLayout;
-    m_PlanetsPipeline = std::make_unique<Pipeline>(m_Device);
-    m_PlanetsPipeline->CreateGraphicsPipeline("shaders/shader.vert.spv", "shaders/shader.frag.spv", pipelineConfig);
-}
-
-void Renderer::CreateStarsPipeline() 
-{
-    auto pipelineConfig = Pipeline::DefaultPipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight());
-    pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
-    pipelineConfig.pipelineLayout = m_DefaultPipelineLayout;
-    m_StarsPipeline = std::make_unique<Pipeline>(m_Device);
-    m_StarsPipeline->CreateGraphicsPipeline("shaders/stars.vert.spv", "shaders/stars.frag.spv", pipelineConfig);
-}
-
-void Renderer::CreateBillboardsPipelineLayout(VkDescriptorSetLayout globalSetLayout)
-{
-    VkPushConstantRange pushConstantRange{};
-    pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-    pushConstantRange.offset = 0;
-    pushConstantRange.size = sizeof(BillboardsPushConstants);
-
-    std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout};
-
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = (uint32_t)descriptorSetLayouts.size();
-    pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
-    pipelineLayoutInfo.pushConstantRangeCount = 1;
-    pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
-    if (vkCreatePipelineLayout(m_Device.GetDevice(), &pipelineLayoutInfo, nullptr, &m_BillboardsPipelineLayout) != VK_SUCCESS) 
+    //
+    // PLANETS
+    //
     {
-        throw std::runtime_error("failed to create pipeline layout!");
+        auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight(),
+            VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST
+        );
+        pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
+        pipelineConfig.pipelineLayout = m_DefaultPipelineLayout;
+        m_PlanetsPipeline = std::make_unique<Pipeline>(m_Device);
+        m_PlanetsPipeline->CreatePipeline("shaders/spv/shader.vert.spv", "shaders/spv/shader.frag.spv", 
+            pipelineConfig,
+            Model::Vertex::GetBindingDescriptions(),
+            Model::Vertex::GetAttributeDescriptions()
+        );
     }
-}
 
-void Renderer::CreateBillboardsPipeline() 
-{
-    auto pipelineConfig = Pipeline::DefaultPipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight());
-    pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
-    pipelineConfig.pipelineLayout = m_BillboardsPipelineLayout;
-    m_BillboardsPipeline = std::make_unique<Pipeline>(m_Device);
-    m_BillboardsPipeline->CreateGraphicsPipeline("shaders/billboard.vert.spv", "shaders/billboard.frag.spv", pipelineConfig);
-}
-
-void Renderer::CreateLinesPipeline() 
-{
-    auto pipelineConfig = Pipeline::LinesPipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight());
-    pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
-    pipelineConfig.pipelineLayout = m_LinesPipelineLayout;
-    m_LinesPipeline = std::make_unique<Pipeline>(m_Device);
-    m_LinesPipeline->CreateLinesPipeline("shaders/lines.vert.spv", "shaders/lines.frag.spv", pipelineConfig);
-}
-void Renderer::CreateLinesPipelineLayout(VkDescriptorSetLayout globalSetLayout)
-{
-    VkPushConstantRange pushConstantRange{};
-    pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-    pushConstantRange.offset = 0;
-    pushConstantRange.size = sizeof(LinesPushConstants);
-
-    std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout};
-
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = (uint32_t)descriptorSetLayouts.size();
-    pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
-    pipelineLayoutInfo.pushConstantRangeCount = 1;
-    pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
-    if (vkCreatePipelineLayout(m_Device.GetDevice(), &pipelineLayoutInfo, nullptr, &m_LinesPipelineLayout) != VK_SUCCESS) 
+    //
+    // STARS
+    //
     {
-        throw std::runtime_error("failed to create pipeline layout!");
+        auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight(),
+            VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST
+        );
+        pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
+        pipelineConfig.pipelineLayout = m_DefaultPipelineLayout;
+        m_StarsPipeline = std::make_unique<Pipeline>(m_Device);
+        m_StarsPipeline->CreatePipeline("shaders/spv/stars.vert.spv", "shaders/spv/stars.frag.spv", 
+            pipelineConfig,
+            Model::Vertex::GetBindingDescriptions(),
+            Model::Vertex::GetAttributeDescriptions()
+        );
     }
-}
 
-void Renderer::RenderBillboards(FrameInfo& frameInfo, glm::vec3 position)
-{
-    m_BillboardsPipeline->Bind(frameInfo.commandBuffer);
-
-    BillboardsPushConstants push{};
-    push.position = position;
-
-    vkCmdPushConstants(frameInfo.commandBuffer, m_DefaultPipelineLayout, 
-        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstants), &push);
-
-    vkCmdDraw(frameInfo.commandBuffer, 6, 1, 0, 0);
-}
-
-void Renderer::CreateSimplePipelineLayout(VkDescriptorSetLayout globalSetLayout)
-{
-    std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout};
-
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = (uint32_t)descriptorSetLayouts.size();
-    pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
-    pipelineLayoutInfo.pushConstantRangeCount = 0;
-    pipelineLayoutInfo.pPushConstantRanges = nullptr;
-    if (vkCreatePipelineLayout(m_Device.GetDevice(), &pipelineLayoutInfo, nullptr, &m_SimplePipelineLayout) != VK_SUCCESS) 
+    //
+    // ORBITS
+    //
     {
-        throw std::runtime_error("failed to create pipeline layout!");
+        auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight(),
+            VK_PRIMITIVE_TOPOLOGY_LINE_STRIP
+        );
+        pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
+        pipelineConfig.pipelineLayout = m_OrbitsPipelineLayout;
+        m_OrbitsPipeline = std::make_unique<Pipeline>(m_Device);
+        m_OrbitsPipeline->CreatePipeline("shaders/spv/orbits.vert.spv", "shaders/spv/orbits.frag.spv",
+            pipelineConfig,
+            OrbitModel::Vertex::GetBindingDescriptions(),
+            OrbitModel::Vertex::GetAttributeDescriptions()
+        );
     }
-}
 
-void Renderer::CreateSimplePipeline()
-{
-    auto pipelineConfig = Pipeline::SimplePipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight());
-    pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
-    pipelineConfig.pipelineLayout = m_SimplePipelineLayout;
-    m_SimplePipeline = std::make_unique<Pipeline>(m_Device);
-    m_SimplePipeline->CreateSimplePipeline("shaders/simple.vert.spv", "shaders/simple.frag.spv", pipelineConfig);
-}
-
-void Renderer::CreateSkyboxPipelineLayout(VkDescriptorSetLayout globalSetLayout)
-{
-    auto m_SkyboxLayout = DescriptorSetLayout::Builder(m_Device)
-        .AddBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
-        .Build();
-
-    std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout, m_SkyboxLayout->GetDescriptorSetLayout()};
-
-    VkPushConstantRange pushConstantRange{};
-    pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-    pushConstantRange.offset = 0;
-    pushConstantRange.size = sizeof(PushConstants);
-
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = (uint32_t)descriptorSetLayouts.size();
-    pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
-    pipelineLayoutInfo.pushConstantRangeCount = 1;
-    pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
-    if (vkCreatePipelineLayout(m_Device.GetDevice(), &pipelineLayoutInfo, nullptr, &m_SkyboxPipelineLayout) != VK_SUCCESS) 
+    //
+    // SKYBOX
+    //
     {
-        throw std::runtime_error("failed to create pipeline layout!");
+        auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight(),
+            VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST
+        );
+        pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
+        pipelineConfig.pipelineLayout = m_SkyboxPipelineLayout;
+        m_SkyboxPipeline = std::make_unique<Pipeline>(m_Device);
+        m_SkyboxPipeline->CreatePipeline("shaders/spv/skybox.vert.spv", "shaders/spv/skybox.frag.spv", 
+            pipelineConfig,
+            SkyboxModel::Vertex::GetBindingDescriptions(),
+            SkyboxModel::Vertex::GetAttributeDescriptions()
+        );
     }
-}
-
-void Renderer::CreateSkyboxPipeline()
-{
-    auto pipelineConfig = Pipeline::DefaultPipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight());
-    pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
-    pipelineConfig.pipelineLayout = m_SkyboxPipelineLayout;
-    m_SkyboxPipeline = std::make_unique<Pipeline>(m_Device);
-    m_SkyboxPipeline->CreateSkyboxPipeline("shaders/skybox.vert.spv", "shaders/skybox.frag.spv", pipelineConfig);
 }
