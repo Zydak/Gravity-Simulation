@@ -19,7 +19,8 @@ struct PushConstants
 
 struct BillboardsPushConstants
 {
-    glm::vec3 position{0.0f};
+    alignas(16) glm::vec3 position{0.0f};
+    float size = 1.0f;
 };
 
 struct OrbitsPushConstants
@@ -58,6 +59,7 @@ public:
     void RenderGameObjects(FrameInfo& frameInfo);
     void RenderOrbits(FrameInfo& frameInfo);
     void RenderSkybox(FrameInfo& frameInfo, Skybox& skybox, VkDescriptorSet skyboxDescriptorSet);
+    void RenderBillboards(FrameInfo& frameInfo, glm::vec3 position, float size);
 private:
     void CreateCommandBuffers();
     void FreeCommandBuffers();
@@ -81,6 +83,9 @@ private:
 
     std::unique_ptr<Pipeline> m_SkyboxPipeline;
     VkPipelineLayout m_SkyboxPipelineLayout;
+
+    std::unique_ptr<Pipeline> m_BillboardPipeline;
+    VkPipelineLayout m_BillboardPipelineLayout;
 
     uint32_t m_CurrentImageIndex = 0;
     int m_CurrentFrameIndex = 0;

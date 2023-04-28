@@ -57,7 +57,7 @@ void Pipeline::Bind(VkCommandBuffer commandBuffer)
 }
 
 PipelineConfigInfo Pipeline::CreatePipelineConfigInfo(uint32_t width, uint32_t height, 
-    VkPrimitiveTopology topology, VkCullModeFlags cullMode) 
+    VkPrimitiveTopology topology, VkCullModeFlags cullMode, bool depthTestEnable) 
 {
     PipelineConfigInfo configInfo{};
 
@@ -115,7 +115,7 @@ PipelineConfigInfo Pipeline::CreatePipelineConfigInfo(uint32_t width, uint32_t h
     configInfo.colorBlendInfo.blendConstants[3] = 0.0f;
 
     configInfo.depthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-    configInfo.depthStencilInfo.depthTestEnable = VK_TRUE;
+    configInfo.depthStencilInfo.depthTestEnable = depthTestEnable;
     configInfo.depthStencilInfo.depthWriteEnable = VK_TRUE;
     configInfo.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS;
     configInfo.depthStencilInfo.depthBoundsTestEnable = VK_FALSE;

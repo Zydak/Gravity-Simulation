@@ -14,7 +14,6 @@ public:
     );
     virtual void Draw(VkPipelineLayout layout, VkCommandBuffer commandBuffer) override;
     virtual void DrawOrbit(VkCommandBuffer commandBuffer) override;
-    virtual void Update(std::unordered_map<int, std::shared_ptr<Object>> gameObjects, float delta, uint32_t substeps) override;
     virtual void OrbitUpdate(VkCommandBuffer commandBuffer) override;
     inline virtual Transform& GetObjectTransform() override { return m_Transform; }
     inline virtual OrbitModel* GetOrbitModel() override { return  m_OrbitModel.get(); }
@@ -22,6 +21,7 @@ public:
     inline virtual Properties& GetObjectProperties() override { return m_Properties; }
     inline virtual uint32_t GetObjectID() override { return m_ID; }
     inline virtual uint32_t GetObjectType() override { return m_ObjType; }
+    inline virtual float GetObjectRadius() override { return m_Radius; }
 
     int m_ObjType;
     uint32_t m_ID;

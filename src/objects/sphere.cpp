@@ -17,7 +17,8 @@ Sphere::Sphere(uint32_t ID, ObjectInfo objInfo, const std::string& modelfilepath
 {
     m_ObjType = properties.objType;
 
-    m_Radius = std::cbrt(properties.mass)/1000.0;
+    //m_Radius = std::cbrt(properties.mass);
+    m_Radius = 10.0f;
     m_Transform.scale = glm::vec3{1.0f, 1.0f, 1.0f} * m_Radius;
     if (properties.orbitTraceLenght > 0)
     {
@@ -59,46 +60,6 @@ void Sphere::DrawOrbit(VkCommandBuffer commandBuffer)
 {
     m_OrbitModel->Bind(commandBuffer);
     m_OrbitModel->Draw(commandBuffer);
-}
-
-void Sphere::Update(std::unordered_map<int, std::shared_ptr<Object>> gameObjects, float delta, uint32_t substeps)
-{
-    if (m_Properties.isStatic == false)
-    {
-        for (auto i = gameObjects.begin(); i != gameObjects.end(); i++)
-        {
-            auto& otherObj = i->second;
-            auto otherObjTranslation = otherObj->GetObjectTransform().translation;
-            auto otherObjMass = otherObj->GetObjectProperties().mass;
-            if (i->first != m_ID)
-            {
-                auto offset = otherObjTranslation - m_Transform.translation;
-                float distanceSquared = glm::dot(offset, offset);
-
-                // Collision Check
-                if (std::sqrt(distanceSquared) < m_Radius * 2)
-                {
-                    std::cout << "HIT" << std::endl;
-                }
-
-                float force = 15.0 * otherObjMass * m_Properties.mass / distanceSquared;
-                glm::vec3 trueForce = force * offset / glm::sqrt(distanceSquared);
-                m_Properties.velocity += delta * trueForce / m_Properties.mass;
-                m_Transform.translation += delta * m_Properties.velocity;
-            }
-            else if (gameObjects.size() == 1) // if there is only one object still apply it's velocity
-            {
-                m_Transform.translation += delta * m_Properties.velocity;
-            }
-        }
-    }
-    else
-    {
-        for (int j = 0; j < substeps; j++)
-        {
-            m_Transform.translation += delta * m_Properties.velocity;
-        }
-    }
 }
 
 void Sphere::OrbitUpdate(VkCommandBuffer commandBuffer)

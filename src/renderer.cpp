@@ -3,14 +3,12 @@
 #include <stdexcept>
 #include <cassert>
 #include <array>
+#include <iostream>
 
 Renderer::Renderer(Window& window, Device& device, VkDescriptorSetLayout globalSetLayout)
     :   m_Window(window), m_Device(device)
 {
     CreatePipelineLayouts(globalSetLayout);
-    // CreateDefaultPipelineLayout(globalSetLayout);
-    // CreateLinesPipelineLayout(globalSetLayout);
-    // CreateSkyboxPipelineLayout(globalSetLayout);
     RecreateSwapChain();
     CreateCommandBuffers();
 }
@@ -21,6 +19,7 @@ Renderer::~Renderer()
     vkDestroyPipelineLayout(m_Device.GetDevice(), m_DefaultPipelineLayout, nullptr);
     vkDestroyPipelineLayout(m_Device.GetDevice(), m_OrbitsPipelineLayout, nullptr);
     vkDestroyPipelineLayout(m_Device.GetDevice(), m_SkyboxPipelineLayout, nullptr);
+    vkDestroyPipelineLayout(m_Device.GetDevice(), m_BillboardPipelineLayout, nullptr);
     m_CommandBuffers.clear();
 }
 
@@ -197,19 +196,19 @@ void Renderer::RenderGameObjects(FrameInfo& frameInfo)
 {
     RenderOrbits(frameInfo);
 
-    vkCmdBindDescriptorSets(
-        frameInfo.commandBuffer,
-        VK_PIPELINE_BIND_POINT_GRAPHICS,
-        m_DefaultPipelineLayout,
-        0,
-        1,
-        &frameInfo.globalDescriptorSet,
-        0,
-        nullptr
-    );
-
     for (auto& kv: frameInfo.gameObjects)
     {
+        vkCmdBindDescriptorSets(
+            frameInfo.commandBuffer,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            m_DefaultPipelineLayout,
+            0,
+            1,
+            &frameInfo.globalDescriptorSet,
+            0,
+            nullptr
+        );
+
         auto& obj = kv.second;
         if (obj->GetObjectType() == OBJ_TYPE_PLANET)
             m_PlanetsPipeline->Bind(frameInfo.commandBuffer);
@@ -222,7 +221,40 @@ void Renderer::RenderGameObjects(FrameInfo& frameInfo)
         vkCmdPushConstants(frameInfo.commandBuffer, m_DefaultPipelineLayout, 
             VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstants), &push);
         obj->Draw(m_DefaultPipelineLayout, frameInfo.commandBuffer);
+
+        auto offset = frameInfo.camera->m_Transform.translation - obj->GetObjectTransform().translation;
+        float distance = std::sqrt(glm::dot(offset, offset));
+        if (distance > obj->GetObjectTransform().scale.x*1700.0f)
+        {
+            RenderBillboards(frameInfo, obj->GetObjectTransform().translation, distance/100.0f);
+        }
     }
+}
+
+void Renderer::RenderBillboards(FrameInfo& frameInfo, glm::vec3 position, float size)
+{
+    vkCmdBindDescriptorSets(
+        frameInfo.commandBuffer,
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
+        m_BillboardPipelineLayout,
+        0,
+        1,
+        &frameInfo.globalDescriptorSet,
+        0,
+        nullptr
+    );
+
+    m_BillboardPipeline->Bind(frameInfo.commandBuffer);
+
+    BillboardsPushConstants push{};
+    push.position = position;
+    push.size = size;
+
+
+    vkCmdPushConstants(frameInfo.commandBuffer, m_BillboardPipelineLayout, 
+        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(BillboardsPushConstants), &push);
+
+    vkCmdDraw(frameInfo.commandBuffer, 6, 1, 0, 0);
 }
 
 void Renderer::RenderSkybox(FrameInfo& frameInfo, Skybox& skybox, VkDescriptorSet skyboxDescriptorSet)
@@ -323,6 +355,20 @@ void Renderer::CreatePipelineLayouts(VkDescriptorSetLayout globalSetLayout)
 
         Pipeline::CreatePipelineLayout(m_Device, descriptorSetLayouts, pushConstantRange, m_SkyboxPipelineLayout);
     }
+
+    //
+    // Billboards
+    //
+    {
+        std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout};
+
+        VkPushConstantRange pushConstantRange{};
+        pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+        pushConstantRange.offset = 0;
+        pushConstantRange.size = sizeof(BillboardsPushConstants);
+
+        Pipeline::CreatePipelineLayout(m_Device, descriptorSetLayouts, pushConstantRange, m_BillboardPipelineLayout);
+    }
 }
 
 void Renderer::CreatePipelines()
@@ -333,7 +379,7 @@ void Renderer::CreatePipelines()
     {
         auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight(),
             VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-            VK_CULL_MODE_FRONT_BIT
+            VK_CULL_MODE_FRONT_BIT, VK_TRUE
         );
         pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
         pipelineConfig.pipelineLayout = m_DefaultPipelineLayout;
@@ -351,7 +397,7 @@ void Renderer::CreatePipelines()
     {
         auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight(),
             VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-            VK_CULL_MODE_FRONT_BIT
+            VK_CULL_MODE_FRONT_BIT, true
         );
         pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
         pipelineConfig.pipelineLayout = m_DefaultPipelineLayout;
@@ -369,7 +415,7 @@ void Renderer::CreatePipelines()
     {
         auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight(),
             VK_PRIMITIVE_TOPOLOGY_LINE_STRIP,
-            VK_CULL_MODE_NONE
+            VK_CULL_MODE_NONE, true
         );
         pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
         pipelineConfig.pipelineLayout = m_OrbitsPipelineLayout;
@@ -387,7 +433,7 @@ void Renderer::CreatePipelines()
     {
         auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight(),
             VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-            VK_CULL_MODE_BACK_BIT
+            VK_CULL_MODE_BACK_BIT, false
         );
         pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
         pipelineConfig.pipelineLayout = m_SkyboxPipelineLayout;
@@ -396,6 +442,22 @@ void Renderer::CreatePipelines()
             pipelineConfig,
             SkyboxModel::Vertex::GetBindingDescriptions(),
             SkyboxModel::Vertex::GetAttributeDescriptions()
+        );
+    }
+
+    //
+    // Billboards
+    //
+    {
+        auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight(),
+            VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+            VK_CULL_MODE_FRONT_BIT, true
+        );
+        pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
+        pipelineConfig.pipelineLayout = m_BillboardPipelineLayout;
+        m_BillboardPipeline = std::make_unique<Pipeline>(m_Device);
+        m_BillboardPipeline->CreatePipeline("shaders/spv/billboard.vert.spv", "shaders/spv/billboard.frag.spv", 
+            pipelineConfig
         );
     }
 }

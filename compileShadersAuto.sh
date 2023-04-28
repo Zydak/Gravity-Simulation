@@ -9,3 +9,6 @@ glslc ../shaders/orbits.frag -o ../shaders/spv/orbits.frag.spv
 
 glslc ../shaders/skybox.vert -o ../shaders/spv/skybox.vert.spv
 glslc ../shaders/skybox.frag -o ../shaders/spv/skybox.frag.spv
+
+glslc ../shaders/billboard.vert -o ../shaders/spv/billboard.vert.spv
+glslc ../shaders/billboard.frag -o ../shaders/spv/billboard.frag.spv

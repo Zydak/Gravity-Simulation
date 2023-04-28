@@ -207,8 +207,7 @@ void Application::Run()
 
 			// Camera Update
             float aspectRatio = m_Renderer->GetAspectRatio();
-            m_Camera.SetPerspectiveProjection(glm::radians(50.0f), aspectRatio, 0.1f, 100000000.0f);
-            auto xd = m_GameObjects[m_TargetLock]->GetObjectTransform().translation;
+            m_Camera.SetPerspectiveProjection(glm::radians(50.0f), aspectRatio, 1.0f, 50000000);
             m_CameraController.Update(0.016f, m_Camera, m_GameObjects[m_TargetLock]->GetObjectTransform().translation);
             m_Camera.SetViewTarget(m_GameObjects[m_TargetLock]->GetObjectTransform().translation);
             
@@ -230,9 +229,9 @@ void Application::Run()
 
             // ------------------- RENDER PASS -----------------
             m_Renderer->BeginSwapChainRenderPass(commandBuffer, {0.0f, 0.0f, 0.0f});
+            m_Renderer->RenderSkybox(frameInfo, *m_Skybox, m_SkyboxDescriptorSet); // Skybox has to be rendered first
 
             m_Renderer->RenderGameObjects(frameInfo);
-            m_Renderer->RenderSkybox(frameInfo, *m_Skybox, m_SkyboxDescriptorSet);
 
             RenderImGui(frameInfo);
 
@@ -261,7 +260,7 @@ void Application::LoadGameObjects()
     {
         Properties properties{};
         properties.velocity = {0.0f, 0.0f, 0.0f};
-        properties.mass = 5000000.0;
+        properties.mass = 1.99 * pow(10, 30);
                           
         properties.isStatic = false;
         properties.orbitTraceLenght = 0;
@@ -274,26 +273,24 @@ void Application::LoadGameObjects()
         std::unique_ptr<Object> obj = std::make_unique<Sphere>(id++, objInfo, 
             "assets/models/smooth_sphere.obj", transform, properties, "assets/textures/white.png");
         m_GameObjects.emplace(obj->GetObjectID(), std::move(obj));
-        
     }
 
     {
         Properties properties{};
-        properties.velocity = {0.0f, 0.0f, 0.0f};
-        properties.mass = 1000.0;
+        properties.velocity = {0.0f, 0.0f, 150.0f};
+        properties.mass = 5.972 * pow(10, 24);
         properties.isStatic = false;
         properties.orbitTraceLenght = 200;
         properties.rotationSpeed = {0.0f, 0.05f, 0.0f};
         properties.objType = OBJ_TYPE_PLANET;
 
         Transform transform{};
-        transform.translation = {500, 0.0f, 0.0f};
+        transform.translation = {149597871, 0.0f, 0.0f};
         transform.rotation = {0.0f, 0.0f, 0.0f};
         std::unique_ptr<Object> obj = std::make_unique<Sphere>(id++, objInfo, 
             "assets/models/smooth_sphere.obj", transform, properties, "assets/textures/red.png");
         m_GameObjects.emplace(obj->GetObjectID(), std::move(obj));
     }
-    auto xd = m_GameObjects[m_TargetLock]->GetObjectTransform().translation;
 }
 
 /**
@@ -322,40 +319,41 @@ void Application::Update(const FrameInfo& frameInfo, float delta)
                         if (objA == objB)
                             continue;
                         
-                        auto offset = objA->GetObjectTransform().translation - objB->GetObjectTransform().translation;
-                        float distanceSquared = glm::dot(offset, offset);
+                        glm::dvec3 offset = objA->GetObjectTransform().translation - objB->GetObjectTransform().translation;
+                        double distanceSquared = glm::dot(offset, offset);
 
-                        // Collision Check
-                        float radius = std::cbrt(objB->GetObjectProperties().mass);
-                        m_Pause = true;
-                        
-                        if (radius*radius > distanceSquared)
+                        // // Collision Check
+                        // double radius = std::cbrt(objB->GetObjectProperties().mass);
+                        // if (radius*radius > distanceSquared)
+                        // {
+                        //     // EQUATION HERE
+
+                        //     // For Now
+                        //     {
+                        //         if (m_TargetLock == objB->GetObjectID())
+                        //             m_TargetLock = objA->GetObjectID();
+                        //         objA->GetObjectProperties().mass += objB->GetObjectProperties().mass;
+                        //         m_GameObjects.erase(objB->GetObjectID());
+                        //         break;
+                        //     }
+                        // }
+                        if (std::sqrt(distanceSquared) < 10000.0)
                         {
-                            // EQUATION HERE
-                            if (m_TargetLock == objB->GetObjectID())
-                                m_TargetLock = objA->GetObjectID();
-                            objA->GetObjectProperties().mass += objB->GetObjectProperties().mass;
-                            m_GameObjects.erase(objB->GetObjectID());
-
-                            break;
+                            std::cout << " " << std::endl;
                         }
 
-                        //float G = 6.67 / (pow(10, 11));
-                        float force = 10 * objA->GetObjectProperties().mass * objB->GetObjectProperties().mass / distanceSquared;
-                        glm::vec3 trueForce = force * offset / glm::sqrt(distanceSquared);
-                        objA->GetObjectProperties().velocity += delta * -trueForce / objA->GetObjectProperties().mass;
-                        auto xd = delta * -trueForce / objA->GetObjectProperties().mass;
-                        auto x = objA->GetObjectTransform().translation;
+                        double G = 6.67 / (pow(10, 11));
+                        double force = G * objA->GetObjectProperties().mass * objB->GetObjectProperties().mass / distanceSquared;
+                        glm::dvec3 trueForce = force * offset / glm::sqrt(distanceSquared);
+                        objA->GetObjectProperties().velocity += (double)delta * -trueForce / objA->GetObjectProperties().mass;
                         objA->GetObjectTransform().translation += delta * objA->GetObjectProperties().velocity;
-                        auto y = objA->GetObjectTransform().translation;
 
-                        objB->GetObjectProperties().velocity += delta * trueForce / objB->GetObjectProperties().mass;
+                        objB->GetObjectProperties().velocity += (double)delta * trueForce / objB->GetObjectProperties().mass;
                         objB->GetObjectTransform().translation += delta * objB->GetObjectProperties().velocity;
                     }
                 }
                 
                 objA->GetObjectTransform().rotation += objA->GetObjectProperties().rotationSpeed;
-                objA->GetObjectTransform().scale = glm::vec3(1.0f, 1.0f, 1.0f) * std::cbrt(objA->GetObjectProperties().mass);
             }
         }
         
@@ -412,7 +410,6 @@ void Application::RenderImGui(const FrameInfo& frameInfo)
         {
             m_TargetLock = obj->GetObjectID();
         }
-        ImGui::DragFloat((std::to_string(obj->GetObjectID()) + std::string(" Obj Mass")).c_str(), &obj->GetObjectProperties().mass, 500.0f, 1000.0f, 10000000, "%.3f", 0);
     }
     ImGui::Text("Camera Position: x %0.1f y %0.1f z %0.1f", 
         m_Camera.m_Transform.translation.x,
