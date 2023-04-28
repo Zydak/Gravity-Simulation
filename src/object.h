@@ -30,7 +30,7 @@ struct Transform
 
 struct Properties
 {
-    glm::vec3 velocity = {0.0f, 0.0f, 0.0f};
+    glm::dvec3 velocity = {0.0f, 0.0f, 0.0f};
     double mass = 1000.0;
     /*
         @brief static means other object can't affect velocity but it is still applied
