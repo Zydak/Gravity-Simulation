@@ -41,6 +41,7 @@ Image::Image(Device& device, uint32_t width, uint32_t height, VkFormat format, V
 
 Image::~Image()
 {
+	vkDeviceWaitIdle(m_Device.GetDevice());
     vkDestroyImage(m_Device.GetDevice(), m_Image, nullptr);
     vkFreeMemory(m_Device.GetDevice(), m_ImageMemory, nullptr);
 }

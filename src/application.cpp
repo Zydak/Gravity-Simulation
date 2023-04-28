@@ -1,7 +1,6 @@
 #include "application.h"
 
-#include "objects/planet.h"
-#include "objects/star.h"
+#include "objects/sphere.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -15,11 +14,30 @@
 #include <stbimage/stb_image.h>
 #include <future>
 #include <array>
+#include <chrono>
 
 static float orbitAccumulator = 0;
 
 const char* Skyboxes[] = { "Milky Way", "Nebula", "Stars", "Red Galaxy"};
 static int skyboxImageSelected = SkyboxTextureImage::Stars;
+
+class Timer
+{
+public:
+    std::chrono::time_point<std::chrono::high_resolution_clock> m_Start, m_End;
+
+    Timer()
+    {
+        m_Start = std::chrono::high_resolution_clock::now();
+    }
+
+    ~Timer()
+    {
+        m_End = std::chrono::high_resolution_clock::now();
+        double duration = (m_End - m_Start).count();
+        std::cout << "Timer Took " << duration << "ns" << std::endl;;
+    }
+};
 
 static void CheckVkResult(VkResult err)
 {
@@ -183,13 +201,14 @@ void Application::Run()
 			// Update Every 160ms(every frame with 60fps) independent of actual framerate
             while (m_MainLoopAccumulator > 0.016f && !m_Pause)
             {
-                Update(frameInfo, 0.016f, m_StepCount);
+                Update(frameInfo, 0.016f);
 				m_MainLoopAccumulator -= 0.016f;
             }
 
 			// Camera Update
             float aspectRatio = m_Renderer->GetAspectRatio();
-            m_Camera.SetPerspectiveProjection(glm::radians(50.0f), aspectRatio, 0.1f, 10000000.0f);
+            m_Camera.SetPerspectiveProjection(glm::radians(50.0f), aspectRatio, 0.1f, 100000000.0f);
+            auto xd = m_GameObjects[m_TargetLock]->GetObjectTransform().translation;
             m_CameraController.Update(0.016f, m_Camera, m_GameObjects[m_TargetLock]->GetObjectTransform().translation);
             m_Camera.SetViewTarget(m_GameObjects[m_TargetLock]->GetObjectTransform().translation);
             
@@ -210,7 +229,7 @@ void Application::Run()
             }
 
             // ------------------- RENDER PASS -----------------
-            m_Renderer->BeginSwapChainRenderPass(commandBuffer, {0.8f, 0.1f, 0.8f});
+            m_Renderer->BeginSwapChainRenderPass(commandBuffer, {0.0f, 0.0f, 0.0f});
 
             m_Renderer->RenderGameObjects(frameInfo);
             m_Renderer->RenderSkybox(frameInfo, *m_Skybox, m_SkyboxDescriptorSet);
@@ -239,91 +258,107 @@ void Application::LoadGameObjects()
     objInfo.device = &m_Device;
     objInfo.sampler = &m_Sampler;
 
-    Properties properties0{};
-    properties0.velocity = {0.0f, 0.0f, 0.0f};
-    properties0.mass = 5000000;
-    properties0.isStatic = false;
-    properties0.orbitTraceLenght = 200;
-    properties0.rotationSpeed = {0.0f, 0.01f, 0.0f};
+    {
+        Properties properties{};
+        properties.velocity = {0.0f, 0.0f, 0.0f};
+        properties.mass = 5000000.0;
+                          
+        properties.isStatic = false;
+        properties.orbitTraceLenght = 0;
+        properties.rotationSpeed = {0.0f, 0.01f, 0.0f};
+        properties.objType = OBJ_TYPE_STAR;
 
-    Transform transform0{};
-    transform0.translation = {0.0f, 0.0f, 0.0f};
-    transform0.scale = glm::vec3{1.0f, 1.0f, 1.0f}*20.0f;
-    transform0.rotation = {0.0f, 0.0f, 0.0f};
-    std::unique_ptr<Object> obj0 = std::make_unique<Star>(id++, objInfo, "assets/models/smooth_sphere.obj", transform0, properties0, "assets/textures/white.png");
-    m_GameObjects.emplace(obj0->GetObjectID(), std::move(obj0));
+        Transform transform{};
+        transform.translation = {0.0f, 0.0f, 0.0f};
+        transform.rotation = {0.0f, 0.0f, 0.0f};
+        std::unique_ptr<Object> obj = std::make_unique<Sphere>(id++, objInfo, 
+            "assets/models/smooth_sphere.obj", transform, properties, "assets/textures/white.png");
+        m_GameObjects.emplace(obj->GetObjectID(), std::move(obj));
+        
+    }
 
-    Properties properties1{};
-    properties1.velocity = {0.0f, 0.0f, -75.0f};
-    properties1.mass = 1000;
-    properties1.isStatic = false;
-    properties1.orbitTraceLenght = 200;
-    properties1.rotationSpeed = {0.0f, 0.05f, 0.0f};
+    {
+        Properties properties{};
+        properties.velocity = {0.0f, 0.0f, 0.0f};
+        properties.mass = 1000.0;
+        properties.isStatic = false;
+        properties.orbitTraceLenght = 200;
+        properties.rotationSpeed = {0.0f, 0.05f, 0.0f};
+        properties.objType = OBJ_TYPE_PLANET;
 
-    Transform transform1{};
-    transform1.translation = {2500.0f, 0.0f, 0.0f};
-    transform1.scale = glm::vec3{1.0f, 1.0f, 1.0f} * properties1.mass/200.0f;
-    transform1.rotation = {0.0f, 0.0f, 0.0f};
-    std::unique_ptr<Object> obj1 = std::make_unique<Planet>(id++, objInfo, 
-        "assets/models/smooth_sphere.obj", transform1, properties1, "assets/textures/blue.png");
-    m_GameObjects.emplace(obj1->GetObjectID(), std::move(obj1));
-
-    Properties properties2{};
-    properties2.velocity = {0.0f, 0.0f, 150.0f};
-    properties2.mass = 1000;
-    properties2.isStatic = false;
-    properties2.orbitTraceLenght = 200;
-    properties2.rotationSpeed = {0.0f, 0.05f, 0.0f};
-
-    Transform transform2{};
-    transform2.translation = {-1000.0f, 0.0f, 0.0f};
-    transform2.scale = glm::vec3{1.0f, 1.0f, 1.0f} * properties2.mass/200.0f;
-    transform2.rotation = {0.0f, 0.0f, 0.0f};
-    std::unique_ptr<Object> obj2 = std::make_unique<Planet>(id++, objInfo, 
-        "assets/models/smooth_sphere.obj", transform2, properties2, "assets/textures/red.png");
-    m_GameObjects.emplace(obj2->GetObjectID(), std::move(obj2));
-
-    Properties properties3{};
-    properties3.velocity = {0.0f, 0.0f, 100.0f};
-    properties3.mass = 1000;
-    properties3.isStatic = false;
-    properties3.orbitTraceLenght = 200;
-    properties3.rotationSpeed = {0.0f, 0.05f, 0.0f};
-
-    Transform transform3{};
-    transform3.translation = {-1750.0f, 0.0f, 0.0f};
-    transform3.scale = glm::vec3{1.0f, 1.0f, 1.0f} * properties3.mass/200.0f;
-    transform3.rotation = {0.0f, 0.0f, 0.0f};
-    std::unique_ptr<Object> obj3 = std::make_unique<Planet>(id++, objInfo, 
-        "assets/models/smooth_sphere.obj", transform3, properties3, "assets/textures/red.png");
-    m_GameObjects.emplace(obj3->GetObjectID(), std::move(obj3));
-}
-
-/**
- * @brief "Dummy" function, we need it to pass static function to async because of way we're calculating velocity by now
- */
-static void UpdateObj(Object* obj, std::unordered_map<int, std::shared_ptr<Object>> gameObjects, float delta, uint32_t substeps)
-{
-    obj->Update(gameObjects, delta, substeps);
+        Transform transform{};
+        transform.translation = {500, 0.0f, 0.0f};
+        transform.rotation = {0.0f, 0.0f, 0.0f};
+        std::unique_ptr<Object> obj = std::make_unique<Sphere>(id++, objInfo, 
+            "assets/models/smooth_sphere.obj", transform, properties, "assets/textures/red.png");
+        m_GameObjects.emplace(obj->GetObjectID(), std::move(obj));
+    }
+    auto xd = m_GameObjects[m_TargetLock]->GetObjectTransform().translation;
 }
 
 /**
  * @brief Updates game objects and their orbit traces
  */
-void Application::Update(const FrameInfo& frameInfo, float delta, uint32_t substeps)
+void Application::Update(const FrameInfo& frameInfo, float delta)
 {
     static int OrbitUpdateCount = 0;
     for (int i = 0; i < m_GameSpeed; i++)
     {
-        for (auto& kv: m_GameObjects)
         {
-            auto& obj = kv.second;
+            // Timer timer;
+            for (auto& kv: m_GameObjects)
+            {
+                auto& objA = kv.second;
+                
+                if (m_GameObjects.size() == 1) // if there is only one object still apply it's velocity
+                {
+                    objA->GetObjectTransform().translation += delta * objA->GetObjectProperties().velocity;
+                }
+                else
+                {
+                    for (auto& kv1: m_GameObjects)
+                    {
+                        auto& objB = kv1.second;
+                        if (objA == objB)
+                            continue;
+                        
+                        auto offset = objA->GetObjectTransform().translation - objB->GetObjectTransform().translation;
+                        float distanceSquared = glm::dot(offset, offset);
 
-            const float stepDelta = delta / (float)substeps;
-            obj->Update(m_GameObjects, stepDelta, substeps);
-            
-            obj->GetObjectTransform().rotation += obj->GetObjectProperties().rotationSpeed;
+                        // Collision Check
+                        float radius = std::cbrt(objB->GetObjectProperties().mass);
+                        m_Pause = true;
+                        
+                        if (radius*radius > distanceSquared)
+                        {
+                            // EQUATION HERE
+                            if (m_TargetLock == objB->GetObjectID())
+                                m_TargetLock = objA->GetObjectID();
+                            objA->GetObjectProperties().mass += objB->GetObjectProperties().mass;
+                            m_GameObjects.erase(objB->GetObjectID());
+
+                            break;
+                        }
+
+                        //float G = 6.67 / (pow(10, 11));
+                        float force = 10 * objA->GetObjectProperties().mass * objB->GetObjectProperties().mass / distanceSquared;
+                        glm::vec3 trueForce = force * offset / glm::sqrt(distanceSquared);
+                        objA->GetObjectProperties().velocity += delta * -trueForce / objA->GetObjectProperties().mass;
+                        auto xd = delta * -trueForce / objA->GetObjectProperties().mass;
+                        auto x = objA->GetObjectTransform().translation;
+                        objA->GetObjectTransform().translation += delta * objA->GetObjectProperties().velocity;
+                        auto y = objA->GetObjectTransform().translation;
+
+                        objB->GetObjectProperties().velocity += delta * trueForce / objB->GetObjectProperties().mass;
+                        objB->GetObjectTransform().translation += delta * objB->GetObjectProperties().velocity;
+                    }
+                }
+                
+                objA->GetObjectTransform().rotation += objA->GetObjectProperties().rotationSpeed;
+                objA->GetObjectTransform().scale = glm::vec3(1.0f, 1.0f, 1.0f) * std::cbrt(objA->GetObjectProperties().mass);
+            }
         }
+        
         // Update orbits less frequently(after 2 obj updates in this case) to make them longer
         OrbitUpdateCount = (OrbitUpdateCount + 1) % 2;
         if (OrbitUpdateCount == 0)

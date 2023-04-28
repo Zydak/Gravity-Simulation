@@ -13,9 +13,9 @@
 namespace std
 {
     template<>
-    struct hash<Model::Vertex>
+    struct hash<SphereModel::Vertex>
     {
-        size_t operator()(Model::Vertex const& vertex) const
+        size_t operator()(SphereModel::Vertex const& vertex) const
         {
             size_t seed = 0;
             HashCombine(seed, vertex.position, vertex.color, vertex.normal, vertex.uv);
@@ -24,7 +24,7 @@ namespace std
     };
 }
 
-Model::Model(Device& device, const Model::Builder& builder, const std::string& textureFilepath)
+SphereModel::SphereModel(Device& device, const SphereModel::Builder& builder, const std::string& textureFilepath)
     : m_Device(device)
 {
     CreateVertexBuffer(builder.vertices);
@@ -35,12 +35,12 @@ Model::Model(Device& device, const Model::Builder& builder, const std::string& t
         m_TextureImage = std::make_unique<TextureImage>(m_Device, textureFilepath);
     }
 }
-Model::~Model()
+SphereModel::~SphereModel()
 {
 
 }
 
-void Model::CreateVertexBuffer(const std::vector<Vertex> &vertices)
+void SphereModel::CreateVertexBuffer(const std::vector<Vertex> &vertices)
 {
     m_VertexCount = static_cast<uint32_t>(vertices.size());
     //assert(m_VertexCount >= 3 && "Vertex count me be at least 3");
@@ -87,7 +87,7 @@ void Model::CreateVertexBuffer(const std::vector<Vertex> &vertices)
     m_Device.CopyBuffer(stagingBuffer.GetBuffer(), m_VertexBuffer->GetBuffer(), bufferSize);
 }
 
-void Model::CreateIndexBuffer(const std::vector<uint32_t> &indices)
+void SphereModel::CreateIndexBuffer(const std::vector<uint32_t> &indices)
 {
     m_IndexCount = static_cast<uint32_t>(indices.size());
     m_HasIndexBuffer = m_IndexCount > 0;
@@ -143,7 +143,7 @@ void Model::CreateIndexBuffer(const std::vector<uint32_t> &indices)
 /*
     @brief this function call vkCmdBindVertexBuffers which is used to bind vertex buffers to bindings
 */
-void Model::Bind(VkCommandBuffer commandBuffer)
+void SphereModel::Bind(VkCommandBuffer commandBuffer)
 {
     VkBuffer buffers[] = {m_VertexBuffer->GetBuffer()};
     VkDeviceSize offsets[] = {0};
@@ -155,7 +155,7 @@ void Model::Bind(VkCommandBuffer commandBuffer)
     }
 }
 
-void Model::Draw(VkCommandBuffer commandBuffer)
+void SphereModel::Draw(VkCommandBuffer commandBuffer)
 {
     if (m_HasIndexBuffer)
     {
@@ -167,7 +167,7 @@ void Model::Draw(VkCommandBuffer commandBuffer)
     }
 }
 
-std::vector<VkVertexInputBindingDescription> Model::Vertex::GetBindingDescriptions()
+std::vector<VkVertexInputBindingDescription> SphereModel::Vertex::GetBindingDescriptions()
 {
     std::vector<VkVertexInputBindingDescription> bindingDescription(1);
     bindingDescription[0].binding = 0;
@@ -177,7 +177,7 @@ std::vector<VkVertexInputBindingDescription> Model::Vertex::GetBindingDescriptio
     return bindingDescription;
 }
 
-std::vector<VkVertexInputAttributeDescription> Model::Vertex::GetAttributeDescriptions()
+std::vector<VkVertexInputAttributeDescription> SphereModel::Vertex::GetAttributeDescriptions()
 {
     std::vector<VkVertexInputAttributeDescription> attributeDescriptions{};
     attributeDescriptions.push_back({0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, position)});
@@ -189,15 +189,15 @@ std::vector<VkVertexInputAttributeDescription> Model::Vertex::GetAttributeDescri
     return attributeDescriptions;
 }
 
-std::unique_ptr<Model> Model::CreateModelFromFile(Device& device, const std::string& modelFilepath, const std::string& textureFilepath)
+std::unique_ptr<SphereModel> SphereModel::CreateModelFromFile(Device& device, const std::string& modelFilepath, const std::string& textureFilepath)
 {
     Builder builder{};
     builder.LoadModel(modelFilepath);
 
-    return std::make_unique<Model>(device, builder, textureFilepath);
+    return std::make_unique<SphereModel>(device, builder, textureFilepath);
 }
 
-void Model::Builder::LoadModel(const std::string& modelFilepath)
+void SphereModel::Builder::LoadModel(const std::string& modelFilepath)
 {
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
@@ -269,7 +269,7 @@ void Model::Builder::LoadModel(const std::string& modelFilepath)
     }
 }
 
-void Model::UpdateVertexBuffer(VkCommandBuffer cmd, Buffer* buffer, const std::vector<Vertex> &vertices)
+void SphereModel::UpdateVertexBuffer(VkCommandBuffer cmd, Buffer* buffer, const std::vector<Vertex> &vertices)
 {
     vkCmdUpdateBuffer(cmd, buffer->GetBuffer(), 0, sizeof(vertices[0]) * vertices.size(), vertices.data());
 }

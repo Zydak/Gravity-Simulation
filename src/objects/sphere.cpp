@@ -1,4 +1,4 @@
-#include "planet.h"
+#include "sphere.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -9,11 +9,16 @@
 
 #include <iostream>
 
-Planet::Planet(uint32_t ID, ObjectInfo objInfo, const std::string& modelfilepath, 
-    Transform transform, Properties properties, const std::string& texturefilepath)
-    :   m_ID(ID), m_Model(Model::CreateModelFromFile(*objInfo.device, modelfilepath, texturefilepath)),
+Sphere::Sphere(uint32_t ID, ObjectInfo objInfo, const std::string& modelfilepath, Transform transform, 
+    Properties properties, 
+    const std::string& texturefilepath)
+    :   m_ID(ID), m_Model(SphereModel::CreateModelFromFile(*objInfo.device, modelfilepath, texturefilepath)),
         m_Transform(transform), m_Properties(properties)
 {
+    m_ObjType = properties.objType;
+
+    m_Radius = std::cbrt(properties.mass)/1000.0;
+    m_Transform.scale = glm::vec3{1.0f, 1.0f, 1.0f} * m_Radius;
     if (properties.orbitTraceLenght > 0)
     {
         OrbitModel::Builder builder;
@@ -33,7 +38,7 @@ Planet::Planet(uint32_t ID, ObjectInfo objInfo, const std::string& modelfilepath
         .Build(m_DescriptorSet);
 }
 
-void Planet::Draw(VkPipelineLayout layout, VkCommandBuffer commandBuffer)
+void Sphere::Draw(VkPipelineLayout layout, VkCommandBuffer commandBuffer)
 {
     vkCmdBindDescriptorSets(
             commandBuffer,
@@ -50,13 +55,13 @@ void Planet::Draw(VkPipelineLayout layout, VkCommandBuffer commandBuffer)
     m_Model->Draw(commandBuffer);
 }
 
-void Planet::DrawOrbit(VkCommandBuffer commandBuffer)
+void Sphere::DrawOrbit(VkCommandBuffer commandBuffer)
 {
     m_OrbitModel->Bind(commandBuffer);
     m_OrbitModel->Draw(commandBuffer);
 }
 
-void Planet::Update(std::unordered_map<int, std::shared_ptr<Object>> gameObjects, float delta, uint32_t substeps)
+void Sphere::Update(std::unordered_map<int, std::shared_ptr<Object>> gameObjects, float delta, uint32_t substeps)
 {
     if (m_Properties.isStatic == false)
     {
@@ -67,23 +72,23 @@ void Planet::Update(std::unordered_map<int, std::shared_ptr<Object>> gameObjects
             auto otherObjMass = otherObj->GetObjectProperties().mass;
             if (i->first != m_ID)
             {
-                for (int j = 0; j < substeps; j++)
-                {
-                    auto offset = otherObjTranslation - m_Transform.translation;
-                    float distanceSquared = glm::dot(offset, offset);
+                auto offset = otherObjTranslation - m_Transform.translation;
+                float distanceSquared = glm::dot(offset, offset);
 
-                    float force = 15.0 * otherObjMass * m_Properties.mass / distanceSquared;
-                    glm::vec3 trueForce = force * offset / glm::sqrt(distanceSquared);
-                    m_Properties.velocity += delta * trueForce / m_Properties.mass;
-                    m_Transform.translation += delta * m_Properties.velocity;
-                }
-            }
-            else
-            {
-                for (int j = 0; j < substeps; j++)
+                // Collision Check
+                if (std::sqrt(distanceSquared) < m_Radius * 2)
                 {
-                    m_Transform.translation += delta * m_Properties.velocity;
+                    std::cout << "HIT" << std::endl;
                 }
+
+                float force = 15.0 * otherObjMass * m_Properties.mass / distanceSquared;
+                glm::vec3 trueForce = force * offset / glm::sqrt(distanceSquared);
+                m_Properties.velocity += delta * trueForce / m_Properties.mass;
+                m_Transform.translation += delta * m_Properties.velocity;
+            }
+            else if (gameObjects.size() == 1) // if there is only one object still apply it's velocity
+            {
+                m_Transform.translation += delta * m_Properties.velocity;
             }
         }
     }
@@ -96,7 +101,7 @@ void Planet::Update(std::unordered_map<int, std::shared_ptr<Object>> gameObjects
     }
 }
 
-void Planet::OrbitUpdate(VkCommandBuffer commandBuffer)
+void Sphere::OrbitUpdate(VkCommandBuffer commandBuffer)
 {
     if (m_Properties.orbitTraceLenght > 0)
     {

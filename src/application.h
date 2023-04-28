@@ -22,7 +22,9 @@ public:
     void Run();
 private:
     void LoadGameObjects();
-    void Update(const FrameInfo& frameInfo, float delta, uint32_t substeps);
+
+    void Update(const FrameInfo& frameInfo, float delta);
+
     void RenderImGui(const FrameInfo& frameInfo);
 
     Window m_Window{1600, 900, "Gravity"};

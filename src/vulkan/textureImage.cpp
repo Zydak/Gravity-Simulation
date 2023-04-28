@@ -14,6 +14,7 @@ TextureImage::TextureImage(Device& device, const std::string& filepath)
 
 TextureImage::~TextureImage()
 {
+    vkDeviceWaitIdle(m_Device.GetDevice());
     vkDestroyImageView(m_Device.GetDevice(), m_ImageView, nullptr);
 }
 

@@ -31,13 +31,14 @@ struct Transform
 struct Properties
 {
     glm::vec3 velocity = {0.0f, 0.0f, 0.0f};
-    float mass = 1000;
+    double mass = 1000.0;
     /*
         @brief static means other object can't affect velocity but it is still applied
     */
     bool isStatic = false;
     uint32_t orbitTraceLenght = 200;
     glm::vec3 rotationSpeed = {0.0f, 0.0f, 0.0f};
+    uint32_t objType;
 };
 
 class Object
@@ -50,7 +51,7 @@ public:
     virtual Transform& GetObjectTransform() = 0;
     virtual uint32_t GetObjectID() = 0;
     virtual OrbitModel* GetOrbitModel() = 0;
-    virtual Model* GetObjectModel() = 0;
+    virtual SphereModel* GetObjectModel() = 0;
     virtual void Draw(VkPipelineLayout layout, VkCommandBuffer commandBuffer) = 0;
     virtual void DrawOrbit(VkCommandBuffer commandBuffer) = 0;
     virtual void Update(std::unordered_map<int, std::shared_ptr<Object>> gameObjects, float delta, uint32_t substeps) = 0;

@@ -32,7 +32,8 @@ public:
     
     void Bind(VkCommandBuffer commandBuffer);
 
-    static PipelineConfigInfo CreatePipelineConfigInfo(uint32_t width, uint32_t height, VkPrimitiveTopology topology);
+    static PipelineConfigInfo CreatePipelineConfigInfo(uint32_t width, uint32_t height,
+        VkPrimitiveTopology topology, VkCullModeFlags cullMode);
     void CreatePipeline(const std::string& vertexPath, const std::string& fragmentPath, 
         const PipelineConfigInfo& configInfo,
         std::vector<VkVertexInputBindingDescription> bindingDesc,

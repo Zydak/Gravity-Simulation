@@ -56,13 +56,17 @@ void Pipeline::Bind(VkCommandBuffer commandBuffer)
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline);
 }
 
-PipelineConfigInfo Pipeline::CreatePipelineConfigInfo(uint32_t width, uint32_t height, VkPrimitiveTopology topology) 
+PipelineConfigInfo Pipeline::CreatePipelineConfigInfo(uint32_t width, uint32_t height, 
+    VkPrimitiveTopology topology, VkCullModeFlags cullMode) 
 {
     PipelineConfigInfo configInfo{};
 
     configInfo.inputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
     configInfo.inputAssemblyInfo.topology = topology;
-    configInfo.inputAssemblyInfo.primitiveRestartEnable = VK_FALSE;
+    if (topology == VK_PRIMITIVE_TOPOLOGY_LINE_STRIP || topology == VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP)
+        configInfo.inputAssemblyInfo.primitiveRestartEnable = VK_TRUE;
+    else
+        configInfo.inputAssemblyInfo.primitiveRestartEnable = VK_FALSE;
 
     configInfo.viewport.x = 0.0f;
     configInfo.viewport.y = 0.0f;
@@ -79,7 +83,7 @@ PipelineConfigInfo Pipeline::CreatePipelineConfigInfo(uint32_t width, uint32_t h
     configInfo.rasterizationInfo.rasterizerDiscardEnable = VK_FALSE;
     configInfo.rasterizationInfo.polygonMode = VK_POLYGON_MODE_FILL;
     configInfo.rasterizationInfo.lineWidth = 1.0f;
-    configInfo.rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
+    configInfo.rasterizationInfo.cullMode = cullMode;
     configInfo.rasterizationInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
     configInfo.rasterizationInfo.depthBiasEnable = VK_FALSE;
 

@@ -173,17 +173,6 @@ void Renderer::RenderOrbits(FrameInfo& frameInfo)
     vkCmdBindDescriptorSets(
         frameInfo.commandBuffer,
         VK_PIPELINE_BIND_POINT_GRAPHICS,
-        m_DefaultPipelineLayout,
-        0,
-        1,
-        &frameInfo.globalDescriptorSet,
-        0,
-        nullptr
-    );
-
-    vkCmdBindDescriptorSets(
-        frameInfo.commandBuffer,
-        VK_PIPELINE_BIND_POINT_GRAPHICS,
         m_OrbitsPipelineLayout,
         0,
         1,
@@ -265,7 +254,7 @@ void Renderer::RenderSkybox(FrameInfo& frameInfo, Skybox& skybox, VkDescriptorSe
     
     glm::vec3 translation = frameInfo.camera->m_Transform.translation;
     glm::vec3 rotation = {0.0f, 0.0f, 0.0f};
-    glm::vec3 scale = glm::vec3{1.0f, 1.0f, 1.0f} * 100000.0f;
+    glm::vec3 scale = glm::vec3{1.0f, 1.0f, 1.0f} * 500000.0f;
     auto transform = glm::translate(glm::mat4{1.0f}, translation);
 
     transform = glm::rotate(transform, rotation.y, {0.0f, 1.0f, 0.0f});
@@ -288,7 +277,7 @@ void Renderer::CreatePipelineLayouts(VkDescriptorSetLayout globalSetLayout)
     //
     // DEFAULT
     //
-    // stars and planets have the same pipeline layout
+    // stars and planets have the same pipeline layout for now
     {
         VkPushConstantRange pushConstantRange{};
         pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -343,15 +332,16 @@ void Renderer::CreatePipelines()
     //
     {
         auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight(),
-            VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST
+            VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+            VK_CULL_MODE_FRONT_BIT
         );
         pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
         pipelineConfig.pipelineLayout = m_DefaultPipelineLayout;
         m_PlanetsPipeline = std::make_unique<Pipeline>(m_Device);
         m_PlanetsPipeline->CreatePipeline("shaders/spv/shader.vert.spv", "shaders/spv/shader.frag.spv", 
             pipelineConfig,
-            Model::Vertex::GetBindingDescriptions(),
-            Model::Vertex::GetAttributeDescriptions()
+            SphereModel::Vertex::GetBindingDescriptions(),
+            SphereModel::Vertex::GetAttributeDescriptions()
         );
     }
 
@@ -360,15 +350,16 @@ void Renderer::CreatePipelines()
     //
     {
         auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight(),
-            VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST
+            VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+            VK_CULL_MODE_FRONT_BIT
         );
         pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
         pipelineConfig.pipelineLayout = m_DefaultPipelineLayout;
         m_StarsPipeline = std::make_unique<Pipeline>(m_Device);
         m_StarsPipeline->CreatePipeline("shaders/spv/stars.vert.spv", "shaders/spv/stars.frag.spv", 
             pipelineConfig,
-            Model::Vertex::GetBindingDescriptions(),
-            Model::Vertex::GetAttributeDescriptions()
+            SphereModel::Vertex::GetBindingDescriptions(),
+            SphereModel::Vertex::GetAttributeDescriptions()
         );
     }
 
@@ -377,7 +368,8 @@ void Renderer::CreatePipelines()
     //
     {
         auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight(),
-            VK_PRIMITIVE_TOPOLOGY_LINE_STRIP
+            VK_PRIMITIVE_TOPOLOGY_LINE_STRIP,
+            VK_CULL_MODE_NONE
         );
         pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
         pipelineConfig.pipelineLayout = m_OrbitsPipelineLayout;
@@ -394,7 +386,8 @@ void Renderer::CreatePipelines()
     //
     {
         auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight(),
-            VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST
+            VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+            VK_CULL_MODE_BACK_BIT
         );
         pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
         pipelineConfig.pipelineLayout = m_SkyboxPipelineLayout;

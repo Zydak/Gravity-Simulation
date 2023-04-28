@@ -11,7 +11,7 @@
 #include <vector>
 #include <memory>
 
-class Model
+class SphereModel
 {
 public:
     struct Vertex 
@@ -38,15 +38,15 @@ public:
         void LoadModel(const std::string& modelFilepath);
     };
 
-    Model(Device& device, const Model::Builder& builder, const std::string& textureFilepath);
-    ~Model();
+    SphereModel(Device& device, const SphereModel::Builder& builder, const std::string& textureFilepath);
+    ~SphereModel();
 
-    Model(const Model&) = delete;
-    Model& operator=(const Model&) = delete;
+    SphereModel(const SphereModel&) = delete;
+    SphereModel& operator=(const SphereModel&) = delete;
 
     inline TextureImage* GetTextureImage() { return m_TextureImage.get(); }
 
-    static std::unique_ptr<Model> CreateModelFromFile(Device& device, const std::string& modelFilepath, const std::string& textureFilepath);
+    static std::unique_ptr<SphereModel> CreateModelFromFile(Device& device, const std::string& modelFilepath, const std::string& textureFilepath);
 
     void Bind(VkCommandBuffer commandBuffer);
     void Draw(VkCommandBuffer commandBuffer);
