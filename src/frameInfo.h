@@ -2,8 +2,8 @@
 
 #include "camera.h"
 #include "object.h"
-#include "descriptors.h"
-#include "sampler.h"
+#include "vulkan/descriptors.h"
+#include "vulkan/sampler.h"
 
 #include <vulkan/vulkan.h>
 #include <unordered_map>

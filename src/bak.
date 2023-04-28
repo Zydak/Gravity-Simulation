@@ -1,0 +1,34 @@
+{
+        Properties properties{};
+        properties.velocity = {0.0f, 0.0f, 0.0f};
+        properties.mass = 5000000.0;
+                          
+        properties.isStatic = false;
+        properties.orbitTraceLenght = 0;
+        properties.rotationSpeed = {0.0f, 0.01f, 0.0f};
+        properties.objType = OBJ_TYPE_STAR;
+
+        Transform transform{};
+        transform.translation = {0.0f, 0.0f, 0.0f};
+        transform.rotation = {0.0f, 0.0f, 0.0f};
+        std::unique_ptr<Object> obj = std::make_unique<Sphere>(id++, objInfo, 
+            "assets/models/smooth_sphere.obj", transform, properties, "assets/textures/white.png");
+        m_GameObjects.emplace(obj->GetObjectID(), std::move(obj));
+    }
+
+    {
+        Properties properties{};
+        properties.velocity = {0.0f, 0.0f, 150.0f};
+        properties.mass = 1000.0;
+        properties.isStatic = false;
+        properties.orbitTraceLenght = 200;
+        properties.rotationSpeed = {0.0f, 0.05f, 0.0f};
+        properties.objType = OBJ_TYPE_PLANET;
+
+        Transform transform{};
+        transform.translation = {2000, 0.0f, 0.0f};
+        transform.rotation = {0.0f, 0.0f, 0.0f};
+        std::unique_ptr<Object> obj = std::make_unique<Sphere>(id++, objInfo, 
+            "assets/models/smooth_sphere.obj", transform, properties, "assets/textures/red.png");
+        m_GameObjects.emplace(obj->GetObjectID(), std::move(obj));
+    }

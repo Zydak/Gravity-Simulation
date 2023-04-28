@@ -1,14 +1,12 @@
 #pragma once
-#include "window.h"
-#include "device.h"
-#include "pipeline.h"
-#include "swapchain.h"
+#include "vulkan/window.h"
+#include "vulkan/device.h"
+#include "vulkan/swapchain.h"
+#include "vulkan/pipeline.h"
+#include "vulkan/skybox.h"
 #include "object.h"
-#include "pipeline.h"
 #include "camera.h"
 #include "frameInfo.h"
-#include "models/simpleModel.h"
-#include "skybox.h"
 
 #include <memory>
 #include <vector>
@@ -21,10 +19,11 @@ struct PushConstants
 
 struct BillboardsPushConstants
 {
-    glm::vec3 position{0.0f};
+    alignas(16) glm::vec3 position{0.0f};
+    float size = 1.0f;
 };
 
-struct LinesPushConstants
+struct OrbitsPushConstants
 {
     glm::vec3 positions[2];
 };
@@ -58,30 +57,17 @@ public:
     void BeginSwapChainRenderPass(VkCommandBuffer commandBuffer, const glm::vec3& clearColor);
     void EndSwapChainRenderPass(VkCommandBuffer commandBuffer);
     void RenderGameObjects(FrameInfo& frameInfo);
-    void RenderBillboards(FrameInfo& frameInfo, glm::vec3 position);
     void RenderOrbits(FrameInfo& frameInfo);
-    void RenderSimpleGeometry(FrameInfo& frameInfo, SimpleModel* geometry);
     void RenderSkybox(FrameInfo& frameInfo, Skybox& skybox, VkDescriptorSet skyboxDescriptorSet);
+    void RenderBillboards(FrameInfo& frameInfo, glm::vec3 position, float size);
 private:
     void CreateCommandBuffers();
     void FreeCommandBuffers();
     void RecreateSwapChain();
 
-    void CreateDefaultPipelineLayout(VkDescriptorSetLayout globalSetLayout);
-    void CreatePlanetsPipeline();
-    void CreateStarsPipeline();
+    void CreatePipelines();
 
-    void CreateBillboardsPipelineLayout(VkDescriptorSetLayout globalSetLayout);
-    void CreateBillboardsPipeline();
-
-    void CreateLinesPipelineLayout(VkDescriptorSetLayout globalSetLayout);
-    void CreateLinesPipeline();
-
-    void CreateSimplePipelineLayout(VkDescriptorSetLayout globalSetLayout);
-    void CreateSimplePipeline();
-
-    void CreateSkyboxPipelineLayout(VkDescriptorSetLayout globalSetLayout);
-    void CreateSkyboxPipeline();
+    void CreatePipelineLayouts(VkDescriptorSetLayout globalSetLayout);
 
     Window& m_Window;
     Device& m_Device;
@@ -92,17 +78,14 @@ private:
     std::unique_ptr<Pipeline> m_PlanetsPipeline;
     std::unique_ptr<Pipeline> m_StarsPipeline;
 
-    std::unique_ptr<Pipeline> m_BillboardsPipeline;
-    VkPipelineLayout m_BillboardsPipelineLayout;
-
-    std::unique_ptr<Pipeline> m_LinesPipeline;
-    VkPipelineLayout m_LinesPipelineLayout;
-
-    std::unique_ptr<Pipeline> m_SimplePipeline;
-    VkPipelineLayout m_SimplePipelineLayout;
+    std::unique_ptr<Pipeline> m_OrbitsPipeline;
+    VkPipelineLayout m_OrbitsPipelineLayout;
 
     std::unique_ptr<Pipeline> m_SkyboxPipeline;
     VkPipelineLayout m_SkyboxPipelineLayout;
+
+    std::unique_ptr<Pipeline> m_BillboardPipeline;
+    VkPipelineLayout m_BillboardPipelineLayout;
 
     uint32_t m_CurrentImageIndex = 0;
     int m_CurrentFrameIndex = 0;

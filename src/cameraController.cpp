@@ -33,8 +33,11 @@ void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
 	if (yoffset < 0)
     	scrollY -= yoffset - scrollY/4;
 
-    if (scrollY < 10)
+    if (scrollY <= 10)
         scrollY = 10;
+
+    if (scrollY >= 1.24701e+09)
+        scrollY = 1.24701e+09;
 }
 
 CameraController::CameraController(GLFWwindow* window)
@@ -60,7 +63,7 @@ void CameraController::Update(float delta, Camera& camera, glm::vec3 target)
         double x, y;
         glfwGetCursorPos(m_Window, &x, &y);
             
-        float sensitivity = -25.0f;
+        float sensitivity = -10.0f;
         static float xOffset = 0;
         static float yOffset = 0;
         xOffset = (lastX - x) * sensitivity;

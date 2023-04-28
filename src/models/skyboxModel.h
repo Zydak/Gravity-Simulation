@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../device.h"
-#include "../buffer.h"
-#include "../textureImage.h"
+#include "../vulkan/device.h"
+#include "../vulkan/buffer.h"
+#include "../vulkan/textureImage.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE

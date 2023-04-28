@@ -1,5 +1,5 @@
 #include "skyboxModel.h"
-#include "../utils.h"
+#include "../vulkan/utils.h"
 
 #include <cstring>
 #include <unordered_map>
