@@ -12,13 +12,13 @@
 
 struct Transform
 {
-    glm::vec3 translation{};
-    glm::vec3 scale{1.0f, 1.0f, 1.0f};
-    glm::vec3 rotation{};
+    glm::dvec3 translation{};
+    glm::dvec3 scale{1.0f, 1.0f, 1.0f};
+    glm::dvec3 rotation{};
     
     glm::mat4 mat4()
     {
-        auto transform = glm::translate(glm::mat4{1.0f}, translation);
+        auto transform = glm::translate(glm::dmat4{1.0f}, translation);
 
         transform = glm::rotate(transform, rotation.y, {0.0f, 1.0f, 0.0f});
         transform = glm::rotate(transform, rotation.x, {1.0f, 0.0f, 0.0f});
@@ -39,6 +39,7 @@ struct Properties
     uint32_t orbitTraceLenght = 200;
     glm::vec3 rotationSpeed = {0.0f, 0.0f, 0.0f};
     uint32_t objType;
+    double radius = 1.0;
 };
 
 class Object
@@ -56,7 +57,6 @@ public:
     virtual void DrawOrbit(VkCommandBuffer commandBuffer) = 0;
     virtual void OrbitUpdate(VkCommandBuffer commandBuffer) = 0;
     virtual uint32_t GetObjectType() = 0;
-    virtual float GetObjectRadius() = 0;
 
     Transform m_Transform;
     Properties m_Properties;

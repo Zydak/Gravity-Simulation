@@ -16,9 +16,7 @@ Sphere::Sphere(uint32_t ID, ObjectInfo objInfo, const std::string& modelfilepath
         m_Transform(transform), m_Properties(properties)
 {
     m_ObjType = properties.objType;
-
-    //m_Radius = std::cbrt(properties.mass);
-    m_Radius = 10.0f;
+    m_Radius = properties.radius;
     m_Transform.scale = glm::vec3{1.0f, 1.0f, 1.0f} * m_Radius;
     if (properties.orbitTraceLenght > 0)
     {

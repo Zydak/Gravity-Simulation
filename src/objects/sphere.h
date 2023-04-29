@@ -21,7 +21,6 @@ public:
     inline virtual Properties& GetObjectProperties() override { return m_Properties; }
     inline virtual uint32_t GetObjectID() override { return m_ID; }
     inline virtual uint32_t GetObjectType() override { return m_ObjType; }
-    inline virtual float GetObjectRadius() override { return m_Radius; }
 
     int m_ObjType;
     uint32_t m_ID;

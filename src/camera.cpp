@@ -26,11 +26,11 @@ void Camera::SetOrthographicProjection(float left, float right, float top, float
     m_ProjectionMatrix[3][2] = -near / (far - near);
 }
 
-void Camera::SetViewDirection(glm::vec3 direction, glm::vec3 up) 
+void Camera::SetViewDirection(glm::vec3 direction, glm::dvec3 up) 
 {
-    const glm::vec3 w{glm::normalize(direction)};
-    const glm::vec3 u{glm::normalize(glm::cross(w, up))};
-    const glm::vec3 v{glm::cross(w, u)};
+    const glm::dvec3 w{glm::normalize(direction)};
+    const glm::dvec3 u{glm::normalize(glm::cross(w, up))};
+    const glm::dvec3 v{glm::cross(w, u)};
 
     m_ViewMatrix = glm::mat4{1.f};
     m_ViewMatrix[0][0] = u.x;
@@ -47,7 +47,7 @@ void Camera::SetViewDirection(glm::vec3 direction, glm::vec3 up)
     m_ViewMatrix[3][2] = -glm::dot(w, m_Transform.translation);
 }
 
-void Camera::SetViewTarget(glm::vec3 target, glm::vec3 up) 
+void Camera::SetViewTarget(glm::dvec3 target, glm::dvec3 up) 
 {
     SetViewDirection(target - m_Transform.translation, up);
 }
@@ -60,9 +60,9 @@ void Camera::SetViewYXZ(glm::vec3& rotation)
     const float s2 = glm::sin(rotation.x);
     const float c1 = glm::cos(rotation.y);
     const float s1 = glm::sin(rotation.y);
-    const glm::vec3 u{(c1 * c3 + s1 * s2 * s3), (c2 * s3), (c1 * s2 * s3 - c3 * s1)};
-    const glm::vec3 v{(c3 * s1 * s2 - c1 * s3), (c2 * c3), (c1 * c3 * s2 + s1 * s3)};
-    const glm::vec3 w{(c2 * s1), (-s2), (c1 * c2)};
+    const glm::dvec3 u{(c1 * c3 + s1 * s2 * s3), (c2 * s3), (c1 * s2 * s3 - c3 * s1)};
+    const glm::dvec3 v{(c3 * s1 * s2 - c1 * s3), (c2 * c3), (c1 * c3 * s2 + s1 * s3)};
+    const glm::dvec3 w{(c2 * s1), (-s2), (c1 * c2)};
     m_ViewMatrix = glm::mat4{1.f};
     m_ViewMatrix[0][0] = u.x;
     m_ViewMatrix[1][0] = u.y;

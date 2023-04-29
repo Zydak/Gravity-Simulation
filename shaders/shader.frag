@@ -19,12 +19,12 @@ layout(set = 1, binding = 0) uniform sampler2D texSampler;
 
 void main()
 {
-    vec3 directionToLight = ubo.lightPosition - fragPosWorld;
-    float attenuation = 5000000.0f / dot(directionToLight, directionToLight);
-    vec3 lightColor = ubo.lightColor.xyz * ubo.lightColor.w * attenuation;
+    // vec3 directionToLight = ubo.lightPosition - fragPosWorld;
+    // vec3 lightColor = ubo.lightColor.xyz * ubo.lightColor.w;
 
-    //vec3 lightColor = ubo.lightColor.xyz * ubo.lightColor.w;
-    vec3 diffuseLight = lightColor * max(dot(normalize(fragNormalWorld), normalize(directionToLight)), 0);
+    // //vec3 lightColor = ubo.lightColor.xyz * ubo.lightColor.w;
+    // vec3 diffuseLight = lightColor * max(dot(normalize(fragNormalWorld), normalize(directionToLight)), 0);
 
-    outColor = vec4(texture(texSampler, fragTexCoord).rgb * diffuseLight * fragColor, 1.0);
+    // outColor = vec4(texture(texSampler, fragTexCoord).rgb * diffuseLight * fragColor, 1.0);
+    outColor = vec4(1.0, 1.0, 1.0, 1.0);
 }

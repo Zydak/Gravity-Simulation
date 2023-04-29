@@ -55,8 +55,11 @@ CameraController::~CameraController()
 /*
     * @brief Updates camera position based on mouse movement
 */
-void CameraController::Update(float delta, Camera& camera, glm::vec3 target)
+void CameraController::Update(const float& delta, Camera& camera, const int& target, Map& gameObjects)
 {
+    glm::vec3 targetPos = gameObjects[target]->GetObjectTransform().translation;
+    if (scrollY < gameObjects[target]->GetObjectProperties().radius*2)
+        scrollY = gameObjects[target]->GetObjectProperties().radius*2;
     float radius = scrollY;
     if (glfwGetMouseButton(m_Window, 0) == GLFW_PRESS && !ImGui::GetIO().WantCaptureMouse)
     {
@@ -81,9 +84,9 @@ void CameraController::Update(float delta, Camera& camera, glm::vec3 target)
     }
     
     // Equation for camera positioning around a sphere
-    camera.m_Transform.translation.x = target.x + radius * -sinf(yaw*(M_PI/180)) * cosf((pitch)*(M_PI/180));
-    camera.m_Transform.translation.y = target.y + radius * -sinf((pitch)*(M_PI/180));
-    camera.m_Transform.translation.z = target.z + -radius * cosf((yaw)*(M_PI/180)) * cosf((pitch)*(M_PI/180));
+    camera.m_Transform.translation.x = targetPos.x + radius * -sinf(yaw*(M_PI/180)) * cosf((pitch)*(M_PI/180));
+    camera.m_Transform.translation.y = targetPos.y + radius * -sinf((pitch)*(M_PI/180));
+    camera.m_Transform.translation.z = targetPos.z + -radius * cosf((yaw)*(M_PI/180)) * cosf((pitch)*(M_PI/180));
 
     // only for debuging info
     camera.m_Transform.rotation.x = yaw;

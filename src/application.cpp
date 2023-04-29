@@ -208,7 +208,7 @@ void Application::Run()
 			// Camera Update
             float aspectRatio = m_Renderer->GetAspectRatio();
             m_Camera.SetPerspectiveProjection(glm::radians(50.0f), aspectRatio, 1.0f, 50000000);
-            m_CameraController.Update(0.016f, m_Camera, m_GameObjects[m_TargetLock]->GetObjectTransform().translation);
+            m_CameraController.Update(0.016f, m_Camera, m_TargetLock, m_GameObjects);
             m_Camera.SetViewTarget(m_GameObjects[m_TargetLock]->GetObjectTransform().translation);
             
             // UBO update
@@ -257,6 +257,9 @@ void Application::LoadGameObjects()
     objInfo.device = &m_Device;
     objInfo.sampler = &m_Sampler;
 
+    //
+    // EARTH
+    //
     {
         Properties properties{};
         properties.velocity = {0.0f, 0.0f, 0.0f};
@@ -264,31 +267,36 @@ void Application::LoadGameObjects()
         properties.isStatic = false;
         properties.orbitTraceLenght = 200;
         properties.rotationSpeed = {0.0f, 0.05f, 0.0f};
+        properties.radius = 6371.0f;
         
         properties.objType = OBJ_TYPE_PLANET;
 
         Transform transform{};
-        transform.translation = {1000.0f, 0.0f, 0.0f};
+        transform.translation = {0.0f, 0.0f, 0.0f};
         transform.rotation = {0.0f, 0.0f, 0.0f};
         std::unique_ptr<Object> obj = std::make_unique<Sphere>(id++, objInfo, 
             "assets/models/smooth_sphere.obj", transform, properties, "assets/textures/red.png");
         m_GameObjects.emplace(obj->GetObjectID(), std::move(obj));
     }
 
+    //
+    // MOON
+    //
     {
         Properties properties{};
-        properties.velocity = {0.0f, 0.0f, 0.0f};
+        properties.velocity = {0.0f, 0.0f, 8.0}; // km/s
         properties.mass = 7.348 * pow(10, 22);
         properties.isStatic = false;
         properties.orbitTraceLenght = 200;
         properties.rotationSpeed = {0.0f, 0.05f, 0.0f};
         properties.objType = OBJ_TYPE_PLANET;
+        properties.radius = 1737.5f;
 
         Transform transform{};
         transform.translation = {384400.0f, 0.0f, 0.0f};
         transform.rotation = {0.0f, 0.0f, 0.0f};
         std::unique_ptr<Object> obj = std::make_unique<Sphere>(id++, objInfo, 
-            "assets/models/smooth_sphere.obj", transform, properties, "assets/textures/red.png");
+            "assets/models/smooth_sphere.obj", transform, properties, "assets/textures/blue.png");
         m_GameObjects.emplace(obj->GetObjectID(), std::move(obj));
     }
 }
@@ -299,7 +307,7 @@ void Application::LoadGameObjects()
 void Application::Update(const FrameInfo& frameInfo, float delta)
 {
     static int OrbitUpdateCount = 0;
-    double substepDelta = delta / m_StepCount / 100.0;
+    double substepDelta = delta / m_StepCount;
     for (int i = 0; i < m_GameSpeed; i++)
     {
         for (int j = 0; j < m_StepCount; j++)
@@ -311,7 +319,7 @@ void Application::Update(const FrameInfo& frameInfo, float delta)
                 
                 if (m_GameObjects.size() == 1) // if there is only one object still apply it's velocity
                 {
-                    objA->GetObjectTransform().translation += substepDelta * (glm::dvec3)objA->GetObjectProperties().velocity;
+                    objA->GetObjectTransform().translation += objA->GetObjectProperties().velocity;
                 }
                 else
                 {
@@ -321,16 +329,22 @@ void Application::Update(const FrameInfo& frameInfo, float delta)
                         if (objA == objB)
                             continue;
                         
-                        glm::dvec3 offset = objA->GetObjectTransform().translation - objB->GetObjectTransform().translation;
+                        // convert translations from km to m
+                        glm::dvec3 offset = objA->GetObjectTransform().translation*1000.0 - objB->GetObjectTransform().translation*1000.0;
                         double distanceSquared = glm::dot(offset, offset);
+                        std::cout << sqrt(distanceSquared) << std::endl;
+                        if (std::sqrt(distanceSquared) < objA->GetObjectProperties().radius + objB->GetObjectProperties().radius)
+                        {
+                            std::cout << "HIT" << std::endl;
+                        }
 
                         double G = 6.67 / (pow(10, 11));
                         double force = G * objA->GetObjectProperties().mass * objB->GetObjectProperties().mass / distanceSquared;
                         glm::dvec3 trueForce = force * offset / glm::sqrt(distanceSquared);
-                        objA->GetObjectProperties().velocity += substepDelta * -trueForce / objA->GetObjectProperties().mass;
-                        objA->GetObjectTransform().translation += substepDelta * objA->GetObjectProperties().velocity;
+                        objA->GetObjectProperties().velocity += -trueForce / (objA->GetObjectProperties().mass * substepDelta)/1000.0;// convert back to km
+                        objA->GetObjectTransform().translation += objA->GetObjectProperties().velocity;
 
-                        objB->GetObjectProperties().velocity += substepDelta * trueForce / objB->GetObjectProperties().mass;
+                        objB->GetObjectProperties().velocity += trueForce / (objB->GetObjectProperties().mass * substepDelta)/1000.0;// convert back to km
                         objB->GetObjectTransform().translation += objB->GetObjectProperties().velocity;
                     }
                 }
@@ -370,7 +384,7 @@ void Application::RenderImGui(const FrameInfo& frameInfo)
 
     ImGui::Combo("Skybox", &skyboxImageSelected, Skyboxes, IM_ARRAYSIZE(Skyboxes));
 
-    ImGui::SliderInt("Speed", &m_GameSpeed, 1, 200);
+    ImGui::SliderInt("Speed", &m_GameSpeed, 1, 500);
     ImGui::SliderInt("StepCount", &m_StepCount, 1, 2500);
     for (auto& kv : m_GameObjects)
     {

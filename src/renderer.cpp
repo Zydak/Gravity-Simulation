@@ -198,33 +198,35 @@ void Renderer::RenderGameObjects(FrameInfo& frameInfo)
 
     for (auto& kv: frameInfo.gameObjects)
     {
-        vkCmdBindDescriptorSets(
-            frameInfo.commandBuffer,
-            VK_PIPELINE_BIND_POINT_GRAPHICS,
-            m_DefaultPipelineLayout,
-            0,
-            1,
-            &frameInfo.globalDescriptorSet,
-            0,
-            nullptr
-        );
-
         auto& obj = kv.second;
-        if (obj->GetObjectType() == OBJ_TYPE_PLANET)
-            m_PlanetsPipeline->Bind(frameInfo.commandBuffer);
-        if (obj->GetObjectType() == OBJ_TYPE_STAR)
-            m_StarsPipeline->Bind(frameInfo.commandBuffer);
-
-        PushConstants push{};
-        push.modelMatrix = obj->GetObjectTransform().mat4();
-
-        vkCmdPushConstants(frameInfo.commandBuffer, m_DefaultPipelineLayout, 
-            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstants), &push);
-        obj->Draw(m_DefaultPipelineLayout, frameInfo.commandBuffer);
-
         auto offset = frameInfo.camera->m_Transform.translation - obj->GetObjectTransform().translation;
         float distance = std::sqrt(glm::dot(offset, offset));
-        if (distance > obj->GetObjectTransform().scale.x*1700.0f)
+        if (distance < obj->GetObjectProperties().radius*1000.0f)
+        {
+            vkCmdBindDescriptorSets(
+                frameInfo.commandBuffer,
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                m_DefaultPipelineLayout,
+                0,
+                1,
+                &frameInfo.globalDescriptorSet,
+                0,
+                nullptr
+            );
+
+            if (obj->GetObjectType() == OBJ_TYPE_PLANET)
+                m_PlanetsPipeline->Bind(frameInfo.commandBuffer);
+            if (obj->GetObjectType() == OBJ_TYPE_STAR)
+                m_StarsPipeline->Bind(frameInfo.commandBuffer);
+
+            PushConstants push{};
+            push.modelMatrix = frameInfo.camera->GetProjection() * frameInfo.camera->GetView() * obj->GetObjectTransform().mat4();
+
+            vkCmdPushConstants(frameInfo.commandBuffer, m_DefaultPipelineLayout, 
+                VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstants), &push);
+            obj->Draw(m_DefaultPipelineLayout, frameInfo.commandBuffer);
+        }
+        else
         {
             RenderBillboards(frameInfo, obj->GetObjectTransform().translation, distance/100.0f);
         }
