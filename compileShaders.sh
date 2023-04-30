@@ -1,5 +1,5 @@
-glslc shaders/shader.vert -o shaders/spv/shader.vert.spv
-glslc shaders/shader.frag -o shaders/spv/shader.frag.spv
+glslc shaders/sphere.vert -o shaders/spv/sphere.vert.spv
+glslc shaders/sphere.frag -o shaders/spv/sphere.frag.spv
 
 glslc shaders/stars.vert -o shaders/spv/stars.vert.spv
 glslc shaders/stars.frag -o shaders/spv/stars.frag.spv

@@ -33,8 +33,8 @@ void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
 	if (yoffset < 0)
     	scrollY -= yoffset - scrollY/4;
 
-    if (scrollY <= 10)
-        scrollY = 10;
+    //if (scrollY <= 10)
+    //    scrollY = 10;
 
     if (scrollY >= 1.24701e+09)
         scrollY = 1.24701e+09;
@@ -57,9 +57,9 @@ CameraController::~CameraController()
 */
 void CameraController::Update(const float& delta, Camera& camera, const int& target, Map& gameObjects)
 {
-    glm::vec3 targetPos = gameObjects[target]->GetObjectTransform().translation;
-    if (scrollY < gameObjects[target]->GetObjectProperties().radius*2)
-        scrollY = gameObjects[target]->GetObjectProperties().radius*2;
+    glm::vec3 targetPos = gameObjects[target]->GetObjectTransform().translation/SCALE_DOWN;
+    if (scrollY < gameObjects[target]->GetObjectProperties().radius*2/SCALE_DOWN)
+        scrollY = gameObjects[target]->GetObjectProperties().radius*2/SCALE_DOWN;
     float radius = scrollY;
     if (glfwGetMouseButton(m_Window, 0) == GLFW_PRESS && !ImGui::GetIO().WantCaptureMouse)
     {

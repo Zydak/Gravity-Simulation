@@ -21,11 +21,16 @@ layout(set = 0, binding = 0) uniform GlobalUbo
 
 layout(push_constant) uniform Push
 {
-    mat4 MVPMatrix;
+    mat4 modelMatrix;
 } push;
 
 void main()
 {
-    vec4 positionWorld = push.MVPMatrix * vec4(position, 1.0);
-    gl_Position = vec4(positionWorld);
+    vec4 positionWorld = push.modelMatrix * vec4(position, 1.0);
+    gl_Position = ubo.projection * ubo.view * positionWorld;
+
+    // fragNormalWorld = normalize(mat3(push.modelMatrix) * normal);
+    // fragPosWorld = positionWorld.xyz;
+    // fragColor = color;
+    // fragTexCoord = texCoord;
 }

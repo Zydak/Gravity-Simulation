@@ -199,9 +199,11 @@ void Renderer::RenderGameObjects(FrameInfo& frameInfo)
     for (auto& kv: frameInfo.gameObjects)
     {
         auto& obj = kv.second;
+        auto a = frameInfo.camera->m_Transform.translation;
+        auto b = obj->GetObjectTransform().translation;
         auto offset = frameInfo.camera->m_Transform.translation - obj->GetObjectTransform().translation;
         float distance = std::sqrt(glm::dot(offset, offset));
-        if (distance < obj->GetObjectProperties().radius*1000.0f)
+        //if (distance < (obj->GetObjectProperties().radius*230.0f)) // TODO fix this shit
         {
             vkCmdBindDescriptorSets(
                 frameInfo.commandBuffer,
@@ -220,16 +222,16 @@ void Renderer::RenderGameObjects(FrameInfo& frameInfo)
                 m_StarsPipeline->Bind(frameInfo.commandBuffer);
 
             PushConstants push{};
-            push.modelMatrix = frameInfo.camera->GetProjection() * frameInfo.camera->GetView() * obj->GetObjectTransform().mat4();
+            push.modelMatrix = obj->GetObjectTransform().mat4();
 
             vkCmdPushConstants(frameInfo.commandBuffer, m_DefaultPipelineLayout, 
                 VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstants), &push);
             obj->Draw(m_DefaultPipelineLayout, frameInfo.commandBuffer);
         }
-        else
-        {
-            RenderBillboards(frameInfo, obj->GetObjectTransform().translation, distance/100.0f);
-        }
+        // else
+        // {
+        //     RenderBillboards(frameInfo, obj->GetObjectTransform().translation/SCALE_DOWN, distance/(100.0f));
+        // }
     }
 }
 
@@ -286,10 +288,10 @@ void Renderer::RenderSkybox(FrameInfo& frameInfo, Skybox& skybox, VkDescriptorSe
     );
     
     
-    glm::vec3 translation = frameInfo.camera->m_Transform.translation;
-    glm::vec3 rotation = {0.0f, 0.0f, 0.0f};
-    glm::vec3 scale = glm::vec3{1.0f, 1.0f, 1.0f} * 500000.0f;
-    auto transform = glm::translate(glm::mat4{1.0f}, translation);
+    glm::dvec3 translation = frameInfo.camera->m_Transform.translation;
+    glm::dvec3 rotation = {0.0f, 0.0f, 0.0f};
+    glm::dvec3 scale = glm::vec3{1.0f, 1.0f, 1.0f} * 5000.0f;
+    auto transform = glm::translate(glm::dmat4{1.0f}, translation);
 
     transform = glm::rotate(transform, rotation.y, {0.0f, 1.0f, 0.0f});
     transform = glm::rotate(transform, rotation.x, {1.0f, 0.0f, 0.0f});
@@ -386,7 +388,7 @@ void Renderer::CreatePipelines()
         pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
         pipelineConfig.pipelineLayout = m_DefaultPipelineLayout;
         m_PlanetsPipeline = std::make_unique<Pipeline>(m_Device);
-        m_PlanetsPipeline->CreatePipeline("shaders/spv/shader.vert.spv", "shaders/spv/shader.frag.spv", 
+        m_PlanetsPipeline->CreatePipeline("shaders/spv/sphere.vert.spv", "shaders/spv/sphere.frag.spv", 
             pipelineConfig,
             SphereModel::Vertex::GetBindingDescriptions(),
             SphereModel::Vertex::GetAttributeDescriptions()

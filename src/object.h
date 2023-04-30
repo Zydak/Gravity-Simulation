@@ -10,20 +10,23 @@
 #define OBJ_TYPE_PLANET 0
 #define OBJ_TYPE_STAR 1
 
+#define SCALE_DOWN 1.0 // scaling down every position for rendering because using double in shaders is not possible
+
 struct Transform
 {
     glm::dvec3 translation{};
     glm::dvec3 scale{1.0f, 1.0f, 1.0f};
     glm::dvec3 rotation{};
+    glm::dvec3 lastPosition;
     
     glm::mat4 mat4()
     {
-        auto transform = glm::translate(glm::dmat4{1.0f}, translation);
+        auto transform = glm::translate(glm::dmat4{1.0f}, translation/SCALE_DOWN);
 
         transform = glm::rotate(transform, rotation.y, {0.0f, 1.0f, 0.0f});
         transform = glm::rotate(transform, rotation.x, {1.0f, 0.0f, 0.0f});
         transform = glm::rotate(transform, rotation.z, {0.0f, 0.0f, 1.0f});
-        transform = glm::scale(transform, scale);
+        transform = glm::scale(transform, scale/SCALE_DOWN);
         return transform;
     }
 };
@@ -32,10 +35,6 @@ struct Properties
 {
     glm::dvec3 velocity = {0.0f, 0.0f, 0.0f};
     double mass = 1000.0;
-    /*
-        @brief static means other object can't affect velocity but it is still applied
-    */
-    bool isStatic = false;
     uint32_t orbitTraceLenght = 200;
     glm::vec3 rotationSpeed = {0.0f, 0.0f, 0.0f};
     uint32_t objType;

@@ -10,7 +10,7 @@ class Sphere : public Object
 {
 public:
     Sphere(uint32_t ID, ObjectInfo objInfo, const std::string& modelfilepath, Transform transform, 
-        Properties properties, const std::string& texturefilepath = ""
+        Properties properties
     );
     virtual void Draw(VkPipelineLayout layout, VkCommandBuffer commandBuffer) override;
     virtual void DrawOrbit(VkCommandBuffer commandBuffer) override;
