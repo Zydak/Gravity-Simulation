@@ -204,14 +204,14 @@ void Pipeline::CreatePipeline(const std::string& vertexPath, const std::string& 
     vkDestroyShaderModule(m_Device.GetDevice(), fragmentShaderModule, nullptr);
 }
 
-void Pipeline::CreatePipelineLayout(Device& device, std::vector<VkDescriptorSetLayout>& descriptorSetsLayouts, VkPushConstantRange& pushConstants, VkPipelineLayout& pipelineLayout)
+void Pipeline::CreatePipelineLayout(Device& device, std::vector<VkDescriptorSetLayout>& descriptorSetsLayouts, VkPipelineLayout& pipelineLayout, VkPushConstantRange* pushConstants)
 {
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = (uint32_t)descriptorSetsLayouts.size();
     pipelineLayoutInfo.pSetLayouts = descriptorSetsLayouts.data();
-    pipelineLayoutInfo.pushConstantRangeCount = 1;
-    pipelineLayoutInfo.pPushConstantRanges = &pushConstants;
+    pipelineLayoutInfo.pushConstantRangeCount = (pushConstants == nullptr) ? 0 : 1;
+    pipelineLayoutInfo.pPushConstantRanges = pushConstants;
     if (vkCreatePipelineLayout(device.GetDevice(), &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) 
     {
         throw std::runtime_error("failed to create pipeline layout!");

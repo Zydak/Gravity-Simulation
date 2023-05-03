@@ -198,7 +198,7 @@ void Device::CreateInstance()
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
 
-    VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{}; // placed outside to ensure that it is not destroyed befoce vkCreateInstance call
+    VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{}; // placed outside to ensure that it is not destroyed before vkCreateInstance call
     if (m_EnableValidationLayers)
     {
         createInfo.enabledLayerCount = (uint32_t)m_ValidationLayers.size();
@@ -217,10 +217,11 @@ void Device::CreateInstance()
     createInfo.enabledExtensionCount = (uint32_t)glfwExtensions.size();
     createInfo.ppEnabledExtensionNames = glfwExtensions.data();
 
-    if (vkCreateInstance(&createInfo, nullptr, &m_Instance) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to create instance!");
-    }
+    auto xd = vkCreateInstance(&createInfo, nullptr, &m_Instance);
+    ////if (vkCreateInstance(&createInfo, nullptr, &m_Instance) != VK_SUCCESS)
+    //{
+    //    throw std::runtime_error("failed to create instance!");
+    //}
 
     CheckRequiredGlfwExtensions();
 }

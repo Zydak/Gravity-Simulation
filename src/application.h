@@ -50,4 +50,5 @@ private:
     int m_StepCount = 1; // TODO: fix step count, when step count is high float starts to break because we're dividing 0.016 by something like 2500
     int m_GameSpeed = 1;
     bool m_Pause = true;
+    glm::dvec3 m_Offset;
 };

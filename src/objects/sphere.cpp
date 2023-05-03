@@ -37,6 +37,21 @@ void Sphere::DrawOrbit(VkCommandBuffer commandBuffer)
     m_OrbitModel->Draw(commandBuffer);
 }
 
+void Sphere::ChangeOffset(glm::dvec3 offset)
+{
+    for (auto& val : m_OrbitPositions)
+    {
+        val.position += m_Offset/SCALE_DOWN;
+    }
+
+    m_Offset = offset;
+
+    for (auto& val : m_OrbitPositions)
+    {
+        val.position -= m_Offset/SCALE_DOWN;
+    }
+}
+
 void Sphere::OrbitUpdate(VkCommandBuffer commandBuffer)
 {
     if (m_Properties.orbitTraceLenght > 0)
@@ -45,7 +60,7 @@ void Sphere::OrbitUpdate(VkCommandBuffer commandBuffer)
         {
             m_OrbitPositions.erase(m_OrbitPositions.begin());
         }
-        m_OrbitPositions.push_back({m_Transform.translation/SCALE_DOWN});
+        m_OrbitPositions.push_back({(m_Transform.translation-m_Offset)/SCALE_DOWN});
         if (!FirstTime && m_OrbitModel->m_Count < m_Properties.orbitTraceLenght)
         {
             m_OrbitModel->m_Count++;

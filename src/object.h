@@ -4,24 +4,26 @@
 #include "models/sphereModel.h"
 #include <memory>
 #include <unordered_map>
+#include <iostream>
 
 #include <glm/gtc/matrix_transform.hpp>
 
 #define OBJ_TYPE_PLANET 0
 #define OBJ_TYPE_STAR 1
 
-#define SCALE_DOWN 1.0 // scaling down every position for rendering because using double in shaders is not possible
+//10000000000000000000
+#define SCALE_DOWN 10000.0    // scaling down every position for rendering because using double in shaders 
+                                  // is not possible and float breaks on big distances. It doesn't work on really big scales anyway tho
 
 struct Transform
 {
-    glm::dvec3 translation{};
-    glm::dvec3 scale{1.0f, 1.0f, 1.0f};
+    glm::dvec3 translation{0.0, 0.0, 0.0};
+    glm::dvec3 scale{1.0, 1.0, 1.0};
     glm::dvec3 rotation{};
-    glm::dvec3 lastPosition;
     
-    glm::mat4 mat4()
+    glm::mat4 mat4(glm::dvec3 targetPos)
     {
-        auto transform = glm::translate(glm::dmat4{1.0f}, translation/SCALE_DOWN);
+        auto transform = glm::translate(glm::dmat4{1.0f}, (translation-targetPos)/SCALE_DOWN);
 
         transform = glm::rotate(transform, rotation.y, {0.0f, 1.0f, 0.0f});
         transform = glm::rotate(transform, rotation.x, {1.0f, 0.0f, 0.0f});
@@ -56,6 +58,7 @@ public:
     virtual void DrawOrbit(VkCommandBuffer commandBuffer) = 0;
     virtual void OrbitUpdate(VkCommandBuffer commandBuffer) = 0;
     virtual uint32_t GetObjectType() = 0;
+    virtual void ChangeOffset(glm::dvec3 offset) = 0;
 
     Transform m_Transform;
     Properties m_Properties;

@@ -26,7 +26,7 @@ void Camera::SetOrthographicProjection(float left, float right, float top, float
     m_ProjectionMatrix[3][2] = -near / (far - near);
 }
 
-void Camera::SetViewDirection(glm::vec3 direction, glm::dvec3 up) 
+void Camera::SetViewDirection(glm::dvec3 direction, glm::dvec3 up) 
 {
     const glm::dvec3 w{glm::normalize(direction)};
     const glm::dvec3 u{glm::normalize(glm::cross(w, up))};

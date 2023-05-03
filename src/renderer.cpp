@@ -199,10 +199,8 @@ void Renderer::RenderGameObjects(FrameInfo& frameInfo)
     for (auto& kv: frameInfo.gameObjects)
     {
         auto& obj = kv.second;
-        auto a = frameInfo.camera->m_Transform.translation;
-        auto b = obj->GetObjectTransform().translation;
         auto offset = frameInfo.camera->m_Transform.translation - obj->GetObjectTransform().translation;
-        float distance = std::sqrt(glm::dot(offset, offset));
+        double distance = std::sqrt(glm::dot(offset, offset));
         //if (distance < (obj->GetObjectProperties().radius*230.0f)) // TODO fix this shit
         {
             vkCmdBindDescriptorSets(
@@ -222,7 +220,7 @@ void Renderer::RenderGameObjects(FrameInfo& frameInfo)
                 m_StarsPipeline->Bind(frameInfo.commandBuffer);
 
             PushConstants push{};
-            push.modelMatrix = obj->GetObjectTransform().mat4();
+            push.modelMatrix = obj->GetObjectTransform().mat4(frameInfo.offset);
 
             vkCmdPushConstants(frameInfo.commandBuffer, m_DefaultPipelineLayout, 
                 VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstants), &push);
@@ -290,7 +288,7 @@ void Renderer::RenderSkybox(FrameInfo& frameInfo, Skybox& skybox, VkDescriptorSe
     
     glm::dvec3 translation = frameInfo.camera->m_Transform.translation;
     glm::dvec3 rotation = {0.0f, 0.0f, 0.0f};
-    glm::dvec3 scale = glm::vec3{1.0f, 1.0f, 1.0f} * 5000.0f;
+    glm::dvec3 scale = glm::vec3{1.0f, 1.0f, 1.0f} * 500.0f;
     auto transform = glm::translate(glm::dmat4{1.0f}, translation);
 
     transform = glm::rotate(transform, rotation.y, {0.0f, 1.0f, 0.0f});
@@ -325,7 +323,7 @@ void Renderer::CreatePipelineLayouts(VkDescriptorSetLayout globalSetLayout)
             .Build();
         std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout, m_SetLayout->GetDescriptorSetLayout()};
 
-        Pipeline::CreatePipelineLayout(m_Device, descriptorSetLayouts, pushConstantRange, m_DefaultPipelineLayout);
+        Pipeline::CreatePipelineLayout(m_Device, descriptorSetLayouts, m_DefaultPipelineLayout, &pushConstantRange);
     }
 
     //
@@ -333,13 +331,13 @@ void Renderer::CreatePipelineLayouts(VkDescriptorSetLayout globalSetLayout)
     //
     {
         VkPushConstantRange pushConstantRange{};
-        pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+        pushConstantRange.stageFlags = 0;
         pushConstantRange.offset = 0;
-        pushConstantRange.size = sizeof(OrbitsPushConstants);
+        pushConstantRange.size = 0;
 
         std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout};
 
-        Pipeline::CreatePipelineLayout(m_Device, descriptorSetLayouts, pushConstantRange, m_OrbitsPipelineLayout);
+        Pipeline::CreatePipelineLayout(m_Device, descriptorSetLayouts, m_OrbitsPipelineLayout);
     }
 
     //
@@ -357,7 +355,7 @@ void Renderer::CreatePipelineLayouts(VkDescriptorSetLayout globalSetLayout)
         pushConstantRange.offset = 0;
         pushConstantRange.size = sizeof(PushConstants);
 
-        Pipeline::CreatePipelineLayout(m_Device, descriptorSetLayouts, pushConstantRange, m_SkyboxPipelineLayout);
+        Pipeline::CreatePipelineLayout(m_Device, descriptorSetLayouts, m_SkyboxPipelineLayout, &pushConstantRange);
     }
 
     //
@@ -371,7 +369,7 @@ void Renderer::CreatePipelineLayouts(VkDescriptorSetLayout globalSetLayout)
         pushConstantRange.offset = 0;
         pushConstantRange.size = sizeof(BillboardsPushConstants);
 
-        Pipeline::CreatePipelineLayout(m_Device, descriptorSetLayouts, pushConstantRange, m_BillboardPipelineLayout);
+        Pipeline::CreatePipelineLayout(m_Device, descriptorSetLayouts, m_BillboardPipelineLayout, &pushConstantRange);
     }
 }
 

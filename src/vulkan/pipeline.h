@@ -39,9 +39,8 @@ public:
         std::vector<VkVertexInputBindingDescription> bindingDesc = std::vector<VkVertexInputBindingDescription>(),
         std::vector<VkVertexInputAttributeDescription> attributeDesc = std::vector<VkVertexInputAttributeDescription>()
     );
-    static void CreatePipelineLayout(Device& device, std::vector<VkDescriptorSetLayout>& 
-        descriptorSetsLayouts, VkPushConstantRange& pushConstants, 
-        VkPipelineLayout& pipelineLayout
+    static void CreatePipelineLayout(Device& device, std::vector<VkDescriptorSetLayout>& descriptorSetsLayouts, 
+        VkPipelineLayout& pipelineLayout, VkPushConstantRange* pushConstants = nullptr
     );
 
 private:

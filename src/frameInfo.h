@@ -15,6 +15,7 @@ struct FrameInfo
 {
     int frameIndex;
     float frameTime;
+    glm::dvec3 offset;
     VkCommandBuffer commandBuffer;
     Camera* camera;
     VkDescriptorSet globalDescriptorSet;
