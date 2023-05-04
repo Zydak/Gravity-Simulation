@@ -167,7 +167,7 @@ void Renderer::EndSwapChainRenderPass(VkCommandBuffer commandBuffer)
     vkCmdEndRenderPass(commandBuffer);
 }
 
-void Renderer::RenderOrbits(FrameInfo& frameInfo)
+void Renderer::RenderOrbits(FrameInfo& frameInfo, Object* obj)
 {
     vkCmdBindDescriptorSets(
         frameInfo.commandBuffer,
@@ -182,26 +182,17 @@ void Renderer::RenderOrbits(FrameInfo& frameInfo)
 
     m_OrbitsPipeline->Bind(frameInfo.commandBuffer);
 
-    for (auto& kv: frameInfo.gameObjects)
-    {
-        auto& obj = kv.second;
-        if (obj->GetObjectProperties().orbitTraceLenght <= 0)
-            continue;
-
-        obj->DrawOrbit(frameInfo.commandBuffer);
-    }
+    obj->DrawOrbit(frameInfo.commandBuffer);
 }
 
 void Renderer::RenderGameObjects(FrameInfo& frameInfo)
 {
-    RenderOrbits(frameInfo);
-
     for (auto& kv: frameInfo.gameObjects)
     {
         auto& obj = kv.second;
-        auto offset = frameInfo.camera->m_Transform.translation - obj->GetObjectTransform().translation;
+        auto offset = ((frameInfo.camera->m_Transform.translation*SCALE_DOWN)+frameInfo.offset) - (obj->GetObjectTransform().translation);
         double distance = std::sqrt(glm::dot(offset, offset));
-        //if (distance < (obj->GetObjectProperties().radius*230.0f)) // TODO fix this shit
+        if (distance < obj->GetObjectProperties().radius*(SCALE_DOWN/10000))
         {
             vkCmdBindDescriptorSets(
                 frameInfo.commandBuffer,
@@ -223,17 +214,18 @@ void Renderer::RenderGameObjects(FrameInfo& frameInfo)
             push.modelMatrix = obj->GetObjectTransform().mat4(frameInfo.offset);
 
             vkCmdPushConstants(frameInfo.commandBuffer, m_DefaultPipelineLayout, 
-                VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstants), &push);
+                VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstants), &push);
             obj->Draw(m_DefaultPipelineLayout, frameInfo.commandBuffer);
         }
-        // else
-        // {
-        //     RenderBillboards(frameInfo, obj->GetObjectTransform().translation/SCALE_DOWN, distance/(100.0f));
-        // }
+        else
+        {
+            RenderOrbits(frameInfo, obj.get());
+            RenderBillboards(frameInfo, (obj->GetObjectTransform().translation-frameInfo.offset)/SCALE_DOWN, distance/(SCALE_DOWN*100), {1.0f, 1.0f, 1.0f});
+        }
     }
 }
 
-void Renderer::RenderBillboards(FrameInfo& frameInfo, glm::vec3 position, float size)
+void Renderer::RenderBillboards(FrameInfo& frameInfo, glm::vec3 position, float size, glm::vec3 color)
 {
     vkCmdBindDescriptorSets(
         frameInfo.commandBuffer,
@@ -251,10 +243,10 @@ void Renderer::RenderBillboards(FrameInfo& frameInfo, glm::vec3 position, float 
     BillboardsPushConstants push{};
     push.position = position;
     push.size = size;
-
+    push.color = color;
 
     vkCmdPushConstants(frameInfo.commandBuffer, m_BillboardPipelineLayout, 
-        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(BillboardsPushConstants), &push);
+        VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(BillboardsPushConstants), &push);
 
     vkCmdDraw(frameInfo.commandBuffer, 6, 1, 0, 0);
 }
@@ -300,7 +292,7 @@ void Renderer::RenderSkybox(FrameInfo& frameInfo, Skybox& skybox, VkDescriptorSe
     push.modelMatrix = transform;
 
     vkCmdPushConstants(frameInfo.commandBuffer, m_SkyboxPipelineLayout, 
-        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstants), &push);
+        VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstants), &push);
     
     skybox.GetSkyboxModel()->Bind(frameInfo.commandBuffer);
     skybox.GetSkyboxModel()->Draw(frameInfo.commandBuffer);
@@ -314,7 +306,7 @@ void Renderer::CreatePipelineLayouts(VkDescriptorSetLayout globalSetLayout)
     // stars and planets have the same pipeline layout for now
     {
         VkPushConstantRange pushConstantRange{};
-        pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+        pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
         pushConstantRange.offset = 0;
         pushConstantRange.size = sizeof(PushConstants);
 
@@ -330,11 +322,6 @@ void Renderer::CreatePipelineLayouts(VkDescriptorSetLayout globalSetLayout)
     // ORBITS
     //
     {
-        VkPushConstantRange pushConstantRange{};
-        pushConstantRange.stageFlags = 0;
-        pushConstantRange.offset = 0;
-        pushConstantRange.size = 0;
-
         std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout};
 
         Pipeline::CreatePipelineLayout(m_Device, descriptorSetLayouts, m_OrbitsPipelineLayout);
@@ -351,7 +338,7 @@ void Renderer::CreatePipelineLayouts(VkDescriptorSetLayout globalSetLayout)
         std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout, m_SkyboxLayout->GetDescriptorSetLayout()};
 
         VkPushConstantRange pushConstantRange{};
-        pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+        pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
         pushConstantRange.offset = 0;
         pushConstantRange.size = sizeof(PushConstants);
 
@@ -365,7 +352,7 @@ void Renderer::CreatePipelineLayouts(VkDescriptorSetLayout globalSetLayout)
         std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout};
 
         VkPushConstantRange pushConstantRange{};
-        pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+        pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
         pushConstantRange.offset = 0;
         pushConstantRange.size = sizeof(BillboardsPushConstants);
 

@@ -11,6 +11,7 @@ const vec2 OFFSETS[6] = vec2[]
 );
 
 layout (location = 0) out vec2 fragOffset;
+layout (location = 1) out vec3 outColor;
 
 layout(set = 0, binding = 0) uniform GlobalUbo
 {
@@ -23,6 +24,7 @@ layout(set = 0, binding = 0) uniform GlobalUbo
 layout(push_constant) uniform Push
 {
     vec3 position;
+    vec3 color;
     float radius;
 } push;
 
@@ -39,6 +41,7 @@ void main()
     // gl_Position = push.ortho * ubo.view * vec4(positionWorld, 1.0);
 
     fragOffset = OFFSETS[gl_VertexIndex];
+    outColor = push.color;
     vec4 cameraSpace = ubo.view * vec4(push.position, 1.0);
     vec4 positionInCameraSpace = cameraSpace + push.radius * vec4(fragOffset, 0.0, 0.0);
     gl_Position = ubo.projection * positionInCameraSpace;

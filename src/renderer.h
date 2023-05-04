@@ -20,12 +20,8 @@ struct PushConstants
 struct BillboardsPushConstants
 {
     alignas(16) glm::vec3 position{0.0f};
+    alignas(16) glm::vec3 color{1.0f};
     float size = 1.0f;
-};
-
-struct OrbitsPushConstants
-{
-    glm::vec3 positions[2];
 };
 
 class Renderer
@@ -57,9 +53,9 @@ public:
     void BeginSwapChainRenderPass(VkCommandBuffer commandBuffer, const glm::vec3& clearColor);
     void EndSwapChainRenderPass(VkCommandBuffer commandBuffer);
     void RenderGameObjects(FrameInfo& frameInfo);
-    void RenderOrbits(FrameInfo& frameInfo);
+    void RenderOrbits(FrameInfo& frameInfo, Object* obj);
     void RenderSkybox(FrameInfo& frameInfo, Skybox& skybox, VkDescriptorSet skyboxDescriptorSet);
-    void RenderBillboards(FrameInfo& frameInfo, glm::vec3 position, float size);
+    void RenderBillboards(FrameInfo& frameInfo, glm::vec3 position, float size, glm::vec3 color);
 private:
     void CreateCommandBuffers();
     void FreeCommandBuffers();

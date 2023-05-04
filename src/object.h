@@ -12,7 +12,7 @@
 #define OBJ_TYPE_STAR 1
 
 //10000000000000000000
-#define SCALE_DOWN 10000.0    // scaling down every position for rendering because using double in shaders 
+#define SCALE_DOWN 10000000.0    // scaling down every position for rendering because using double in shaders 
                                   // is not possible and float breaks on big distances. It doesn't work on really big scales anyway tho
 
 struct Transform
