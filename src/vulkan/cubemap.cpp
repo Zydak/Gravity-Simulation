@@ -32,7 +32,7 @@ void Cubemap::CreateImage(uint32_t width, uint32_t height)
 	imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 	imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	imageCreateInfo.extent = { m_Width, m_Height, 1 };
+	imageCreateInfo.extent = { (uint32_t)m_Width, (uint32_t)m_Height, 1 };
 	imageCreateInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 	// Cube faces count as array layers in Vulkan
 	imageCreateInfo.arrayLayers = 6;

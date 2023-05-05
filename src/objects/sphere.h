@@ -10,7 +10,7 @@ class Sphere : public Object
 {
 public:
     Sphere(uint32_t ID, ObjectInfo objInfo, const std::string& modelfilepath, Transform transform, 
-        Properties properties, const std::string& texturefilepath = ""
+        Properties properties
     );
     virtual void Draw(VkPipelineLayout layout, VkCommandBuffer commandBuffer) override;
     virtual void DrawOrbit(VkCommandBuffer commandBuffer) override;
@@ -21,7 +21,7 @@ public:
     inline virtual Properties& GetObjectProperties() override { return m_Properties; }
     inline virtual uint32_t GetObjectID() override { return m_ID; }
     inline virtual uint32_t GetObjectType() override { return m_ObjType; }
-    inline virtual float GetObjectRadius() override { return m_Radius; }
+    inline virtual glm::vec3 GetObjectColor() { return m_Properties.color; }
 
     int m_ObjType;
     uint32_t m_ID;
@@ -32,7 +32,10 @@ public:
     std::vector<OrbitModel::Vertex> m_OrbitPositions;
     VkDescriptorSet m_DescriptorSet;
     std::unique_ptr<DescriptorSetLayout> m_SetLayout;
+    uint32_t m_Count = 0;
+
+    // DEBUG
+    std::vector<uint32_t> m_IndexPositions;
 
     float m_Radius;
-    bool FirstTime = true;
 };

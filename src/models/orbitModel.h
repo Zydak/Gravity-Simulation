@@ -35,9 +35,10 @@ public:
     void Bind(VkCommandBuffer commandBuffer);
     void Draw(VkCommandBuffer commandBuffer);
     
-    void UpdateVertexBuffer(VkCommandBuffer cmd, Buffer* buffer, const std::vector<Vertex> &vertices);
+    void UpdateBuffer(VkCommandBuffer cmd, Buffer* buffer, VkDeviceSize offset, uint32_t size, const void* data);
     inline Buffer* GetVertexBuffer() { return m_VertexBuffer.get(); }
-    uint32_t m_Count = 0;
+    inline Buffer* GetIndexBuffer() { return m_IndexBuffer.get(); }
+
 private:
     void CreateVertexBuffer(const std::vector<Vertex> &vertices);
     void CreateIndexBuffer(const std::vector<uint32_t> &indices);
@@ -46,4 +47,7 @@ private:
 
     std::unique_ptr<Buffer> m_VertexBuffer;
     uint32_t m_VertexCount;
+
+    std::unique_ptr<Buffer> m_IndexBuffer;
+    uint32_t m_IndexCount;
 };

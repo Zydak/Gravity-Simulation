@@ -4,10 +4,10 @@
 
 #include "imgui.h"
 
-static float yaw = 0;
-static float pitch = 89;
-static float lastX;
-static float lastY;
+static double yaw = 0;
+static double pitch = 89;
+static double lastX;
+static double lastY;
 
 static void mouseCallback(GLFWwindow* window, int button, int action, int mods)
 {
@@ -25,16 +25,13 @@ static void mouseCallback(GLFWwindow* window, int button, int action, int mods)
         }
     }
 }
-static double scrollY = 5000;
+static double scrollY = 0.00000000000000001;
 void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
 {
 	if (yoffset > 0)
-    	scrollY += yoffset - scrollY/4;
+    	scrollY -= scrollY / 4;
 	if (yoffset < 0)
-    	scrollY -= yoffset - scrollY/4;
-
-    if (scrollY <= 10)
-        scrollY = 10;
+    	scrollY += scrollY / 4;
 
     if (scrollY >= 1.24701e+09)
         scrollY = 1.24701e+09;
@@ -55,17 +52,19 @@ CameraController::~CameraController()
 /*
     * @brief Updates camera position based on mouse movement
 */
-void CameraController::Update(float delta, Camera& camera, glm::vec3 target)
+void CameraController::Update(const float& delta, Camera& camera, const int& target, Map& gameObjects)
 {
-    float radius = scrollY;
+    if (scrollY < gameObjects[target]->GetObjectProperties().radius*2/SCALE_DOWN)
+        scrollY = gameObjects[target]->GetObjectProperties().radius*2/SCALE_DOWN;
+    double radius = scrollY;
     if (glfwGetMouseButton(m_Window, 0) == GLFW_PRESS && !ImGui::GetIO().WantCaptureMouse)
     {
         double x, y;
         glfwGetCursorPos(m_Window, &x, &y);
             
-        float sensitivity = -10.0f;
-        static float xOffset = 0;
-        static float yOffset = 0;
+        double sensitivity = -10.0f;
+        static double xOffset = 0;
+        static double yOffset = 0;
         xOffset = (lastX - x) * sensitivity;
         yOffset = (lastY - y) * sensitivity;
         yaw += xOffset * delta;
@@ -81,9 +80,9 @@ void CameraController::Update(float delta, Camera& camera, glm::vec3 target)
     }
     
     // Equation for camera positioning around a sphere
-    camera.m_Transform.translation.x = target.x + radius * -sinf(yaw*(M_PI/180)) * cosf((pitch)*(M_PI/180));
-    camera.m_Transform.translation.y = target.y + radius * -sinf((pitch)*(M_PI/180));
-    camera.m_Transform.translation.z = target.z + -radius * cosf((yaw)*(M_PI/180)) * cosf((pitch)*(M_PI/180));
+    camera.m_Transform.translation.x = radius * -sin(yaw*(M_PI/180.0)) * cos((pitch)*(M_PI/180.0));
+    camera.m_Transform.translation.y = radius * -sin((pitch)*(M_PI/180.0));
+    camera.m_Transform.translation.z = -radius * cos((yaw)*(M_PI/180.0)) * cos((pitch)*(M_PI/180.0));
 
     // only for debuging info
     camera.m_Transform.rotation.x = yaw;

@@ -33,15 +33,14 @@ public:
     void Bind(VkCommandBuffer commandBuffer);
 
     static PipelineConfigInfo CreatePipelineConfigInfo(uint32_t width, uint32_t height,
-        VkPrimitiveTopology topology, VkCullModeFlags cullMode, bool depthTestEnable);
+        VkPrimitiveTopology topology, VkCullModeFlags cullMode, bool depthTestEnable, bool blendingEnable);
     void CreatePipeline(const std::string& vertexPath, const std::string& fragmentPath, 
         const PipelineConfigInfo& configInfo,
         std::vector<VkVertexInputBindingDescription> bindingDesc = std::vector<VkVertexInputBindingDescription>(),
         std::vector<VkVertexInputAttributeDescription> attributeDesc = std::vector<VkVertexInputAttributeDescription>()
     );
-    static void CreatePipelineLayout(Device& device, std::vector<VkDescriptorSetLayout>& 
-        descriptorSetsLayouts, VkPushConstantRange& pushConstants, 
-        VkPipelineLayout& pipelineLayout
+    static void CreatePipelineLayout(Device& device, std::vector<VkDescriptorSetLayout>& descriptorSetsLayouts, 
+        VkPipelineLayout& pipelineLayout, VkPushConstantRange* pushConstants = nullptr
     );
 
 private:

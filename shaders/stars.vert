@@ -20,11 +20,16 @@ layout(set = 0, binding = 0) uniform GlobalUbo
 layout(push_constant) uniform Push
 {
     mat4 modelMatrix;
+    vec3 offset;
 } push;
 
 void main()
 {
-    vec4 positionWorld = push.modelMatrix * vec4(position, 1.0);
+    mat4 modelMat = push.modelMatrix;
+    modelMat[3][0] -= push.offset.x;
+    modelMat[3][1] -= push.offset.y;
+    modelMat[3][2] -= push.offset.z;
+    vec4 positionWorld = modelMat * vec4(position, 1.0);
     gl_Position = ubo.projection * ubo.view * positionWorld;
 
     fragColor = color;

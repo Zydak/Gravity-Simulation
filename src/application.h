@@ -47,7 +47,9 @@ private:
     float m_FPSaccumulator = 0;
     float m_FPS = 0;
     uint32_t m_TargetLock = 0;
-    int m_StepCount = 2500; // TODO: fix step count, when step count is high float starts to break because we're dividing 0.016 by something like 2500
+    int m_StepCount = 1; // TODO: fix step count, when step count is high float starts to break because we're dividing 0.016 by something like 2500
     int m_GameSpeed = 1;
-    bool m_Pause = false;
+    bool m_Pause = true;
+    glm::dvec3 m_Offset;
+    TextureImage m_IconImage{m_Device, "assets/textures/icon.png"};
 };

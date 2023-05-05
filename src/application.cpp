@@ -34,8 +34,8 @@ public:
     ~Timer()
     {
         m_End = std::chrono::high_resolution_clock::now();
-        double duration = (m_End - m_Start).count();
-        std::cout << "Timer Took " << duration << "ns" << std::endl;;
+        double duration = (m_End - m_Start).count() / 1000.0;
+        std::cout << "Timer Took " << duration << "ms" << std::endl;;
     }
 };
 
@@ -59,10 +59,10 @@ struct GlobalUbo
 Application::Application()
 {
     m_GlobalPool = DescriptorPool::Builder(m_Device)
-        .SetMaxSets(SwapChain::MAX_FRAMES_IN_FLIGHT * 3 + 3) // * 2 for ImGui
+        .SetMaxSets(SwapChain::MAX_FRAMES_IN_FLIGHT * 2) // * 2 for ImGui
         .SetPoolFlags(VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT)
         .AddPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, SwapChain::MAX_FRAMES_IN_FLIGHT)
-        .AddPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, SwapChain::MAX_FRAMES_IN_FLIGHT * 3)
+        .AddPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, SwapChain::MAX_FRAMES_IN_FLIGHT * 2)
         .Build();
     
     LoadGameObjects();
@@ -93,6 +93,7 @@ void Application::Run()
 
     auto globalSetLayout = DescriptorSetLayout::Builder(m_Device)
         .AddBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
+        .AddBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
         .Build();
 
     m_SkyboxSetLayout = DescriptorSetLayout::Builder(m_Device)
@@ -106,9 +107,15 @@ void Application::Run()
     std::vector<VkDescriptorSet> globalDescriptorSets(SwapChain::MAX_FRAMES_IN_FLIGHT);
     for (int i = 0; i < globalDescriptorSets.size(); i++)
     {
+        VkDescriptorImageInfo iconDescriptor{};
+        iconDescriptor.sampler = m_Sampler.GetSampler();
+        iconDescriptor.imageView = m_IconImage.GetImageView();
+        iconDescriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
         VkDescriptorBufferInfo bufferInfo = m_UboBuffers[i]->DescriptorInfo();
         DescriptorWriter(*globalSetLayout, *m_GlobalPool)
             .WriteBuffer(0, &bufferInfo)
+            .WriteImage(1, &iconDescriptor)
             .Build(globalDescriptorSets[i]);
     }
 
@@ -186,8 +193,8 @@ void Application::Run()
         if (auto commandBuffer = m_Renderer->BeginFrame({0.02f, 0.02f, 0.02f})) 
         {
             // Fill FrameInfo struct
-            int frameIndex = m_Renderer->GetFrameIndex();
             FrameInfo frameInfo{};
+            int frameIndex = m_Renderer->GetFrameIndex();
             frameInfo.frameIndex = frameIndex;
             frameInfo.camera = &m_Camera;
             frameInfo.frameTime = delta;
@@ -204,28 +211,31 @@ void Application::Run()
                 Update(frameInfo, 0.016f);
 				m_MainLoopAccumulator -= 0.016f;
             }
-
+            frameInfo.offset = m_GameObjects[m_TargetLock]->GetObjectTransform().translation;
+            
 			// Camera Update
             float aspectRatio = m_Renderer->GetAspectRatio();
-            m_Camera.SetPerspectiveProjection(glm::radians(50.0f), aspectRatio, 1.0f, 50000000);
-            m_CameraController.Update(0.016f, m_Camera, m_GameObjects[m_TargetLock]->GetObjectTransform().translation);
-            m_Camera.SetViewTarget(m_GameObjects[m_TargetLock]->GetObjectTransform().translation);
+            m_Camera.SetPerspectiveProjection(glm::radians(50.0f), aspectRatio, 0.0001f, 100000.0f);
+            m_CameraController.Update(0.016f, m_Camera, m_TargetLock, m_GameObjects);
+            m_Camera.SetViewTarget({0.0, 0.0, 0.0});
             
             // UBO update
             {
                 GlobalUbo ubo{};
                 ubo.projection = m_Camera.GetProjection();
                 ubo.view = m_Camera.GetView();
+                
                 for (auto& kv : m_GameObjects)
                 {
                     if (kv.second->GetObjectType() == OBJ_TYPE_STAR)
                     {
-                        ubo.lightPosition = kv.second->GetObjectTransform().translation;
+                        ubo.lightPosition = glm::vec4(kv.second->GetObjectTransform().translation/SCALE_DOWN - glm::dvec3(frameInfo.offset/SCALE_DOWN), 1.0);
                     }
                 }
                 m_UboBuffers[frameIndex]->WriteToBuffer(&ubo);
                 m_UboBuffers[frameIndex]->Flush();
             }
+            
 
             // ------------------- RENDER PASS -----------------
             m_Renderer->BeginSwapChainRenderPass(commandBuffer, {0.0f, 0.0f, 0.0f});
@@ -243,6 +253,27 @@ void Application::Run()
     vkDeviceWaitIdle(m_Device.GetDevice());
 }
 
+static void DivideMass(glm::dvec3 translation, double radius, double* mass)
+{
+    int divider = 0;
+    for (int x = -radius; x < radius; x += 1)
+    {
+        for (int y = -radius; y < radius; y += 1)
+        {
+            for (int z = -radius; z < radius; z += 1)
+            {
+                glm::dvec3 offset = (translation + glm::dvec3(x, y, z)*100.0) - translation;
+                double distance = sqrt(glm::dot(offset, offset));
+                if (distance < radius*100.0)
+                {
+                    divider++;
+                }
+            }
+        }
+    }
+    *mass = *mass/divider;
+}
+
 /**
  * @brief Loads specified game objects with their parameters
 */
@@ -257,38 +288,66 @@ void Application::LoadGameObjects()
     objInfo.device = &m_Device;
     objInfo.sampler = &m_Sampler;
 
+    //
+    // EARTH
+    //
     {
         Properties properties{};
-        properties.velocity = {0.0f, 0.0f, 0.0f};
+        properties.velocity = {0.0, 0.0, 29.78};
         properties.mass = 5.972 * pow(10, 24);
-        properties.isStatic = false;
-        properties.orbitTraceLenght = 200;
-        properties.rotationSpeed = {0.0f, 0.05f, 0.0f};
-        
+        properties.orbitTraceLenght = 1000;
+        properties.rotationSpeed = {0.0f, 0.0f, 0.0f};
+        properties.radius = 6371.0f;
         properties.objType = OBJ_TYPE_PLANET;
+        properties.color = {0.25, 0.3, 0.65};
 
         Transform transform{};
-        transform.translation = {1000.0f, 0.0f, 0.0f};
+        transform.translation = {149597871.0, 0.0f, 0.0f};
         transform.rotation = {0.0f, 0.0f, 0.0f};
         std::unique_ptr<Object> obj = std::make_unique<Sphere>(id++, objInfo, 
-            "assets/models/smooth_sphere.obj", transform, properties, "assets/textures/red.png");
+            "assets/models/smooth_sphere.obj", transform, properties);
         m_GameObjects.emplace(obj->GetObjectID(), std::move(obj));
     }
 
+    //
+    // MOON
+    //
     {
         Properties properties{};
-        properties.velocity = {0.0f, 0.0f, 0.0f};
-        properties.mass = 7.348 * pow(10, 22);
-        properties.isStatic = false;
-        properties.orbitTraceLenght = 200;
-        properties.rotationSpeed = {0.0f, 0.05f, 0.0f};
+        properties.velocity = {0.0, 0.0, 29.78 + 1.022}; // km/s
+        properties.mass = 0.07346 * pow(10, 24); // kg
+        properties.orbitTraceLenght = 1000;
+        properties.rotationSpeed = {0.0f, 0.0f, 0.0f};
         properties.objType = OBJ_TYPE_PLANET;
+        properties.radius = 1737.5f; // km
+        properties.color = {0.6, 0.6, 0.6};
 
         Transform transform{};
-        transform.translation = {384400.0f, 0.0f, 0.0f};
+        transform.translation = {384400  + 149597871.0, 0.0f, 0.0f}; // km
         transform.rotation = {0.0f, 0.0f, 0.0f};
         std::unique_ptr<Object> obj = std::make_unique<Sphere>(id++, objInfo, 
-            "assets/models/smooth_sphere.obj", transform, properties, "assets/textures/red.png");
+            "assets/models/smooth_sphere.obj", transform, properties);
+        m_GameObjects.emplace(obj->GetObjectID(), std::move(obj));
+    }
+
+    //
+    // SUN
+    //
+    {
+        Properties properties{};
+        properties.velocity = {0.0f, 0.0f, 0.0}; // km/s
+        properties.mass = 1.99 * pow(10, 30); // kg
+        properties.orbitTraceLenght = 0;
+        properties.rotationSpeed = {0.0f, 0.05f, 0.0f};
+        properties.objType = OBJ_TYPE_STAR;
+        properties.radius = 695508.0f; // km
+        properties.color = {0.98f, 0.97f, 0.1f};
+
+        Transform transform{};
+        transform.translation = {0.0f, 0.0f, 0.0f}; // km
+        transform.rotation = {0.0f, 0.0f, 0.0f};
+        std::unique_ptr<Object> obj = std::make_unique<Sphere>(id++, objInfo, 
+            "assets/models/smooth_sphere.obj", transform, properties);
         m_GameObjects.emplace(obj->GetObjectID(), std::move(obj));
     }
 }
@@ -298,55 +357,65 @@ void Application::LoadGameObjects()
  */
 void Application::Update(const FrameInfo& frameInfo, float delta)
 {
+    //m_Pause = true;
     static int OrbitUpdateCount = 0;
-    double substepDelta = delta / m_StepCount / 100.0;
+    double substepDelta = (double)1 / (double)m_StepCount;
     for (int i = 0; i < m_GameSpeed; i++)
     {
         for (int j = 0; j < m_StepCount; j++)
         {
-            // Timer timer;
-            for (auto& kv: m_GameObjects)
+            // Loop through pairs of objects and applies velocity to them
+            for (auto iterA = m_GameObjects.begin(); iterA != m_GameObjects.end(); iterA++)
             {
-                auto& objA = kv.second;
+                auto& objA = iterA->second;
                 
                 if (m_GameObjects.size() == 1) // if there is only one object still apply it's velocity
                 {
-                    objA->GetObjectTransform().translation += substepDelta * (glm::dvec3)objA->GetObjectProperties().velocity;
+                    objA->GetObjectTransform().translation += objA->GetObjectProperties().velocity;
                 }
                 else
                 {
-                    for (auto& kv1: m_GameObjects)
+                    for (auto iterB = iterA; iterB != m_GameObjects.end(); iterB++)
                     {
-                        auto& objB = kv1.second;
+                        auto& objB = iterB->second;
                         if (objA == objB)
                             continue;
                         
-                        glm::dvec3 offset = objA->GetObjectTransform().translation - objB->GetObjectTransform().translation;
+                        // convert translations from km to m
+                        glm::dvec3 offset = objA->GetObjectTransform().translation*1000.0 - objB->GetObjectTransform().translation*1000.0;
                         double distanceSquared = glm::dot(offset, offset);
-
+                        if (std::sqrt(distanceSquared)/1000.0 < objA->GetObjectProperties().radius + objB->GetObjectProperties().radius)
+                        {
+                            std::cout << "HIT" << std::endl;
+                            continue;
+                        }
                         double G = 6.67 / (pow(10, 11));
                         double force = G * objA->GetObjectProperties().mass * objB->GetObjectProperties().mass / distanceSquared;
                         glm::dvec3 trueForce = force * offset / glm::sqrt(distanceSquared);
-                        objA->GetObjectProperties().velocity += substepDelta * -trueForce / objA->GetObjectProperties().mass;
-                        objA->GetObjectTransform().translation += substepDelta * objA->GetObjectProperties().velocity;
-
-                        objB->GetObjectProperties().velocity += substepDelta * trueForce / objB->GetObjectProperties().mass;
-                        objB->GetObjectTransform().translation += objB->GetObjectProperties().velocity;
+                        objA->GetObjectProperties().velocity += substepDelta * -trueForce / objA->GetObjectProperties().mass / 1000.0;// convert back to km
+                        objB->GetObjectProperties().velocity += substepDelta * trueForce / objB->GetObjectProperties().mass / 1000.0;// convert back to km
                     }
                 }
                 
                 objA->GetObjectTransform().rotation += objA->GetObjectProperties().rotationSpeed;
             }
-        }
-        
-        // Update orbits less frequently(after 2 obj updates in this case) to make them longer
-        OrbitUpdateCount = (OrbitUpdateCount + 1) % 2;
-        if (OrbitUpdateCount == 0)
-        {
+
+            // Update each object position by it's final velocity
             for (auto& kv : m_GameObjects)
             {
                 auto& obj = kv.second;
-                obj->OrbitUpdate(frameInfo.commandBuffer);
+                obj->GetObjectTransform().translation += substepDelta * obj->GetObjectProperties().velocity;
+            }
+
+            // Update orbits less frequently(after 2 obj updates in this case) to make them longer
+            OrbitUpdateCount = (OrbitUpdateCount + 1) % 5000;
+            if (OrbitUpdateCount == 0)
+            {
+                for (auto& kv : m_GameObjects)
+                {
+                    auto& obj = kv.second;
+                    obj->OrbitUpdate(frameInfo.commandBuffer);
+                }
             }
         }
     }
@@ -370,22 +439,15 @@ void Application::RenderImGui(const FrameInfo& frameInfo)
 
     ImGui::Combo("Skybox", &skyboxImageSelected, Skyboxes, IM_ARRAYSIZE(Skyboxes));
 
-    ImGui::SliderInt("Speed", &m_GameSpeed, 1, 200);
-    ImGui::SliderInt("StepCount", &m_StepCount, 1, 2500);
+    ImGui::SliderInt("Speed", &m_GameSpeed, 1, 2000);
+    ImGui::SliderInt("StepCount", &m_StepCount, 1, 20);
     for (auto& kv : m_GameObjects)
     {
         auto& obj = kv.second;
-        ImGui::Text("Obj ID: %d Pos: x %f | y %f, z %f", 
-            obj->GetObjectID(), 
-            obj->GetObjectTransform().translation.x,
-            obj->GetObjectTransform().translation.y,
-            obj->GetObjectTransform().translation.z
-        );
-        ImGui::Text("velocity ID: %d velocity: x %f | y %f, z %f", 
-            obj->GetObjectID(), 
-            obj->GetObjectProperties().velocity.x,
-            obj->GetObjectProperties().velocity.y,
-            obj->GetObjectProperties().velocity.z
+        double velocity = sqrt(pow(obj->GetObjectProperties().velocity.z, 2)) + sqrt(pow(obj->GetObjectProperties().velocity.y, 2)) + sqrt(pow(obj->GetObjectProperties().velocity.x, 2));
+        ImGui::Text("velocity: obj ID: %d velocity: %f km/s", 
+            obj->GetObjectID(),
+            velocity
         );
                     
         if (ImGui::Button(std::string("Camera Lock on " + std::to_string(obj->GetObjectID())).c_str()))
@@ -393,11 +455,6 @@ void Application::RenderImGui(const FrameInfo& frameInfo)
             m_TargetLock = obj->GetObjectID();
         }
     }
-    ImGui::Text("Camera Position: x %0.1f y %0.1f z %0.1f", 
-        m_Camera.m_Transform.translation.x,
-        m_Camera.m_Transform.translation.y,
-        m_Camera.m_Transform.translation.z);
-
     ImGui::End();
  
     ImGui::Render();
