@@ -179,8 +179,15 @@ void Renderer::RenderOrbits(FrameInfo& frameInfo, Object* obj)
         0,
         nullptr
     );
-
+    
     m_OrbitsPipeline->Bind(frameInfo.commandBuffer);
+
+    OrbitPushConstants push{};
+    push.offset = frameInfo.offset/SCALE_DOWN;
+    push.color = obj->GetObjectColor();
+
+    vkCmdPushConstants(frameInfo.commandBuffer, m_OrbitsPipelineLayout, 
+        VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(OrbitPushConstants), &push);
 
     obj->DrawOrbit(frameInfo.commandBuffer);
 }
@@ -211,7 +218,8 @@ void Renderer::RenderGameObjects(FrameInfo& frameInfo)
                 m_StarsPipeline->Bind(frameInfo.commandBuffer);
 
             PushConstants push{};
-            push.modelMatrix = obj->GetObjectTransform().mat4(frameInfo.offset);
+            push.modelMatrix = obj->GetObjectTransform().mat4();
+            push.offset = frameInfo.offset/SCALE_DOWN;
 
             vkCmdPushConstants(frameInfo.commandBuffer, m_DefaultPipelineLayout, 
                 VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstants), &push);
@@ -220,7 +228,7 @@ void Renderer::RenderGameObjects(FrameInfo& frameInfo)
         else
         {
             RenderOrbits(frameInfo, obj.get());
-            RenderBillboards(frameInfo, (obj->GetObjectTransform().translation-frameInfo.offset)/SCALE_DOWN, distance/(SCALE_DOWN*100), {1.0f, 1.0f, 1.0f});
+            RenderBillboards(frameInfo, (obj->GetObjectTransform().translation)/SCALE_DOWN, distance*2/(SCALE_DOWN*100), obj->GetObjectColor());
         }
     }
 }
@@ -244,6 +252,7 @@ void Renderer::RenderBillboards(FrameInfo& frameInfo, glm::vec3 position, float 
     push.position = position;
     push.size = size;
     push.color = color;
+    push.offset = frameInfo.offset/SCALE_DOWN;
 
     vkCmdPushConstants(frameInfo.commandBuffer, m_BillboardPipelineLayout, 
         VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(BillboardsPushConstants), &push);
@@ -279,13 +288,8 @@ void Renderer::RenderSkybox(FrameInfo& frameInfo, Skybox& skybox, VkDescriptorSe
     
     
     glm::dvec3 translation = frameInfo.camera->m_Transform.translation;
-    glm::dvec3 rotation = {0.0f, 0.0f, 0.0f};
     glm::dvec3 scale = glm::vec3{1.0f, 1.0f, 1.0f} * 500.0f;
     auto transform = glm::translate(glm::dmat4{1.0f}, translation);
-
-    transform = glm::rotate(transform, rotation.y, {0.0f, 1.0f, 0.0f});
-    transform = glm::rotate(transform, rotation.x, {1.0f, 0.0f, 0.0f});
-    transform = glm::rotate(transform, rotation.z, {0.0f, 0.0f, 1.0f});
     transform = glm::scale(transform, scale);
 
     PushConstants push{};
@@ -322,9 +326,14 @@ void Renderer::CreatePipelineLayouts(VkDescriptorSetLayout globalSetLayout)
     // ORBITS
     //
     {
+        VkPushConstantRange pushConstantRange{};
+        pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        pushConstantRange.offset = 0;
+        pushConstantRange.size = sizeof(OrbitPushConstants);
+
         std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout};
 
-        Pipeline::CreatePipelineLayout(m_Device, descriptorSetLayouts, m_OrbitsPipelineLayout);
+        Pipeline::CreatePipelineLayout(m_Device, descriptorSetLayouts, m_OrbitsPipelineLayout, &pushConstantRange);
     }
 
     //
@@ -368,7 +377,7 @@ void Renderer::CreatePipelines()
     {
         auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight(),
             VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-            VK_CULL_MODE_FRONT_BIT, VK_TRUE
+            VK_CULL_MODE_FRONT_BIT, true, false
         );
         pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
         pipelineConfig.pipelineLayout = m_DefaultPipelineLayout;
@@ -386,7 +395,7 @@ void Renderer::CreatePipelines()
     {
         auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight(),
             VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-            VK_CULL_MODE_FRONT_BIT, true
+            VK_CULL_MODE_FRONT_BIT, true, false
         );
         pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
         pipelineConfig.pipelineLayout = m_DefaultPipelineLayout;
@@ -404,7 +413,7 @@ void Renderer::CreatePipelines()
     {
         auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight(),
             VK_PRIMITIVE_TOPOLOGY_LINE_STRIP,
-            VK_CULL_MODE_NONE, true
+            VK_CULL_MODE_NONE, true, false
         );
         pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
         pipelineConfig.pipelineLayout = m_OrbitsPipelineLayout;
@@ -422,7 +431,7 @@ void Renderer::CreatePipelines()
     {
         auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight(),
             VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-            VK_CULL_MODE_BACK_BIT, false
+            VK_CULL_MODE_BACK_BIT, false, false
         );
         pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
         pipelineConfig.pipelineLayout = m_SkyboxPipelineLayout;
@@ -440,7 +449,7 @@ void Renderer::CreatePipelines()
     {
         auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight(),
             VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-            VK_CULL_MODE_FRONT_BIT, true
+            VK_CULL_MODE_FRONT_BIT, false, true
         );
         pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
         pipelineConfig.pipelineLayout = m_BillboardPipelineLayout;

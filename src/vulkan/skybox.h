@@ -26,6 +26,7 @@ public:
 private:
     Device& m_Device;
     std::unique_ptr<SkyboxModel> m_SkyboxModel;
+    glm::mat4 m_ModelTransform;
 
     Cubemap m_Cubemap{m_Device};
 };

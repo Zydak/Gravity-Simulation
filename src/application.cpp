@@ -59,10 +59,10 @@ struct GlobalUbo
 Application::Application()
 {
     m_GlobalPool = DescriptorPool::Builder(m_Device)
-        .SetMaxSets(SwapChain::MAX_FRAMES_IN_FLIGHT * 3 + 3) // * 2 for ImGui
+        .SetMaxSets(SwapChain::MAX_FRAMES_IN_FLIGHT * 2) // * 2 for ImGui
         .SetPoolFlags(VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT)
         .AddPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, SwapChain::MAX_FRAMES_IN_FLIGHT)
-        .AddPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, SwapChain::MAX_FRAMES_IN_FLIGHT * 3)
+        .AddPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, SwapChain::MAX_FRAMES_IN_FLIGHT * 2)
         .Build();
     
     LoadGameObjects();
@@ -93,6 +93,7 @@ void Application::Run()
 
     auto globalSetLayout = DescriptorSetLayout::Builder(m_Device)
         .AddBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
+        .AddBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
         .Build();
 
     m_SkyboxSetLayout = DescriptorSetLayout::Builder(m_Device)
@@ -106,9 +107,15 @@ void Application::Run()
     std::vector<VkDescriptorSet> globalDescriptorSets(SwapChain::MAX_FRAMES_IN_FLIGHT);
     for (int i = 0; i < globalDescriptorSets.size(); i++)
     {
+        VkDescriptorImageInfo iconDescriptor{};
+        iconDescriptor.sampler = m_Sampler.GetSampler();
+        iconDescriptor.imageView = m_IconImage.GetImageView();
+        iconDescriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
         VkDescriptorBufferInfo bufferInfo = m_UboBuffers[i]->DescriptorInfo();
         DescriptorWriter(*globalSetLayout, *m_GlobalPool)
             .WriteBuffer(0, &bufferInfo)
+            .WriteImage(1, &iconDescriptor)
             .Build(globalDescriptorSets[i]);
     }
 
@@ -198,10 +205,6 @@ void Application::Run()
             frameInfo.globalDescriptorPool = m_GlobalPool.get();
             frameInfo.sampler = &m_Sampler;
 
-            for (auto& kv : m_GameObjects)
-            {
-                kv.second->ChangeOffset(m_GameObjects[m_TargetLock]->GetObjectTransform().translation);
-            }
 			// Update Every 160ms(every frame with 60fps) independent of actual framerate
             while (m_MainLoopAccumulator > 0.016f && !m_Pause)
             {
@@ -226,7 +229,7 @@ void Application::Run()
                 {
                     if (kv.second->GetObjectType() == OBJ_TYPE_STAR)
                     {
-                        ubo.lightPosition = glm::vec4(kv.second->GetObjectTransform().translation - glm::dvec3(frameInfo.offset)/SCALE_DOWN, 1.0);
+                        ubo.lightPosition = glm::vec4(kv.second->GetObjectTransform().translation/SCALE_DOWN - glm::dvec3(frameInfo.offset/SCALE_DOWN), 1.0);
                     }
                 }
                 m_UboBuffers[frameIndex]->WriteToBuffer(&ubo);
@@ -292,11 +295,11 @@ void Application::LoadGameObjects()
         Properties properties{};
         properties.velocity = {0.0, 0.0, 29.78};
         properties.mass = 5.972 * pow(10, 24);
-        properties.orbitTraceLenght = 200;
-        properties.rotationSpeed = {0.0f, 0.05f, 0.0f};
+        properties.orbitTraceLenght = 1000;
+        properties.rotationSpeed = {0.0f, 0.0f, 0.0f};
         properties.radius = 6371.0f;
-        
         properties.objType = OBJ_TYPE_PLANET;
+        properties.color = {0.25, 0.3, 0.65};
 
         Transform transform{};
         transform.translation = {149597871.0, 0.0f, 0.0f};
@@ -313,10 +316,11 @@ void Application::LoadGameObjects()
         Properties properties{};
         properties.velocity = {0.0, 0.0, 29.78 + 1.022}; // km/s
         properties.mass = 0.07346 * pow(10, 24); // kg
-        properties.orbitTraceLenght = 200;
-        properties.rotationSpeed = {0.0f, 0.05f, 0.0f};
+        properties.orbitTraceLenght = 1000;
+        properties.rotationSpeed = {0.0f, 0.0f, 0.0f};
         properties.objType = OBJ_TYPE_PLANET;
         properties.radius = 1737.5f; // km
+        properties.color = {0.6, 0.6, 0.6};
 
         Transform transform{};
         transform.translation = {384400  + 149597871.0, 0.0f, 0.0f}; // km
@@ -333,10 +337,11 @@ void Application::LoadGameObjects()
         Properties properties{};
         properties.velocity = {0.0f, 0.0f, 0.0}; // km/s
         properties.mass = 1.99 * pow(10, 30); // kg
-        properties.orbitTraceLenght = 200;
+        properties.orbitTraceLenght = 0;
         properties.rotationSpeed = {0.0f, 0.05f, 0.0f};
         properties.objType = OBJ_TYPE_STAR;
-        properties.radius = 3000.0f; // km
+        properties.radius = 695508.0f; // km
+        properties.color = {0.98f, 0.97f, 0.1f};
 
         Transform transform{};
         transform.translation = {0.0f, 0.0f, 0.0f}; // km
@@ -403,7 +408,7 @@ void Application::Update(const FrameInfo& frameInfo, float delta)
             }
 
             // Update orbits less frequently(after 2 obj updates in this case) to make them longer
-            OrbitUpdateCount = (OrbitUpdateCount + 1) % 1000;
+            OrbitUpdateCount = (OrbitUpdateCount + 1) % 5000;
             if (OrbitUpdateCount == 0)
             {
                 for (auto& kv : m_GameObjects)
@@ -448,10 +453,6 @@ void Application::RenderImGui(const FrameInfo& frameInfo)
         if (ImGui::Button(std::string("Camera Lock on " + std::to_string(obj->GetObjectID())).c_str()))
         {
             m_TargetLock = obj->GetObjectID();
-            for (auto& kv : m_GameObjects)
-            {
-                kv.second->ChangeOffset(m_GameObjects[m_TargetLock]->GetObjectTransform().translation);
-            }
         }
     }
     ImGui::End();

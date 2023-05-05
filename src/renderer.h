@@ -15,12 +15,20 @@
 struct PushConstants
 {
     glm::mat4 modelMatrix{1.0f};
+    glm::vec3 offset;
+};
+
+struct OrbitPushConstants
+{
+    alignas(16) glm::vec3 offset;
+    alignas(16) glm::vec3 color;
 };
 
 struct BillboardsPushConstants
 {
     alignas(16) glm::vec3 position{0.0f};
     alignas(16) glm::vec3 color{1.0f};
+    alignas(16) glm::vec3 offset;
     float size = 1.0f;
 };
 

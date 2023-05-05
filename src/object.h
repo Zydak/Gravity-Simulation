@@ -21,9 +21,9 @@ struct Transform
     glm::dvec3 scale{1.0, 1.0, 1.0};
     glm::dvec3 rotation{};
     
-    glm::mat4 mat4(glm::dvec3 targetPos)
+    glm::mat4 mat4()
     {
-        auto transform = glm::translate(glm::dmat4{1.0f}, (translation-targetPos)/SCALE_DOWN);
+        auto transform = glm::translate(glm::dmat4{1.0f}, (translation)/SCALE_DOWN);
 
         transform = glm::rotate(transform, rotation.y, {0.0f, 1.0f, 0.0f});
         transform = glm::rotate(transform, rotation.x, {1.0f, 0.0f, 0.0f});
@@ -41,6 +41,7 @@ struct Properties
     glm::vec3 rotationSpeed = {0.0f, 0.0f, 0.0f};
     uint32_t objType;
     double radius = 1.0;
+    glm::vec3 color;
 };
 
 class Object
@@ -58,7 +59,7 @@ public:
     virtual void DrawOrbit(VkCommandBuffer commandBuffer) = 0;
     virtual void OrbitUpdate(VkCommandBuffer commandBuffer) = 0;
     virtual uint32_t GetObjectType() = 0;
-    virtual void ChangeOffset(glm::dvec3 offset) = 0;
+    virtual glm::vec3 GetObjectColor() = 0;
 
     Transform m_Transform;
     Properties m_Properties;

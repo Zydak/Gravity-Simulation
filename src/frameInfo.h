@@ -13,6 +13,7 @@ using Map = std::unordered_map<int, std::shared_ptr<Object>>;
 
 struct FrameInfo
 {
+    glm::mat4 skyboxTransform;
     int frameIndex;
     float frameTime;
     glm::dvec3 offset;

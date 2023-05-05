@@ -20,7 +20,28 @@ Sphere::Sphere(uint32_t ID, ObjectInfo objInfo, const std::string& modelfilepath
     if (properties.orbitTraceLenght > 0)
     {
         OrbitModel::Builder builder;
-        builder.vertices.resize(properties.orbitTraceLenght);
+        for (int i = 0; i < properties.orbitTraceLenght; i ++)
+        {
+            builder.vertices.push_back({m_Transform.translation/SCALE_DOWN});
+            m_OrbitPositions.push_back({m_Transform.translation/SCALE_DOWN});
+            if (i == 0)
+            {
+                builder.indices.push_back(properties.orbitTraceLenght-1);
+                m_IndexPositions.push_back(properties.orbitTraceLenght-1);
+            }
+            else if (i == 1)
+            {
+                m_IndexPositions.push_back(0xFFFFFFFF);
+                builder.indices.push_back(0xFFFFFFFF);
+            }
+            else
+            {
+                builder.indices.push_back(i-1);
+                m_IndexPositions.push_back(i-1);
+            }
+        }
+        builder.indices.push_back(properties.orbitTraceLenght-1);
+        m_IndexPositions.push_back(properties.orbitTraceLenght-1);
         m_OrbitModel = std::make_unique<OrbitModel>(*objInfo.device, builder);
     }
 }
@@ -33,22 +54,10 @@ void Sphere::Draw(VkPipelineLayout layout, VkCommandBuffer commandBuffer)
 
 void Sphere::DrawOrbit(VkCommandBuffer commandBuffer)
 {
-    m_OrbitModel->Bind(commandBuffer);
-    m_OrbitModel->Draw(commandBuffer);
-}
-
-void Sphere::ChangeOffset(glm::dvec3 offset)
-{
-    for (auto& val : m_OrbitPositions)
+    if (m_Properties.orbitTraceLenght > 0)
     {
-        val.position += m_Offset/SCALE_DOWN;
-    }
-
-    m_Offset = offset;
-
-    for (auto& val : m_OrbitPositions)
-    {
-        val.position -= m_Offset/SCALE_DOWN;
+        m_OrbitModel->Bind(commandBuffer);
+        m_OrbitModel->Draw(commandBuffer);
     }
 }
 
@@ -56,17 +65,27 @@ void Sphere::OrbitUpdate(VkCommandBuffer commandBuffer)
 {
     if (m_Properties.orbitTraceLenght > 0)
     {
-        if (m_OrbitPositions.size() >= m_Properties.orbitTraceLenght)
-        {
-            m_OrbitPositions.erase(m_OrbitPositions.begin());
-        }
-        m_OrbitPositions.push_back({(m_Transform.translation-m_Offset)/SCALE_DOWN});
-        if (!FirstTime && m_OrbitModel->m_Count < m_Properties.orbitTraceLenght)
-        {
-            m_OrbitModel->m_Count++;
-        }
-        FirstTime = false;
+        m_OrbitPositions[m_Count] = {m_Transform.translation/SCALE_DOWN};
+
+        m_OrbitModel->UpdateBuffer(commandBuffer, m_OrbitModel->GetVertexBuffer(), m_Count * sizeof(OrbitModel::Vertex), sizeof(OrbitModel::Vertex), (void*)&m_OrbitPositions[m_Count]);
         
-        m_OrbitModel->UpdateVertexBuffer(commandBuffer, m_OrbitModel->GetVertexBuffer(), m_OrbitPositions);
+        if (m_Count != m_Properties.orbitTraceLenght-1)
+        {
+            uint32_t val[2] = {m_Count, 0xFFFFFFFF};
+            m_OrbitModel->UpdateBuffer(commandBuffer, m_OrbitModel->GetIndexBuffer(), (m_Count+1) * sizeof(uint32_t), sizeof(uint32_t)*2, (void*)&val);
+        }
+        else
+        {
+            // Proper way
+            // This would need new UpdateBuffer function that would update buffer instantly
+            // uint32_t val[1] = {m_Count};
+            // m_OrbitModel->UpdateBuffer(commandBuffer, m_OrbitModel->GetIndexBuffer(), (m_Count+1) * sizeof(uint32_t), sizeof(uint32_t), (void*)&val);
+            // val[0] = 0xFFFFFFFF;
+            // m_OrbitModel->UpdateBuffer(commandBuffer, m_OrbitModel->GetIndexBuffer(), sizeof(uint32_t), sizeof(uint32_t), (void*)&val);
+
+            m_OrbitModel->UpdateBuffer(commandBuffer, m_OrbitModel->GetIndexBuffer(), 0, m_IndexPositions.size() * sizeof(uint32_t), m_IndexPositions.data());
+        }
+        
+        m_Count = (m_Count+1) % m_Properties.orbitTraceLenght;
     }
 }
