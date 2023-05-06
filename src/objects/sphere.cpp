@@ -10,10 +10,12 @@
 #include <iostream>
 
 Sphere::Sphere(uint32_t ID, ObjectInfo objInfo, const std::string& modelfilepath, Transform transform, 
-    Properties properties)
-    :   m_ID(ID), m_Model(SphereModel::CreateModelFromFile(*objInfo.device, modelfilepath)),
+    Properties properties, const std::string& textureFilepath)
+    :   m_ID(ID), m_Model(SphereModel::CreateModelFromFile(*objInfo.device, modelfilepath, textureFilepath)),
         m_Transform(transform), m_Properties(properties)
 {
+    m_Properties.rotationSpeed = glm::radians(m_Properties.rotationSpeed); // convert to radians from degrees
+    m_Transform.rotation = glm::radians(m_Transform.rotation);
     m_ObjType = properties.objType;
     m_Radius = properties.radius;
     m_Transform.scale = glm::vec3{1.0f, 1.0f, 1.0f} * m_Radius;
@@ -44,10 +46,32 @@ Sphere::Sphere(uint32_t ID, ObjectInfo objInfo, const std::string& modelfilepath
         m_IndexPositions.push_back(properties.orbitTraceLenght-1);
         m_OrbitModel = std::make_unique<OrbitModel>(*objInfo.device, builder);
     }
+
+    auto m_SetLayout = DescriptorSetLayout::Builder(*objInfo.device)
+        .AddBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+        .Build();
+    VkDescriptorImageInfo imageInfo{};
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfo.imageView = m_Model->GetTextureImage()->GetImageView();
+    imageInfo.sampler = objInfo.sampler->GetSampler();
+    DescriptorWriter(*m_SetLayout, *objInfo.descriptorPool)
+        .WriteImage(0, &imageInfo)
+        .Build(m_DescriptorSet);
 }
 
 void Sphere::Draw(VkPipelineLayout layout, VkCommandBuffer commandBuffer)
 {
+    vkCmdBindDescriptorSets(
+            commandBuffer,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            layout,
+            1,
+            1,
+            &m_DescriptorSet,
+            0,
+            nullptr
+    );
+
     m_Model->Bind(commandBuffer);
     m_Model->Draw(commandBuffer);
 }

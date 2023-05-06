@@ -24,11 +24,20 @@ namespace std
     };
 }
 
-SphereModel::SphereModel(Device& device, const SphereModel::Builder& builder)
+SphereModel::SphereModel(Device& device, const SphereModel::Builder& builder, const std::string& textureFilepath)
     : m_Device(device)
 {
     CreateVertexBuffer(builder.vertices);
     CreateIndexBuffer(builder.indices);
+
+    if (textureFilepath != "")
+    {
+        m_TextureImage = std::make_unique<TextureImage>(m_Device, textureFilepath);
+    }
+    else
+    {
+        m_TextureImage = std::make_unique<TextureImage>(m_Device, "assets/textures/red.png");
+    }
 }
 
 SphereModel::~SphereModel()
@@ -185,12 +194,12 @@ std::vector<VkVertexInputAttributeDescription> SphereModel::Vertex::GetAttribute
     return attributeDescriptions;
 }
 
-std::unique_ptr<SphereModel> SphereModel::CreateModelFromFile(Device& device, const std::string& modelFilepath)
+std::unique_ptr<SphereModel> SphereModel::CreateModelFromFile(Device& device, const std::string& modelFilepath, const std::string& textureFilepath)
 {
     Builder builder{};
     builder.LoadModel(modelFilepath);
 
-    return std::make_unique<SphereModel>(device, builder);
+    return std::make_unique<SphereModel>(device, builder, textureFilepath);
 }
 
 void SphereModel::Builder::LoadModel(const std::string& modelFilepath)

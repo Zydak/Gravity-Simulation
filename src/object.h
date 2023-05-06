@@ -38,7 +38,7 @@ struct Properties
     glm::dvec3 velocity = {0.0f, 0.0f, 0.0f};
     double mass = 1000.0;
     uint32_t orbitTraceLenght = 200;
-    glm::vec3 rotationSpeed = {0.0f, 0.0f, 0.0f};
+    glm::dvec3 rotationSpeed = {0.0f, 0.0f, 0.0f};
     uint32_t objType;
     double radius = 1.0;
     glm::vec3 color;

@@ -38,7 +38,7 @@ public:
         void LoadModel(const std::string& modelFilepath);
     };
 
-    SphereModel(Device& device, const SphereModel::Builder& builder);
+    SphereModel(Device& device, const SphereModel::Builder& builder, const std::string& textureFilepath);
     ~SphereModel();
 
     SphereModel(const SphereModel&) = delete;
@@ -46,7 +46,7 @@ public:
 
     inline TextureImage* GetTextureImage() { return m_TextureImage.get(); }
 
-    static std::unique_ptr<SphereModel> CreateModelFromFile(Device& device, const std::string& modelFilepath);
+    static std::unique_ptr<SphereModel> CreateModelFromFile(Device& device, const std::string& modelFilepath, const std::string& textureFilepath = "");
 
     void Bind(VkCommandBuffer commandBuffer);
     void Draw(VkCommandBuffer commandBuffer);

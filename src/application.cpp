@@ -21,6 +21,8 @@ static float orbitAccumulator = 0;
 const char* Skyboxes[] = { "Milky Way", "Nebula", "Stars", "Red Galaxy"};
 static int skyboxImageSelected = SkyboxTextureImage::Stars;
 
+double realTime = 0;
+
 class Timer
 {
 public:
@@ -59,10 +61,10 @@ struct GlobalUbo
 Application::Application()
 {
     m_GlobalPool = DescriptorPool::Builder(m_Device)
-        .SetMaxSets(SwapChain::MAX_FRAMES_IN_FLIGHT * 2) // * 2 for ImGui
+        .SetMaxSets((SwapChain::MAX_FRAMES_IN_FLIGHT) * 2 + 3) // * 2 for ImGui
         .SetPoolFlags(VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT)
         .AddPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, SwapChain::MAX_FRAMES_IN_FLIGHT)
-        .AddPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, SwapChain::MAX_FRAMES_IN_FLIGHT * 2)
+        .AddPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, (SwapChain::MAX_FRAMES_IN_FLIGHT + 3) * 2)
         .Build();
     
     LoadGameObjects();
@@ -296,16 +298,16 @@ void Application::LoadGameObjects()
         properties.velocity = {0.0, 0.0, 29.78};
         properties.mass = 5.972 * pow(10, 24);
         properties.orbitTraceLenght = 1000;
-        properties.rotationSpeed = {0.0f, 0.0f, 0.0f};
+        properties.rotationSpeed = {0.0, 0.25, 0.0}; // Degree per minute
         properties.radius = 6371.0f;
         properties.objType = OBJ_TYPE_PLANET;
         properties.color = {0.25, 0.3, 0.65};
 
         Transform transform{};
-        transform.translation = {149597871.0, 0.0f, 0.0f};
-        transform.rotation = {0.0f, 0.0f, 0.0f};
+        transform.translation = {149597871.0, 0.0, 0.0};
+        transform.rotation = {0.0, 180.0, 0.0};
         std::unique_ptr<Object> obj = std::make_unique<Sphere>(id++, objInfo, 
-            "assets/models/smooth_sphere.obj", transform, properties);
+            "assets/models/smooth_sphere.obj", transform, properties, "assets/textures/earth.jpg");
         m_GameObjects.emplace(obj->GetObjectID(), std::move(obj));
     }
 
@@ -317,16 +319,16 @@ void Application::LoadGameObjects()
         properties.velocity = {0.0, 0.0, 29.78 + 1.022}; // km/s
         properties.mass = 0.07346 * pow(10, 24); // kg
         properties.orbitTraceLenght = 1000;
-        properties.rotationSpeed = {0.0f, 0.0f, 0.0f};
+        properties.rotationSpeed = {0.0f, -0.00915750915751, 0.0f}; // wrong
         properties.objType = OBJ_TYPE_PLANET;
         properties.radius = 1737.5f; // km
         properties.color = {0.6, 0.6, 0.6};
 
         Transform transform{};
         transform.translation = {384400  + 149597871.0, 0.0f, 0.0f}; // km
-        transform.rotation = {0.0f, 0.0f, 0.0f};
+        transform.rotation = {0.0f, 180.0f, 0.0f};
         std::unique_ptr<Object> obj = std::make_unique<Sphere>(id++, objInfo, 
-            "assets/models/smooth_sphere.obj", transform, properties);
+            "assets/models/smooth_sphere.obj", transform, properties, "assets/textures/moon.jpg");
         m_GameObjects.emplace(obj->GetObjectID(), std::move(obj));
     }
 
@@ -338,7 +340,7 @@ void Application::LoadGameObjects()
         properties.velocity = {0.0f, 0.0f, 0.0}; // km/s
         properties.mass = 1.99 * pow(10, 30); // kg
         properties.orbitTraceLenght = 0;
-        properties.rotationSpeed = {0.0f, 0.05f, 0.0f};
+        properties.rotationSpeed = {0.0f, 0.0f, 0.0f};
         properties.objType = OBJ_TYPE_STAR;
         properties.radius = 695508.0f; // km
         properties.color = {0.98f, 0.97f, 0.1f};
@@ -387,7 +389,7 @@ void Application::Update(const FrameInfo& frameInfo, float delta)
                         if (std::sqrt(distanceSquared)/1000.0 < objA->GetObjectProperties().radius + objB->GetObjectProperties().radius)
                         {
                             std::cout << "HIT" << std::endl;
-                            continue;
+                            // something should go in here
                         }
                         double G = 6.67 / (pow(10, 11));
                         double force = G * objA->GetObjectProperties().mass * objB->GetObjectProperties().mass / distanceSquared;
@@ -397,7 +399,8 @@ void Application::Update(const FrameInfo& frameInfo, float delta)
                     }
                 }
                 
-                objA->GetObjectTransform().rotation += objA->GetObjectProperties().rotationSpeed;
+                auto xd = objA->GetObjectProperties().rotationSpeed;
+                objA->GetObjectTransform().rotation += objA->GetObjectProperties().rotationSpeed * (double)delta;
             }
 
             // Update each object position by it's final velocity
@@ -406,18 +409,19 @@ void Application::Update(const FrameInfo& frameInfo, float delta)
                 auto& obj = kv.second;
                 obj->GetObjectTransform().translation += substepDelta * obj->GetObjectProperties().velocity;
             }
-
-            // Update orbits less frequently(after 2 obj updates in this case) to make them longer
-            OrbitUpdateCount = (OrbitUpdateCount + 1) % 5000;
-            if (OrbitUpdateCount == 0)
+        }
+        // Update orbits less frequently(after 5000 obj updates in this case) to make them longer
+        OrbitUpdateCount = (OrbitUpdateCount + 1) % 5000;
+        if (OrbitUpdateCount == 0)
+        {
+            for (auto& kv : m_GameObjects)
             {
-                for (auto& kv : m_GameObjects)
-                {
-                    auto& obj = kv.second;
-                    obj->OrbitUpdate(frameInfo.commandBuffer);
-                }
+                auto& obj = kv.second;
+                obj->OrbitUpdate(frameInfo.commandBuffer);
             }
         }
+
+        realTime += ((double)delta)/60;
     }
 }
 
@@ -439,7 +443,7 @@ void Application::RenderImGui(const FrameInfo& frameInfo)
 
     ImGui::Combo("Skybox", &skyboxImageSelected, Skyboxes, IM_ARRAYSIZE(Skyboxes));
 
-    ImGui::SliderInt("Speed", &m_GameSpeed, 1, 2000);
+    ImGui::SliderInt("Speed", &m_GameSpeed, 1, 5000);
     ImGui::SliderInt("StepCount", &m_StepCount, 1, 20);
     for (auto& kv : m_GameObjects)
     {
@@ -455,6 +459,7 @@ void Application::RenderImGui(const FrameInfo& frameInfo)
             m_TargetLock = obj->GetObjectID();
         }
     }
+    ImGui::Text("Simulation Time: %.2f hours | %.0f days", realTime, realTime/24);
     ImGui::End();
  
     ImGui::Render();
