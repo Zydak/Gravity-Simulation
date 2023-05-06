@@ -3,3 +3,5 @@ build/
 cmake-build-debug/
 cmake-build-release/
 .idea/
+VulkanVs/.vs/
+VulkanVs/VulkanVs/libraries/vulkan/
