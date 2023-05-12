@@ -9,6 +9,7 @@ https://github.com/Zydak/Gravity-Simulation/assets/104147005/e08665fc-827f-4814-
 
 ### Download
 	git clone --recursive https://github.com/Zydak/Gravity-Simulation.git
+	cd Gravity-Simulation 
 	git switch Windows
 
 ### Vulkan
