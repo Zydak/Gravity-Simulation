@@ -357,9 +357,9 @@ void Application::LoadGameObjects()
 
         Transform transform{};
         transform.translation = {147095000.0, 0.0, 0.0}; // km
-        transform.rotation = {0.0, 180.0, 0.0}; // starting rotation in degrees
+        transform.rotation = {0.0, 0.0, 180.0}; // starting rotation in degrees
         std::unique_ptr<Object> obj = std::make_unique<Sphere>(id++, objInfo, 
-            "assets/models/sphere.obj", transform, properties, "assets/textures/earthTarget.jpg");
+            "assets/models/sphere.obj", transform, properties, "assets/textures/earth.jpg");
         m_GameObjects.emplace(obj->GetObjectID(), std::move(obj));
     }
 
@@ -508,8 +508,8 @@ void Application::LoadGameObjects()
 	{
 		Properties properties{};
         properties.label = "Pluto";
-        properties.orbitUpdateFrequency = 150000; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
-		properties.velocity = {0.0, 0.0, 6.10}; // km/s
+        properties.orbitUpdateFrequency = 100000; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
+		properties.velocity = {0.0, 0.0, 3.71}; // km/s
 		properties.mass = 0.01303 * pow(10, 24); // kg
 		properties.orbitTraceLenght = 1000;
 		properties.rotationSpeed = {0.0, 0.0, 0.0}; // Degree per hour
@@ -518,7 +518,7 @@ void Application::LoadGameObjects()
 		properties.color = {0.839, 0.514, 0.514}; // color of the icon and orbit trace not planet itself
 
 		Transform transform{};
-		transform.translation = {4436800000, 0.0, 0.0}; // km
+		transform.translation = {7304326000, 0.0, 0.0}; // km
 		transform.rotation = {0.0, 180.0, 0.0}; // starting rotation in degrees
 		std::unique_ptr<Object> obj = std::make_unique<Sphere>(id++, objInfo,
 			"assets/models/sphere.obj", transform, properties);
@@ -644,7 +644,7 @@ void Application::RenderImGui(const FrameInfo& frameInfo)
 
     ImGui::Combo("Skybox", &skyboxImageSelected, Skyboxes, IM_ARRAYSIZE(Skyboxes));
 
-    ImGui::SliderInt("Speed", &m_GameSpeed, 1, 5000);
+    ImGui::SliderInt("Speed", &m_GameSpeed, 1, 10000);
     ImGui::SliderInt("StepCount", &m_StepCount, 1, 20);
     for (auto& kv : m_GameObjects)
     {
