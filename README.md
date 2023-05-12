@@ -1,7 +1,6 @@
 
 
-https://github.com/Zydak/Gravity-Simulation/assets/104147005/b0c3a3ea-1ebc-4c3d-87a2-fb578a8b8f6c
-
+https://github.com/Zydak/Gravity-Simulation/assets/104147005/822343be-6587-446e-8491-e9ac8d891711
 
 
 # Installation
