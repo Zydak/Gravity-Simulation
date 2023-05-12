@@ -1,5 +1,6 @@
 #include "sphereModel.h"
 #include "../vulkan/utils.h"
+#include "../defines.h"
 
 #include <cstring>
 #include <unordered_map>
@@ -30,13 +31,15 @@ SphereModel::SphereModel(Device& device, const SphereModel::Builder& builder, co
     CreateVertexBuffer(builder.vertices);
     CreateIndexBuffer(builder.indices);
 
+    #ifndef FAST_LOAD
     if (textureFilepath != "")
     {
         m_TextureImage = std::make_unique<TextureImage>(m_Device, textureFilepath);
     }
     else
+    #endif
     {
-        m_TextureImage = std::make_unique<TextureImage>(m_Device, "assets/textures/red.png");
+        m_TextureImage = std::make_unique<TextureImage>(m_Device, "assets/textures/white.png");
     }
 }
 

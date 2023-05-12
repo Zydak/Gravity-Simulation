@@ -1,4 +1,5 @@
 #include "skybox.h"
+#include "../defines.h"
 
 Skybox::Skybox(Device& device, uint32_t image)
     : m_Device(device)
@@ -6,6 +7,7 @@ Skybox::Skybox(Device& device, uint32_t image)
     m_SkyboxModel = SkyboxModel::CreateModelFromFile(m_Device, "assets/models/cube.obj");
 
     std::array<std::string, 6> filepaths{};
+    #ifndef FAST_LOAD
     switch(image)
     {
         case SkyboxTextureImage::MilkyWay:
@@ -41,6 +43,14 @@ Skybox::Skybox(Device& device, uint32_t image)
             filepaths[5] = "assets/textures/cubemaps/redGalaxy/GalaxyTex_NegativeX.png";
             break;
     }
+    #else
+    filepaths[0] = "assets/textures/black.png";
+    filepaths[1] = "assets/textures/black.png";
+    filepaths[2] = "assets/textures/black.png";
+    filepaths[3] = "assets/textures/black.png";
+    filepaths[4] = "assets/textures/black.png";
+    filepaths[5] = "assets/textures/black.png";
+    #endif
 
     m_Cubemap.CreateImageFromTexture(filepaths);
 }

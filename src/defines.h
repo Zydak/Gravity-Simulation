@@ -1,0 +1,1 @@
+//#define FAST_LOAD // if defined textures won't be loaded which can result in faster loading speed on bad hardware

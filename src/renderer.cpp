@@ -3,7 +3,6 @@
 #include <stdexcept>
 #include <cassert>
 #include <array>
-#include <iostream>
 
 Renderer::Renderer(Window& window, Device& device, VkDescriptorSetLayout globalSetLayout)
     :   m_Window(window), m_Device(device)
@@ -76,7 +75,7 @@ void Renderer::FreeCommandBuffers()
     m_CommandBuffers.clear();
 }
 
-VkCommandBuffer Renderer::BeginFrame(const glm::vec3& clearColor)
+VkCommandBuffer Renderer::BeginFrame()
 {
     assert(!m_IsFrameStarted && "Can't call BeginFrame while already in progress!");
 
@@ -199,7 +198,7 @@ void Renderer::RenderGameObjects(FrameInfo& frameInfo)
         auto& obj = kv.second;
         auto offset = ((frameInfo.camera->m_Transform.translation*SCALE_DOWN)+frameInfo.offset) - (obj->GetObjectTransform().translation);
         double distance = std::sqrt(glm::dot(offset, offset));
-        if (distance < obj->GetObjectProperties().radius*(SCALE_DOWN/10000))
+        if (distance < obj->GetObjectProperties().radius*(SCALE_DOWN/1000000))
         {
             vkCmdBindDescriptorSets(
                 frameInfo.commandBuffer,
@@ -413,7 +412,7 @@ void Renderer::CreatePipelines()
     {
         auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight(),
             VK_PRIMITIVE_TOPOLOGY_LINE_STRIP,
-            VK_CULL_MODE_NONE, true, false
+            VK_CULL_MODE_NONE, false, false
         );
         pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
         pipelineConfig.pipelineLayout = m_OrbitsPipelineLayout;

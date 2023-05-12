@@ -14,7 +14,8 @@ Sphere::Sphere(uint32_t ID, ObjectInfo objInfo, const std::string& modelfilepath
     :   m_ID(ID), m_Model(SphereModel::CreateModelFromFile(*objInfo.device, modelfilepath, textureFilepath)),
         m_Transform(transform), m_Properties(properties)
 {
-    m_Properties.rotationSpeed = glm::radians(m_Properties.rotationSpeed); // convert to radians from degrees
+    if (m_Properties.orbitUpdateFrequency <= 0) m_Properties.orbitUpdateFrequency = 1; // can't be zero bcs we're dividing by it later on
+    m_Properties.rotationSpeed = glm::radians((m_Properties.rotationSpeed/3600.0)); // convert to radians from degrees
     m_Transform.rotation = glm::radians(m_Transform.rotation);
     m_ObjType = properties.objType;
     m_Radius = properties.radius;
@@ -26,6 +27,8 @@ Sphere::Sphere(uint32_t ID, ObjectInfo objInfo, const std::string& modelfilepath
         {
             builder.vertices.push_back({m_Transform.translation/SCALE_DOWN});
             m_OrbitPositions.push_back({m_Transform.translation/SCALE_DOWN});
+            // we're creating this indices array which is bassicaly first value is last index to connect everything
+            // second is this special value 0xFFFFFFFF and rest is normal i-1 so from 1 to 998 for example
             if (i == 0)
             {
                 builder.indices.push_back(properties.orbitTraceLenght-1);
@@ -93,15 +96,18 @@ void Sphere::OrbitUpdate(VkCommandBuffer commandBuffer)
 
         m_OrbitModel->UpdateBuffer(commandBuffer, m_OrbitModel->GetVertexBuffer(), m_Count * sizeof(OrbitModel::Vertex), sizeof(OrbitModel::Vertex), (void*)&m_OrbitPositions[m_Count]);
         
+        // we're changing index buffer at m_Count offset and adding special value 0xFFFFFFFF because otherwise
+        // it would be polygon instead of line
         if (m_Count != m_Properties.orbitTraceLenght-1)
         {
             uint32_t val[2] = {m_Count, 0xFFFFFFFF};
             m_OrbitModel->UpdateBuffer(commandBuffer, m_OrbitModel->GetIndexBuffer(), (m_Count+1) * sizeof(uint32_t), sizeof(uint32_t)*2, (void*)&val);
         }
+        // then we're basically reseting the index buffer to it's initial value and repeat the process
         else
         {
             // Proper way
-            // This would need new UpdateBuffer function that would update buffer instantly
+            // This would need new UpdateBuffer function that would update buffer instantly because this one doesn't for some reason
             // uint32_t val[1] = {m_Count};
             // m_OrbitModel->UpdateBuffer(commandBuffer, m_OrbitModel->GetIndexBuffer(), (m_Count+1) * sizeof(uint32_t), sizeof(uint32_t), (void*)&val);
             // val[0] = 0xFFFFFFFF;

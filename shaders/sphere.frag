@@ -20,7 +20,7 @@ layout(set = 1, binding = 0) uniform sampler2D texSampler;
 void main()
 {
     vec3 directionToLight = ubo.lightPosition - fragPosWorld;
-    vec3 lightColor = ubo.lightColor.xyz * ubo.lightColor.w;
+    vec3 lightColor = ubo.lightColor.xyz * ubo.lightColor.w * 0.5;
 
     vec3 diffuseLight = lightColor * max(dot(normalize(fragNormalWorld), normalize(directionToLight)), 0);
 
