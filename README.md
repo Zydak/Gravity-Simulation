@@ -21,4 +21,4 @@ You also need to install proper driver for more info go to https://wiki.archlinu
 	git clone --recursive https://github.com/Zydak/Gravity-Simulation.git
 
 # Windows
-for windows switch to Windows branch
+for windows switch to Windows branch (outdated for now)
