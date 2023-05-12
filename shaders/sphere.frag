@@ -15,14 +15,14 @@ layout(set = 0, binding = 0) uniform GlobalUbo
     vec4 lightColor;
 } ubo;
 
-//layout(set = 1, binding = 0) uniform sampler2D texSampler;
+layout(set = 1, binding = 0) uniform sampler2D texSampler;
 
 void main()
 {
     vec3 directionToLight = ubo.lightPosition - fragPosWorld;
-    vec3 lightColor = ubo.lightColor.xyz * ubo.lightColor.w;
+    vec3 lightColor = ubo.lightColor.xyz * ubo.lightColor.w * 0.5;
 
     vec3 diffuseLight = lightColor * max(dot(normalize(fragNormalWorld), normalize(directionToLight)), 0);
 
-    outColor = vec4(vec3(1.0, 1.0, 1.0) * diffuseLight * fragColor, 1.0);
+    outColor = vec4(texture(texSampler, fragTexCoord).rgb * diffuseLight * fragColor, 1.0);
 }

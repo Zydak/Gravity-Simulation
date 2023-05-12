@@ -26,7 +26,7 @@ void Cubemap::CreateImage(uint32_t width, uint32_t height)
 	VkImageCreateInfo imageCreateInfo{};
     imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 	imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-	imageCreateInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
+	imageCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
 	imageCreateInfo.mipLevels = 1;
 	imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 	imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
@@ -143,7 +143,7 @@ void Cubemap::CreateImageFromTexture(const std::array<std::string, 6>& filepaths
     view.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 	// Cube map view type
 	view.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
-	view.format = VK_FORMAT_R8G8B8A8_SRGB;
+	view.format = VK_FORMAT_R8G8B8A8_UNORM;
 	view.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 	// 6 array layers (faces)
 	view.subresourceRange.layerCount = 6;

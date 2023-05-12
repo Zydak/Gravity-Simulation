@@ -56,7 +56,7 @@ public:
         return m_CurrentFrameIndex;
     }
 
-    VkCommandBuffer BeginFrame(const glm::vec3& clearColor);
+    VkCommandBuffer BeginFrame();
     void EndFrame();
     void BeginSwapChainRenderPass(VkCommandBuffer commandBuffer, const glm::vec3& clearColor);
     void EndSwapChainRenderPass(VkCommandBuffer commandBuffer);
