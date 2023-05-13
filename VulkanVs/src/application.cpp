@@ -256,7 +256,6 @@ void Application::Run()
 /**
  * @brief Loads game objects with their parameters
  * @note All the data comes from https://nssdc.gsfc.nasa.gov/planetary/factsheet/
- * @note orbit obliquities aren't applied so everything is in 2d plain and because of that this may not be 100% accurate simulation
 */
 void Application::LoadGameObjects()
 {
