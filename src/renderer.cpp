@@ -1,5 +1,7 @@
 #include "renderer.h"
 
+#include "models/customModel.h"
+
 #include <stdexcept>
 #include <cassert>
 #include <array>
@@ -381,10 +383,10 @@ void Renderer::CreatePipelines()
         pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
         pipelineConfig.pipelineLayout = m_DefaultPipelineLayout;
         m_PlanetsPipeline = std::make_unique<Pipeline>(m_Device);
-        m_PlanetsPipeline->CreatePipeline("shaders/spv/sphere.vert.spv", "shaders/spv/sphere.frag.spv", 
+        m_PlanetsPipeline->CreatePipeline("../shaders/spv/sphere.vert.spv", "../shaders/spv/sphere.frag.spv", 
             pipelineConfig,
-            SphereModel::Vertex::GetBindingDescriptions(),
-            SphereModel::Vertex::GetAttributeDescriptions()
+            CustomModel::Vertex::GetBindingDescriptions(),
+            CustomModel::Vertex::GetAttributeDescriptions()
         );
     }
 
@@ -399,10 +401,10 @@ void Renderer::CreatePipelines()
         pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
         pipelineConfig.pipelineLayout = m_DefaultPipelineLayout;
         m_StarsPipeline = std::make_unique<Pipeline>(m_Device);
-        m_StarsPipeline->CreatePipeline("shaders/spv/stars.vert.spv", "shaders/spv/stars.frag.spv", 
+        m_StarsPipeline->CreatePipeline("../shaders/spv/stars.vert.spv", "../shaders/spv/stars.frag.spv", 
             pipelineConfig,
-            SphereModel::Vertex::GetBindingDescriptions(),
-            SphereModel::Vertex::GetAttributeDescriptions()
+            CustomModel::Vertex::GetBindingDescriptions(),
+            CustomModel::Vertex::GetAttributeDescriptions()
         );
     }
 
@@ -417,10 +419,10 @@ void Renderer::CreatePipelines()
         pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
         pipelineConfig.pipelineLayout = m_OrbitsPipelineLayout;
         m_OrbitsPipeline = std::make_unique<Pipeline>(m_Device);
-        m_OrbitsPipeline->CreatePipeline("shaders/spv/orbits.vert.spv", "shaders/spv/orbits.frag.spv",
+        m_OrbitsPipeline->CreatePipeline("../shaders/spv/orbits.vert.spv", "../shaders/spv/orbits.frag.spv",
             pipelineConfig,
-            OrbitModel::Vertex::GetBindingDescriptions(),
-            OrbitModel::Vertex::GetAttributeDescriptions()
+            CustomModelPosOnly::Vertex::GetBindingDescriptions(),
+            CustomModelPosOnly::Vertex::GetAttributeDescriptions()
         );
     }
 
@@ -435,10 +437,10 @@ void Renderer::CreatePipelines()
         pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
         pipelineConfig.pipelineLayout = m_SkyboxPipelineLayout;
         m_SkyboxPipeline = std::make_unique<Pipeline>(m_Device);
-        m_SkyboxPipeline->CreatePipeline("shaders/spv/skybox.vert.spv", "shaders/spv/skybox.frag.spv", 
+        m_SkyboxPipeline->CreatePipeline("../shaders/spv/skybox.vert.spv", "../shaders/spv/skybox.frag.spv", 
             pipelineConfig,
-            SkyboxModel::Vertex::GetBindingDescriptions(),
-            SkyboxModel::Vertex::GetAttributeDescriptions()
+            CustomModelPosOnly::Vertex::GetBindingDescriptions(),
+            CustomModelPosOnly::Vertex::GetAttributeDescriptions()
         );
     }
 
@@ -453,7 +455,7 @@ void Renderer::CreatePipelines()
         pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
         pipelineConfig.pipelineLayout = m_BillboardPipelineLayout;
         m_BillboardPipeline = std::make_unique<Pipeline>(m_Device);
-        m_BillboardPipeline->CreatePipeline("shaders/spv/billboard.vert.spv", "shaders/spv/billboard.frag.spv", 
+        m_BillboardPipeline->CreatePipeline("../shaders/spv/billboard.vert.spv", "../shaders/spv/billboard.frag.spv", 
             pipelineConfig
         );
     }

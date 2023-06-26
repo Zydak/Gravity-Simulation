@@ -1,4 +1,4 @@
-#include "skyboxModel.h"
+#include "customModelPosOnly.h"
 #include "../vulkan/utils.h"
 
 #include <cstring>
@@ -12,9 +12,9 @@
 namespace std
 {
     template<>
-    struct hash<SkyboxModel::Vertex>
+    struct hash<CustomModelPosOnly::Vertex>
     {
-        size_t operator()(SkyboxModel::Vertex const& vertex) const
+        size_t operator()(CustomModelPosOnly::Vertex const& vertex) const
         {
             size_t seed = 0;
             HashCombine(seed, vertex.position);
@@ -23,18 +23,18 @@ namespace std
     };
 }
 
-SkyboxModel::SkyboxModel(Device& device, const SkyboxModel::Builder& builder)
+CustomModelPosOnly::CustomModelPosOnly(Device& device, const CustomModelPosOnly::Builder& builder)
     : m_Device(device)
 {
     CreateVertexBuffer(builder.vertices);
     CreateIndexBuffer(builder.indices);
 }
-SkyboxModel::~SkyboxModel()
+CustomModelPosOnly::~CustomModelPosOnly()
 {
 
 }
 
-void SkyboxModel::CreateVertexBuffer(const std::vector<Vertex> &vertices)
+void CustomModelPosOnly::CreateVertexBuffer(const std::vector<Vertex> &vertices)
 {
     m_VertexCount = static_cast<uint32_t>(vertices.size());
     //assert(m_VertexCount >= 3 && "Vertex count me be at least 3");
@@ -81,7 +81,7 @@ void SkyboxModel::CreateVertexBuffer(const std::vector<Vertex> &vertices)
     m_Device.CopyBuffer(stagingBuffer.GetBuffer(), m_VertexBuffer->GetBuffer(), bufferSize);
 }
 
-void SkyboxModel::CreateIndexBuffer(const std::vector<uint32_t> &indices)
+void CustomModelPosOnly::CreateIndexBuffer(const std::vector<uint32_t> &indices)
 {
     m_IndexCount = static_cast<uint32_t>(indices.size());
     m_HasIndexBuffer = m_IndexCount > 0;
@@ -137,7 +137,7 @@ void SkyboxModel::CreateIndexBuffer(const std::vector<uint32_t> &indices)
 /*
     @brief this function call vkCmdBindVertexBuffers which is used to bind vertex buffers to bindings
 */
-void SkyboxModel::Bind(VkCommandBuffer commandBuffer)
+void CustomModelPosOnly::Bind(VkCommandBuffer commandBuffer)
 {
     VkBuffer buffers[] = {m_VertexBuffer->GetBuffer()};
     VkDeviceSize offsets[] = {0};
@@ -149,7 +149,7 @@ void SkyboxModel::Bind(VkCommandBuffer commandBuffer)
     }
 }
 
-void SkyboxModel::Draw(VkCommandBuffer commandBuffer)
+void CustomModelPosOnly::Draw(VkCommandBuffer commandBuffer)
 {
     if (m_HasIndexBuffer)
     {
@@ -161,7 +161,7 @@ void SkyboxModel::Draw(VkCommandBuffer commandBuffer)
     }
 }
 
-std::vector<VkVertexInputBindingDescription> SkyboxModel::Vertex::GetBindingDescriptions()
+std::vector<VkVertexInputBindingDescription> CustomModelPosOnly::Vertex::GetBindingDescriptions()
 {
     std::vector<VkVertexInputBindingDescription> bindingDescription(1);
     bindingDescription[0].binding = 0;
@@ -171,7 +171,7 @@ std::vector<VkVertexInputBindingDescription> SkyboxModel::Vertex::GetBindingDesc
     return bindingDescription;
 }
 
-std::vector<VkVertexInputAttributeDescription> SkyboxModel::Vertex::GetAttributeDescriptions()
+std::vector<VkVertexInputAttributeDescription> CustomModelPosOnly::Vertex::GetAttributeDescriptions()
 {
     std::vector<VkVertexInputAttributeDescription> attributeDescriptions{};
     attributeDescriptions.push_back({0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, position)});
@@ -179,15 +179,15 @@ std::vector<VkVertexInputAttributeDescription> SkyboxModel::Vertex::GetAttribute
     return attributeDescriptions;
 }
 
-std::unique_ptr<SkyboxModel> SkyboxModel::CreateModelFromFile(Device& device, const std::string& modelFilepath)
+std::unique_ptr<CustomModelPosOnly> CustomModelPosOnly::CreateModelFromFile(Device& device, const std::string& modelFilepath)
 {
     Builder builder{};
     builder.LoadModel(modelFilepath);
 
-    return std::make_unique<SkyboxModel>(device, builder);
+    return std::make_unique<CustomModelPosOnly>(device, builder);
 }
 
-void SkyboxModel::Builder::LoadModel(const std::string& modelFilepath)
+void CustomModelPosOnly::Builder::LoadModel(const std::string& modelFilepath)
 {
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
@@ -228,7 +228,7 @@ void SkyboxModel::Builder::LoadModel(const std::string& modelFilepath)
     }
 }
 
-void SkyboxModel::UpdateVertexBuffer(VkCommandBuffer cmd, Buffer* buffer, const std::vector<Vertex> &vertices)
+void CustomModelPosOnly::UpdateBuffer(VkCommandBuffer cmd, Buffer* buffer, VkDeviceSize offset, uint32_t size, const void* data)
 {
-    vkCmdUpdateBuffer(cmd, buffer->GetBuffer(), 0, sizeof(vertices[0]) * vertices.size(), vertices.data());
+    vkCmdUpdateBuffer(cmd, buffer->GetBuffer(), offset, size, data);
 }

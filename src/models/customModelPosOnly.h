@@ -11,7 +11,7 @@
 #include <vector>
 #include <memory>
 
-class SkyboxModel
+class CustomModelPosOnly
 {
 public:
     struct Vertex 
@@ -34,21 +34,23 @@ public:
         void LoadModel(const std::string& modelFilepath);
     };
 
-    SkyboxModel(Device& device, const SkyboxModel::Builder& builder);
-    ~SkyboxModel();
+    CustomModelPosOnly(Device& device, const CustomModelPosOnly::Builder& builder);
+    ~CustomModelPosOnly();
 
-    SkyboxModel(const SkyboxModel&) = delete;
-    SkyboxModel& operator=(const SkyboxModel&) = delete;
+    CustomModelPosOnly(const CustomModelPosOnly&) = delete;
+    CustomModelPosOnly& operator=(const CustomModelPosOnly&) = delete;
 
     inline TextureImage* GetTextureImage() { return m_TextureImage.get(); }
 
-    static std::unique_ptr<SkyboxModel> CreateModelFromFile(Device& device, const std::string& modelFilepath);
+    static std::unique_ptr<CustomModelPosOnly> CreateModelFromFile(Device& device, const std::string& modelFilepath);
 
     void Bind(VkCommandBuffer commandBuffer);
     void Draw(VkCommandBuffer commandBuffer);
     
-    void UpdateVertexBuffer(VkCommandBuffer cmd, Buffer* buffer, const std::vector<Vertex> &vertices);
+    void UpdateBuffer(VkCommandBuffer cmd, Buffer* buffer, VkDeviceSize offset, uint32_t size, const void* data);
     inline Buffer* GetVertexBuffer() { return m_VertexBuffer.get(); }
+    inline Buffer* GetIndexBuffer() { return m_IndexBuffer.get(); }
+    
 private:
     void CreateVertexBuffer(const std::vector<Vertex> &vertices);
     void CreateIndexBuffer(const std::vector<uint32_t> &indices);

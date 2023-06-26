@@ -21,10 +21,3 @@ struct FrameInfo
     VkDescriptorSet globalDescriptorSet;
     Map gameObjects;
 };
-
-struct ObjectInfo
-{
-    Device* device;
-    Sampler* sampler;
-    DescriptorPool* descriptorPool;
-};

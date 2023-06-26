@@ -1,6 +1,5 @@
 #include "application.h"
 
-#include "objects/sphere.h"
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 
@@ -14,12 +13,13 @@
 #include <chrono>
 #include "defines.h"
 
-static float orbitAccumulator = 0;
-
+std::unordered_map<std::string, const char*> map;
 static const char* Skyboxes[] = { "Milky Way", "Nebula", "Stars", "Red Galaxy"};// I tried to make this map but imgui only works with c-string array
 static int skyboxImageSelected = SkyboxTextureImage::Stars;
 
 static double realTime = 0;
+
+static double DELTA = 300.0;
 
 class Timer
 {
@@ -187,7 +187,6 @@ void Application::Run()
         {
             lastUpdate = now;
             m_MainLoopAccumulator += delta;
-            orbitAccumulator += delta;
         }
         m_FPSaccumulator += delta;
 
@@ -206,7 +205,7 @@ void Application::Run()
 			// Update Every 160ms(every frame with 60fps) independent of actual framerate
             while (m_MainLoopAccumulator > 0.016f && !m_Pause)
             {
-                Update(frameInfo, 60.0); // making delta value larger will speed up simulation while loosing its accuracy but I guess making it 0.016 and waiting 10 thousand days for some orbit to complete is not good idea so we have to do that
+                Update(frameInfo, DELTA); // making delta value larger will speed up simulation while loosing its accuracy but I guess making it 0.016 and waiting 10 thousand days for some orbit to complete is not good idea so we have to do that
 				m_MainLoopAccumulator -= 0.016f;
             }
             frameInfo.offset = m_GameObjects[m_TargetLock]->GetObjectTransform().translation;
@@ -284,12 +283,13 @@ void Application::LoadGameObjects()
 		properties.objType = OBJ_TYPE_STAR;
 		properties.radius = 695508.0f; // km
 		properties.color = {0.98f, 0.97f, 0.1f}; // color of the icon and orbit trace not planet itself
+        properties.inclination = 0;
 
 		Transform transform{};
 		transform.translation = {0.0f, 0.0f, 0.0f}; // km
 		transform.rotation = {0.0f, 0.0f, 0.0f}; // starting rotation in degrees
-		std::unique_ptr<Object> obj = std::make_unique<Sphere>(id++, objInfo,
-			"assets/models/sphere.obj", transform, properties);
+		std::unique_ptr<Object> obj = std::make_unique<Object>(id++, objInfo,
+			"../assets/models/sphere.obj", transform, properties);
 		m_GameObjects.emplace(obj->GetObjectID(), std::move(obj));
 	}
 
@@ -307,12 +307,13 @@ void Application::LoadGameObjects()
 		properties.objType = OBJ_TYPE_PLANET;
 		properties.radius = 2440.0f; // km
 		properties.color = {0.788, 0.627, 0.42}; // color of the icon and orbit trace not planet itself
+        properties.inclination = 7.0;
 
 		Transform transform{};
 		transform.translation = {46000000.0, 0.0, 0.0}; // km
 		transform.rotation = {0.0, 180.0, 0.0}; // starting rotation in degrees
-		std::unique_ptr<Object> obj = std::make_unique<Sphere>(id++, objInfo,
-			"assets/models/sphere.obj", transform, properties, "assets/textures/mercury.jpg");
+		std::unique_ptr<Object> obj = std::make_unique<Object>(id++, objInfo,
+			"../assets/models/sphere.obj", transform, properties, "../assets/textures/mercury.jpg");
 		m_GameObjects.emplace(obj->GetObjectID(), std::move(obj));
 	}
 
@@ -322,7 +323,7 @@ void Application::LoadGameObjects()
 	{
 		Properties properties{};
         properties.label = "Venus";
-        properties.orbitUpdateFrequency = 100; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
+        properties.orbitUpdateFrequency = 300; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
 		properties.velocity = {0.0, 0.0, 35.26}; // km/s
 		properties.mass = 4.8673 * pow(10, 24); // kg
 		properties.orbitTraceLenght = 1000;
@@ -330,12 +331,13 @@ void Application::LoadGameObjects()
 		properties.objType = OBJ_TYPE_PLANET;
 		properties.radius = 6051.8; // km
 		properties.color = {0.941, 0.78, 0.263}; // color of the icon and orbit trace not planet itself
+        properties.inclination = 3.4;
 
 		Transform transform{};
 		transform.translation = {107480000.0, 0.0, 0.0}; // km
 		transform.rotation = {0.0, 180.0, 0.0}; // starting rotation in degrees
-		std::unique_ptr<Object> obj = std::make_unique<Sphere>(id++, objInfo,
-			"assets/models/sphere.obj", transform, properties, "assets/textures/venus.jpg");
+		std::unique_ptr<Object> obj = std::make_unique<Object>(id++, objInfo,
+			"../assets/models/sphere.obj", transform, properties, "../assets/textures/venus.jpg");
 		m_GameObjects.emplace(obj->GetObjectID(), std::move(obj));
 	}
 
@@ -345,7 +347,7 @@ void Application::LoadGameObjects()
     {
         Properties properties{};
         properties.label = "Earth";
-        properties.orbitUpdateFrequency = 200; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
+        properties.orbitUpdateFrequency = 400; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
         properties.velocity = {0.0, 0.0, 30.29}; // km/s
         properties.mass = 5.9722 * pow(10, 24); // kg
         properties.orbitTraceLenght = 1000;
@@ -353,12 +355,13 @@ void Application::LoadGameObjects()
         properties.objType = OBJ_TYPE_PLANET;
         properties.radius = 6378.137; // km
         properties.color = {0.5, 0.8, 0.94}; // color of the icon and orbit trace not planet itself
+        properties.inclination = 0;
 
         Transform transform{};
         transform.translation = {147095000.0, 0.0, 0.0}; // km
         transform.rotation = {0.0, 0.0, 180.0}; // starting rotation in degrees
-        std::unique_ptr<Object> obj = std::make_unique<Sphere>(id++, objInfo, 
-            "assets/models/sphere.obj", transform, properties, "assets/textures/earth.jpg");
+        std::unique_ptr<Object> obj = std::make_unique<Object>(id++, objInfo, 
+            "../assets/models/sphere.obj", transform, properties, "../assets/textures/earth.jpg");
         m_GameObjects.emplace(obj->GetObjectID(), std::move(obj));
     }
 
@@ -368,21 +371,22 @@ void Application::LoadGameObjects()
     {
         Properties properties{};
         properties.label = "Moon";
-        properties.orbitUpdateFrequency = 200; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
-        properties.velocity = {0.0, 0.0, 30.29 + 1.082}; // km/s
+        properties.orbitUpdateFrequency = 400; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
+        properties.velocity = {0.0, 0.0, 30.29 + 1.022}; // km/s
         properties.mass = 0.07346 * pow(10, 24); // kg
         properties.orbitTraceLenght = 1000;
         properties.rotationSpeed = {0.0f, 0.0, 0.0f}; // Degree per hour
         properties.objType = OBJ_TYPE_PLANET;
         properties.radius = 1737.5f; // km
         properties.color = {0.678, 0.678, 0.678}; // color of the icon and orbit trace not planet itself
+        properties.inclination = 0.0; // 5.1 Not working for some reason
 
         Transform transform{};
         properties.orbitUpdateFrequency = 100;
         transform.translation = {363300  + 147095000.0, 0.0f, 0.0f}; // km
         transform.rotation = {0.0f, 180.0f, 0.0f}; // starting rotation in degrees
-        std::unique_ptr<Object> obj = std::make_unique<Sphere>(id++, objInfo, 
-            "assets/models/sphere.obj", transform, properties, "assets/textures/moon.jpg");
+        std::unique_ptr<Object> obj = std::make_unique<Object>(id++, objInfo, 
+            "../assets/models/sphere.obj", transform, properties, "../assets/textures/moon.jpg");
         m_GameObjects.emplace(obj->GetObjectID(), std::move(obj));
     }
 
@@ -392,7 +396,7 @@ void Application::LoadGameObjects()
 	{
 		Properties properties{};
         properties.label = "Mars";
-        properties.orbitUpdateFrequency = 300; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
+        properties.orbitUpdateFrequency = 800; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
 		properties.velocity = {0.0, 0.0, 26.50}; // km/s
 		properties.mass = 0.64169 * pow(10, 24); // kg
 		properties.orbitTraceLenght = 1000;
@@ -400,12 +404,13 @@ void Application::LoadGameObjects()
 		properties.objType = OBJ_TYPE_PLANET;
 		properties.radius = 3396.2; // km
 		properties.color = {0.988, 0.537, 0.333}; // color of the icon and orbit trace not planet itself
+        properties.inclination = 1.8;
 
 		Transform transform{};
 		transform.translation = {206650000.0, 0.0, 0.0}; // km
 		transform.rotation = {0.0, 180.0, 0.0}; // starting rotation in degrees
-		std::unique_ptr<Object> obj = std::make_unique<Sphere>(id++, objInfo,
-			"assets/models/sphere.obj", transform, properties, "assets/textures/mars.jpg");
+		std::unique_ptr<Object> obj = std::make_unique<Object>(id++, objInfo,
+			"../assets/models/sphere.obj", transform, properties, "../assets/textures/mars.jpg");
 		m_GameObjects.emplace(obj->GetObjectID(), std::move(obj));
 	}
 
@@ -423,12 +428,13 @@ void Application::LoadGameObjects()
 		properties.objType = OBJ_TYPE_PLANET;
 		properties.radius = 69911.0; // km
 		properties.color = {0.839, 0.718, 0.541}; // color of the icon and orbit trace not planet itself
+        properties.inclination = 1.3;
 
 		Transform transform{};
 		transform.translation = {740595000.0, 0.0, 0.0}; // km
 		transform.rotation = {0.0, 180.0, 0.0}; // starting rotation in degrees
-		std::unique_ptr<Object> obj = std::make_unique<Sphere>(id++, objInfo,
-			"assets/models/sphere.obj", transform, properties);
+		std::unique_ptr<Object> obj = std::make_unique<Object>(id++, objInfo,
+			"../assets/models/sphere.obj", transform, properties);
 		m_GameObjects.emplace(obj->GetObjectID(), std::move(obj));
 	}
 
@@ -438,7 +444,7 @@ void Application::LoadGameObjects()
 	{
 		Properties properties{};
         properties.label = "Saturn";
-        properties.orbitUpdateFrequency = 10000; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
+        properties.orbitUpdateFrequency = 13000; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
 		properties.velocity = {0.0, 0.0, 10.14}; // km/s
 		properties.mass = 568.32 * pow(10, 24); // kg
 		properties.orbitTraceLenght = 1000;
@@ -446,12 +452,13 @@ void Application::LoadGameObjects()
 		properties.objType = OBJ_TYPE_PLANET;
 		properties.radius = 60268.0; // km
 		properties.color = {0.961, 0.906, 0.827}; // color of the icon and orbit trace not planet itself
+        properties.inclination = 2.5;
 
 		Transform transform{};
 		transform.translation = {1357554000, 0.0, 0.0}; // km
 		transform.rotation = {0.0, 180.0, 0.0}; // starting rotation in degrees
-		std::unique_ptr<Object> obj = std::make_unique<Sphere>(id++, objInfo,
-			"assets/models/sphere.obj", transform, properties, "assets/textures/saturn.png");
+		std::unique_ptr<Object> obj = std::make_unique<Object>(id++, objInfo,
+			"../assets/models/sphere.obj", transform, properties, "../assets/textures/saturn.png");
 		m_GameObjects.emplace(obj->GetObjectID(), std::move(obj));
 	}
 
@@ -461,7 +468,7 @@ void Application::LoadGameObjects()
 	{
 		Properties properties{};
         properties.label = "Uranus";
-        properties.orbitUpdateFrequency = 30000; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
+        properties.orbitUpdateFrequency = 40000; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
 		properties.velocity = {0.0, 0.0, 7.13}; // km/s
 		properties.mass = 86.811 * pow(10, 24); // kg
 		properties.orbitTraceLenght = 1000;
@@ -469,12 +476,13 @@ void Application::LoadGameObjects()
 		properties.objType = OBJ_TYPE_PLANET;
 		properties.radius = 25362.0; // km
 		properties.color = {0.659, 0.835, 0.859}; // color of the icon and orbit trace not planet itself
+        properties.inclination = 0.8;
 
 		Transform transform{};
 		transform.translation = {2732696000, 0.0, 0.0}; // km
 		transform.rotation = {0.0, 180.0, 0.0}; // starting rotation in degrees
-		std::unique_ptr<Object> obj = std::make_unique<Sphere>(id++, objInfo,
-			"assets/models/sphere.obj", transform, properties, "assets/textures/uranus.jpg");
+		std::unique_ptr<Object> obj = std::make_unique<Object>(id++, objInfo,
+			"../assets/models/sphere.obj", transform, properties, "../assets/textures/uranus.jpg");
 		m_GameObjects.emplace(obj->GetObjectID(), std::move(obj));
 	}
 
@@ -484,7 +492,7 @@ void Application::LoadGameObjects()
 	{
 		Properties properties{};
         properties.label = "Neptune";
-        properties.orbitUpdateFrequency = 60000; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
+        properties.orbitUpdateFrequency = 80000; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
 		properties.velocity = {0.0, 0.0, 5.47}; // km/s
 		properties.mass = 102.409 * pow(10, 24); // kg
 		properties.orbitTraceLenght = 1000;
@@ -492,12 +500,13 @@ void Application::LoadGameObjects()
 		properties.objType = OBJ_TYPE_PLANET;
 		properties.radius = 24622.0; // km
 		properties.color = {0.4, 0.49, 0.89}; // color of the icon and orbit trace not planet itself
+        properties.inclination = 1.8;
 
 		Transform transform{};
 		transform.translation = {4471050000, 0.0, 0.0}; // km
 		transform.rotation = {0.0, 180.0, 0.0}; // starting rotation in degrees
-		std::unique_ptr<Object> obj = std::make_unique<Sphere>(id++, objInfo,
-			"assets/models/sphere.obj", transform, properties, "assets/textures/neptune.jpg");
+		std::unique_ptr<Object> obj = std::make_unique<Object>(id++, objInfo,
+			"../assets/models/sphere.obj", transform, properties, "../assets/textures/neptune.jpg");
 		m_GameObjects.emplace(obj->GetObjectID(), std::move(obj));
 	}
 
@@ -507,7 +516,7 @@ void Application::LoadGameObjects()
 	{
 		Properties properties{};
         properties.label = "Pluto";
-        properties.orbitUpdateFrequency = 100000; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
+        properties.orbitUpdateFrequency = 120000; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
 		properties.velocity = {0.0, 0.0, 3.71}; // km/s
 		properties.mass = 0.01303 * pow(10, 24); // kg
 		properties.orbitTraceLenght = 1000;
@@ -515,35 +524,13 @@ void Application::LoadGameObjects()
 		properties.objType = OBJ_TYPE_PLANET;
 		properties.radius = 1188.0; // km
 		properties.color = {0.839, 0.514, 0.514}; // color of the icon and orbit trace not planet itself
+        properties.inclination = 17.0;
 
 		Transform transform{};
 		transform.translation = {7304326000, 0.0, 0.0}; // km
 		transform.rotation = {0.0, 180.0, 0.0}; // starting rotation in degrees
-		std::unique_ptr<Object> obj = std::make_unique<Sphere>(id++, objInfo,
-			"assets/models/sphere.obj", transform, properties);
-		m_GameObjects.emplace(obj->GetObjectID(), std::move(obj));
-	}
-
-    //
-	// ERIS
-	//
-	{
-		Properties properties{};
-        properties.label = "Eris";
-        properties.orbitUpdateFrequency = 300000; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
-		properties.velocity = {0.0, 0.0, 3.435}; // km/s
-		properties.mass = 0.016 * pow(10, 24); // kg
-		properties.orbitTraceLenght = 1000;
-		properties.rotationSpeed = {0.0, 0.0, 0.0}; // Degree per hour
-		properties.objType = OBJ_TYPE_PLANET;
-		properties.radius = 1163.0; // km
-		properties.color = {0.776, 0.788, 0.839}; // color of the icon and orbit trace not planet itself
-
-		Transform transform{};
-		transform.translation = {14594770000, 0.0, 0.0}; // km
-		transform.rotation = {0.0, 180.0, 0.0}; // starting rotation in degrees
-		std::unique_ptr<Object> obj = std::make_unique<Sphere>(id++, objInfo,
-			"assets/models/sphere.obj", transform, properties);
+		std::unique_ptr<Object> obj = std::make_unique<Object>(id++, objInfo,
+			"../assets/models/sphere.obj", transform, properties);
 		m_GameObjects.emplace(obj->GetObjectID(), std::move(obj));
 	}
 }
@@ -556,7 +543,6 @@ void Application::LoadGameObjects()
 void Application::Update(const FrameInfo& frameInfo, float delta)
 {
     //m_Pause = true;
-    static uint32_t orbitUpdateCount = 0;
 
     double substepDelta = delta / (double)m_StepCount;
     for (int i = 0; i < m_GameSpeed; i++)
@@ -606,15 +592,15 @@ void Application::Update(const FrameInfo& frameInfo, float delta)
                 obj->GetObjectTransform().translation += substepDelta * obj->GetObjectProperties().velocity;
             }
         }
-        // Update orbits less frequently(after 5000 obj updates in this case) to make them longer
+
+        static uint32_t orbitUpdateCount = 0;
         orbitUpdateCount = (orbitUpdateCount + 1) % uint32_t(0-1);
         
         for (auto& kv : m_GameObjects)
         {
             auto& obj = kv.second;
-            auto x = orbitUpdateCount;
-            auto d = obj->GetObjectOrbitUpdateFreq();
-            if (orbitUpdateCount % obj->GetObjectOrbitUpdateFreq() == 0)
+            // Update orbits less frequently to make them longer
+            if (orbitUpdateCount % obj->GetObjectOrbitUpdateFreq()/int(DELTA/60.0) == 0)
             {
                 obj->OrbitUpdate(frameInfo.commandBuffer);
             }
@@ -639,7 +625,7 @@ void Application::RenderImGui(const FrameInfo& frameInfo)
     }
     ImGui::Text("FPS %.1f (%fms)", m_FPS, frameInfo.frameTime);
     ImGui::Checkbox("Pause", &m_Pause);
-    ImGui::Text("Simulation Time: %.2f hours | %.0f days | %.0f years", std::floor(realTime), std::floor(realTime/24), std::floor(realTime/24/365.25));
+    ImGui::Text("Simulation Time: %.2f hours | %.0f days | %.0f years", std::floor(realTime), std::floor(realTime/24), std::floor(realTime/24/365.5));
 
     ImGui::Combo("Skybox", &skyboxImageSelected, Skyboxes, IM_ARRAYSIZE(Skyboxes));
 

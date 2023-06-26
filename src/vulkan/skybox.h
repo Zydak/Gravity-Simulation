@@ -2,7 +2,7 @@
 
 #include "device.h"
 #include "cubemap.h"
-#include "../models/skyboxModel.h"
+#include "../models/customModelPosOnly.h"
 
 #include <memory>
 
@@ -21,11 +21,11 @@ public:
     ~Skybox() = default;
 
     inline Cubemap& GetCubemap() { return m_Cubemap; }
-    inline SkyboxModel* GetSkyboxModel() { return m_SkyboxModel.get(); }
+    inline CustomModelPosOnly* GetSkyboxModel() { return m_SkyboxModel.get(); }
 
 private:
     Device& m_Device;
-    std::unique_ptr<SkyboxModel> m_SkyboxModel;
+    std::unique_ptr<CustomModelPosOnly> m_SkyboxModel;
     glm::mat4 m_ModelTransform;
 
     Cubemap m_Cubemap{m_Device};

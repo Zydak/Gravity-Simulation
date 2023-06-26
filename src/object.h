@@ -1,10 +1,11 @@
 #pragma once
 
-#include "models/orbitModel.h"
-#include "models/sphereModel.h"
-#include <memory>
-#include <unordered_map>
-#include <iostream>
+#include "models/customModel.h"
+#include "models/customModelPosOnly.h"
+#include "object.h"
+
+#include "vulkan/descriptors.h"
+#include "vulkan/sampler.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -12,6 +13,13 @@
 #define OBJ_TYPE_STAR 1
 
 #define SCALE_DOWN 1000000000.0    // scaling down every position for rendering because skybox breaks you will see when you scroll back really far away
+
+struct ObjectInfo
+{
+    Device* device;
+    Sampler* sampler;
+    DescriptorPool* descriptorPool;
+};
 
 struct Transform
 {
@@ -42,25 +50,38 @@ struct Properties
     uint32_t objType;
     double radius = 1.0;
     glm::vec3 color;
+    double inclination;
 };
 
 class Object
 {
 public:
-    Object() = default;
-    virtual ~Object() = default;
+    Object(uint32_t ID, ObjectInfo objInfo, const std::string& modelfilepath, Transform transform, 
+        Properties properties, const std::string& textureFilepath = ""
+    );
+    void Draw(VkPipelineLayout layout, VkCommandBuffer commandBuffer);
+    void DrawOrbit(VkCommandBuffer commandBuffer);
+    void OrbitUpdate(VkCommandBuffer commandBuffer);
+    inline Transform& GetObjectTransform() { return m_Transform; }
+    inline Properties& GetObjectProperties() { return m_Properties; }
+    inline uint32_t GetObjectID() { return m_ID; }
+    inline uint32_t GetObjectType() { return m_ObjType; }
+    inline glm::vec3 GetObjectColor() { return m_Properties.color; }
+    inline std::string GetObjectLabel() { return m_Properties.label; }
+    inline uint32_t GetObjectOrbitUpdateFreq() { return m_Properties.orbitUpdateFrequency; }
 
-    virtual Properties& GetObjectProperties() = 0;
-    virtual Transform& GetObjectTransform() = 0;
-    virtual uint32_t GetObjectID() = 0;
-    virtual void Draw(VkPipelineLayout layout, VkCommandBuffer commandBuffer) = 0;
-    virtual void DrawOrbit(VkCommandBuffer commandBuffer) = 0;
-    virtual void OrbitUpdate(VkCommandBuffer commandBuffer) = 0;
-    virtual uint32_t GetObjectType() = 0;
-    virtual glm::vec3 GetObjectColor() = 0;
-    virtual std::string GetObjectLabel() = 0;
-    virtual uint32_t GetObjectOrbitUpdateFreq() = 0;
-
+    int m_ObjType;
+    uint32_t m_ID;
+    std::unique_ptr<CustomModelPosOnly> m_OrbitModel;
+    std::unique_ptr<CustomModel> m_Model;
     Transform m_Transform;
     Properties m_Properties;
+    VkDescriptorSet m_DescriptorSet;
+    std::unique_ptr<DescriptorSetLayout> m_SetLayout;
+    uint32_t m_Count = 0;
+
+    std::vector<CustomModelPosOnly::Vertex> m_OrbitPositions;
+    std::vector<uint32_t> m_IndexPositions;
+
+    float m_Radius;
 };

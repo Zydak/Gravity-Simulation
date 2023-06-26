@@ -51,5 +51,5 @@ private:
     int m_GameSpeed = 1;
     bool m_Pause = true;
     glm::dvec3 m_Offset;
-    TextureImage m_IconImage{m_Device, "assets/textures/icon.png"};
+    TextureImage m_IconImage{m_Device, "../assets/textures/icon.png"};
 };

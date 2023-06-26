@@ -5,9 +5,7 @@
 #include <iostream>
 #include <cassert>
 
-#include "../models/sphereModel.h"
-#include "../models/orbitModel.h"
-#include "../models/skyboxModel.h"
+#include "../models/customModelPosOnly.h"
 
 Pipeline::Pipeline(Device& device)
         : m_Device(device)
