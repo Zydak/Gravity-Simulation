@@ -42,10 +42,6 @@ void Renderer::RecreateSwapChain()
     {
         std::shared_ptr<SwapChain> oldSwapChain = std::move(m_SwapChain);
         m_SwapChain = std::make_unique<SwapChain>(m_Device, extent, oldSwapChain);
-        if(!oldSwapChain->CompareSwapFormats(*m_SwapChain.get()))
-        {
-            throw std::runtime_error("Swap chain image or depth formats have changed!");
-        }
     }
     
     CreatePipelines();
@@ -129,7 +125,7 @@ void Renderer::EndFrame()
     m_CurrentFrameIndex = (m_CurrentFrameIndex + 1) % SwapChain::MAX_FRAMES_IN_FLIGHT;
 }
 
-void Renderer::BeginSwapChainRenderPass(VkCommandBuffer commandBuffer, const glm::vec3& clearColor)
+void Renderer::BeginGeometryRenderPass(VkCommandBuffer commandBuffer, const glm::vec3& clearColor)
 {
     assert(m_IsFrameStarted && "Can't call BeginSwapChainRenderPass while frame is not in progress");
     assert(commandBuffer == GetCurrentCommandBuffer() && "Can't Begin Render pass on command buffer from different frame");
@@ -137,7 +133,7 @@ void Renderer::BeginSwapChainRenderPass(VkCommandBuffer commandBuffer, const glm
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = m_SwapChain->GetRenderPass();
-    renderPassInfo.framebuffer = m_SwapChain->GetFrameBuffer(m_CurrentImageIndex);
+    renderPassInfo.framebuffer = m_SwapChain->GetSwapchainFrameBuffer(m_CurrentImageIndex);
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = m_SwapChain->GetSwapChainExtent();
     std::array<VkClearValue, 2> clearValues{};
@@ -160,7 +156,7 @@ void Renderer::BeginSwapChainRenderPass(VkCommandBuffer commandBuffer, const glm
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 }
 
-void Renderer::EndSwapChainRenderPass(VkCommandBuffer commandBuffer)
+void Renderer::EndGeometryRenderPass(VkCommandBuffer commandBuffer)
 {
     assert(m_IsFrameStarted && "Can't call EndSwapChainRenderPass while frame is not in progress");
     assert(commandBuffer == GetCurrentCommandBuffer() && "Can't end render pass on command buffer from different frame");

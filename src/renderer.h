@@ -42,7 +42,7 @@ public:
     Renderer &operator=(const Renderer&) = delete;
 
     inline uint32_t GetSwapChainImageCount() { return m_SwapChain->GetImageCount(); }
-    inline VkRenderPass GetSwapChainRenderPass() { return m_SwapChain->GetRenderPass(); }
+    inline VkRenderPass GetGeometryRenderPass() { return m_SwapChain->GetRenderPass(); }
     inline float GetAspectRatio() { return m_SwapChain->GetExtentAspectRatio(); }
     inline bool IsFrameInProgress() const { return m_IsFrameStarted; }
     VkCommandBuffer GetCurrentCommandBuffer() const
@@ -58,8 +58,8 @@ public:
 
     VkCommandBuffer BeginFrame();
     void EndFrame();
-    void BeginSwapChainRenderPass(VkCommandBuffer commandBuffer, const glm::vec3& clearColor);
-    void EndSwapChainRenderPass(VkCommandBuffer commandBuffer);
+    void BeginGeometryRenderPass(VkCommandBuffer commandBuffer, const glm::vec3& clearColor);
+    void EndGeometryRenderPass(VkCommandBuffer commandBuffer);
     void RenderGameObjects(FrameInfo& frameInfo);
     void RenderOrbits(FrameInfo& frameInfo, Object* obj);
     void RenderSkybox(FrameInfo& frameInfo, Skybox& skybox, VkDescriptorSet skyboxDescriptorSet);
@@ -67,6 +67,7 @@ public:
 private:
     void CreateCommandBuffers();
     void FreeCommandBuffers();
+    void CreateRenderPasses();
     void RecreateSwapChain();
 
     void CreatePipelines();

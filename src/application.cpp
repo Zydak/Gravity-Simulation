@@ -143,7 +143,7 @@ void Application::Run()
 	info.MinImageCount = 2;
 	info.ImageCount = m_Renderer->GetSwapChainImageCount();
 	info.CheckVkResultFn = CheckVkResult;
-	ImGui_ImplVulkan_Init(&info, m_Renderer->GetSwapChainRenderPass());
+	ImGui_ImplVulkan_Init(&info, m_Renderer->GetGeometryRenderPass());
 
 	VkCommandBuffer cmdBuffer;
     m_Device.BeginSingleTimeCommands(cmdBuffer);
@@ -235,7 +235,7 @@ void Application::Run()
             
 
             // ------------------- RENDER PASS -----------------
-            m_Renderer->BeginSwapChainRenderPass(commandBuffer, {0.0f, 0.0f, 0.0f});
+            m_Renderer->BeginGeometryRenderPass(commandBuffer, {0.0f, 0.0f, 0.0f});
             #ifndef FAST_LOAD
                 m_Renderer->RenderSkybox(frameInfo, *m_Skybox, m_SkyboxDescriptorSet); // Skybox has to be rendered first
             #endif
@@ -244,7 +244,7 @@ void Application::Run()
 
             RenderImGui(frameInfo);
 
-            m_Renderer->EndSwapChainRenderPass(commandBuffer);
+            m_Renderer->EndGeometryRenderPass(commandBuffer);
             m_Renderer->EndFrame();
         }
     }
@@ -269,6 +269,7 @@ void Application::LoadGameObjects()
     objInfo.device = &m_Device;
     objInfo.sampler = &m_Sampler;
 
+    int orbitLenghts = 2000;
 	//
 	// SUN
 	//
@@ -299,10 +300,10 @@ void Application::LoadGameObjects()
 	{
 		Properties properties{};
         properties.label = "Mercury";
-        properties.orbitUpdateFrequency = 100; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
+        properties.orbitUpdateFrequency = 50; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
 		properties.velocity = {0.0, 0.0, 58.97}; // km/s
 		properties.mass = 0.33010 * pow(10, 24); // kg
-		properties.orbitTraceLenght = 1000;
+		properties.orbitTraceLenght = orbitLenghts;
 		properties.rotationSpeed = {0.0, 0.0, 0.0}; // Degree per hour
 		properties.objType = OBJ_TYPE_PLANET;
 		properties.radius = 2440.0f; // km
@@ -323,10 +324,10 @@ void Application::LoadGameObjects()
 	{
 		Properties properties{};
         properties.label = "Venus";
-        properties.orbitUpdateFrequency = 300; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
+        properties.orbitUpdateFrequency = 150; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
 		properties.velocity = {0.0, 0.0, 35.26}; // km/s
 		properties.mass = 4.8673 * pow(10, 24); // kg
-		properties.orbitTraceLenght = 1000;
+		properties.orbitTraceLenght = orbitLenghts;
 		properties.rotationSpeed = {0.0, 0.0, 0.0}; // Degree per hour
 		properties.objType = OBJ_TYPE_PLANET;
 		properties.radius = 6051.8; // km
@@ -347,10 +348,10 @@ void Application::LoadGameObjects()
     {
         Properties properties{};
         properties.label = "Earth";
-        properties.orbitUpdateFrequency = 400; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
+        properties.orbitUpdateFrequency = 200; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
         properties.velocity = {0.0, 0.0, 30.29}; // km/s
         properties.mass = 5.9722 * pow(10, 24); // kg
-        properties.orbitTraceLenght = 1000;
+        properties.orbitTraceLenght = orbitLenghts;
         properties.rotationSpeed = {0.0, 15.0, 0.0}; // Degree per hour
         properties.objType = OBJ_TYPE_PLANET;
         properties.radius = 6378.137; // km
@@ -371,10 +372,10 @@ void Application::LoadGameObjects()
     {
         Properties properties{};
         properties.label = "Moon";
-        properties.orbitUpdateFrequency = 400; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
+        properties.orbitUpdateFrequency = 200; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
         properties.velocity = {0.0, 0.0, 30.29 + 1.022}; // km/s
         properties.mass = 0.07346 * pow(10, 24); // kg
-        properties.orbitTraceLenght = 1000;
+        properties.orbitTraceLenght = orbitLenghts;
         properties.rotationSpeed = {0.0f, 0.0, 0.0f}; // Degree per hour
         properties.objType = OBJ_TYPE_PLANET;
         properties.radius = 1737.5f; // km
@@ -396,10 +397,10 @@ void Application::LoadGameObjects()
 	{
 		Properties properties{};
         properties.label = "Mars";
-        properties.orbitUpdateFrequency = 800; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
+        properties.orbitUpdateFrequency = 400; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
 		properties.velocity = {0.0, 0.0, 26.50}; // km/s
 		properties.mass = 0.64169 * pow(10, 24); // kg
-		properties.orbitTraceLenght = 1000;
+		properties.orbitTraceLenght = orbitLenghts;
 		properties.rotationSpeed = {0.0, 0.0, 0.0}; // Degree per hour
 		properties.objType = OBJ_TYPE_PLANET;
 		properties.radius = 3396.2; // km
@@ -420,10 +421,10 @@ void Application::LoadGameObjects()
 	{
 		Properties properties{};
         properties.label = "Jupiter";
-        properties.orbitUpdateFrequency = 5000; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
+        properties.orbitUpdateFrequency = 2500; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
 		properties.velocity = {0.0, 0.0, 13.72}; // km/s
 		properties.mass = 1898.13 * pow(10, 24); // kg
-		properties.orbitTraceLenght = 1000;
+		properties.orbitTraceLenght = orbitLenghts;
 		properties.rotationSpeed = {0.0, 0.0, 0.0}; // Degree per hour
 		properties.objType = OBJ_TYPE_PLANET;
 		properties.radius = 69911.0; // km
@@ -444,10 +445,10 @@ void Application::LoadGameObjects()
 	{
 		Properties properties{};
         properties.label = "Saturn";
-        properties.orbitUpdateFrequency = 13000; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
+        properties.orbitUpdateFrequency = 6500; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
 		properties.velocity = {0.0, 0.0, 10.14}; // km/s
 		properties.mass = 568.32 * pow(10, 24); // kg
-		properties.orbitTraceLenght = 1000;
+		properties.orbitTraceLenght = orbitLenghts;
 		properties.rotationSpeed = {0.0, 0.0, 0.0}; // Degree per hour
 		properties.objType = OBJ_TYPE_PLANET;
 		properties.radius = 60268.0; // km
@@ -468,10 +469,10 @@ void Application::LoadGameObjects()
 	{
 		Properties properties{};
         properties.label = "Uranus";
-        properties.orbitUpdateFrequency = 40000; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
+        properties.orbitUpdateFrequency = 20000; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
 		properties.velocity = {0.0, 0.0, 7.13}; // km/s
 		properties.mass = 86.811 * pow(10, 24); // kg
-		properties.orbitTraceLenght = 1000;
+		properties.orbitTraceLenght = orbitLenghts;
 		properties.rotationSpeed = {0.0, 0.0, 0.0}; // Degree per hour
 		properties.objType = OBJ_TYPE_PLANET;
 		properties.radius = 25362.0; // km
@@ -492,10 +493,10 @@ void Application::LoadGameObjects()
 	{
 		Properties properties{};
         properties.label = "Neptune";
-        properties.orbitUpdateFrequency = 80000; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
+        properties.orbitUpdateFrequency = 40000; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
 		properties.velocity = {0.0, 0.0, 5.47}; // km/s
 		properties.mass = 102.409 * pow(10, 24); // kg
-		properties.orbitTraceLenght = 1000;
+		properties.orbitTraceLenght = orbitLenghts;
 		properties.rotationSpeed = {0.0, 0.0, 0.0}; // Degree per hour
 		properties.objType = OBJ_TYPE_PLANET;
 		properties.radius = 24622.0; // km
@@ -516,10 +517,10 @@ void Application::LoadGameObjects()
 	{
 		Properties properties{};
         properties.label = "Pluto";
-        properties.orbitUpdateFrequency = 120000; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
+        properties.orbitUpdateFrequency = 60000; // Update orbits less frequently to make them longer. It is usefull if planets are far from sun and move really slow
 		properties.velocity = {0.0, 0.0, 3.71}; // km/s
 		properties.mass = 0.01303 * pow(10, 24); // kg
-		properties.orbitTraceLenght = 1000;
+		properties.orbitTraceLenght = orbitLenghts;
 		properties.rotationSpeed = {0.0, 0.0, 0.0}; // Degree per hour
 		properties.objType = OBJ_TYPE_PLANET;
 		properties.radius = 1188.0; // km
@@ -625,7 +626,7 @@ void Application::RenderImGui(const FrameInfo& frameInfo)
     }
     ImGui::Text("FPS %.1f (%fms)", m_FPS, frameInfo.frameTime);
     ImGui::Checkbox("Pause", &m_Pause);
-    ImGui::Text("Simulation Time: %.2f hours | %.0f days | %.0f years", std::floor(realTime), std::floor(realTime/24), std::floor(realTime/24/365.5));
+    ImGui::Text("Simulation Time: %.2f hours | %.0f days | %.0f years", std::floor(realTime), std::floor(realTime/24.0), std::floor(realTime/24.0/365.25));
 
     ImGui::Combo("Skybox", &skyboxImageSelected, Skyboxes, IM_ARRAYSIZE(Skyboxes));
 
@@ -634,11 +635,6 @@ void Application::RenderImGui(const FrameInfo& frameInfo)
     for (auto& kv : m_GameObjects)
     {
         auto& obj = kv.second;
-        double velocity = sqrt(pow(obj->GetObjectProperties().velocity.z, 2)) + sqrt(pow(obj->GetObjectProperties().velocity.y, 2)) + sqrt(pow(obj->GetObjectProperties().velocity.x, 2));
-        ImGui::Text("%s velocity: %f km/s", 
-            obj->GetObjectLabel().c_str(),
-            velocity
-        );
 
         std::string text = "Camera Lock on " + obj->GetObjectLabel();          
         if (ImGui::Button(text.c_str()))
