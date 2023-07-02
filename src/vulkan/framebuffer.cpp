@@ -37,13 +37,13 @@ Framebuffer::Framebuffer(Device& device, VkSwapchainKHR& swapchain,
         {
             attachments.push_back(m_PresentableImageViews[i]);
         }
-        if (!m_DepthImageViews.empty())
+        if (!m_UnormImages.empty())
         {
-            attachments.push_back(m_DepthImageViews[i]);
+            attachments.push_back(m_UnormImages[i]->GetImageView());
         }
-        if (!m_UnormImageViews.empty())
+        if (!m_DepthImages.empty())
         {
-            attachments.push_back(m_UnormImageViews[i]);
+            attachments.push_back(m_DepthImages[i]->GetImageView());
         }
 
         VkFramebufferCreateInfo framebufferInfo = {};
@@ -64,6 +64,7 @@ Framebuffer::Framebuffer(Device& device, VkSwapchainKHR& swapchain,
 
 VkFramebuffer Framebuffer::GetFramebuffer(uint32_t index)
 {
+    assert(m_FramebuffersCount >= 2 && "More than one framebuffer, please specify index");
     return m_Framebuffers[index];
 }
 
@@ -79,17 +80,9 @@ Framebuffer::~Framebuffer()
     {
         vkDestroyFramebuffer(m_Device.GetDevice(), m_Framebuffers[i], nullptr);
     }
-    for (int i = 0; i < m_DepthImageViews.size(); i++)
-    {
-        vkDestroyImageView(m_Device.GetDevice(), m_DepthImageViews[i], nullptr);
-    }
     for (int i = 0; i < m_PresentableImageViews.size(); i++)
     {
         vkDestroyImageView(m_Device.GetDevice(), m_PresentableImageViews[i], nullptr);
-    }
-    for (int i = 0; i < m_UnormImageViews.size(); i++)
-    {
-        vkDestroyImageView(m_Device.GetDevice(), m_UnormImageViews[i], nullptr);
     }
 }
 
@@ -122,53 +115,23 @@ void Framebuffer::CreateImagePresentable()
 
 void Framebuffer::CreateUnormImage()
 {
-    VkFormat format = VK_FORMAT_B8G8R8A8_UNORM;
-    Image image(m_Device, m_Extent.width, m_Extent.height, format,
-        VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, 0
-    );
-    m_UnormImages.push_back(image);
-
-    VkImageViewCreateInfo viewInfo{};
-    viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    viewInfo.image = m_UnormImages[m_UnormImages.size()-1].GetImage();
-    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    viewInfo.format = format;
-    viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    viewInfo.subresourceRange.baseMipLevel = 0;
-    viewInfo.subresourceRange.levelCount = 1;
-    viewInfo.subresourceRange.baseArrayLayer = 0;
-    viewInfo.subresourceRange.layerCount = 1;
-
-    if (vkCreateImageView(m_Device.GetDevice(), &viewInfo, nullptr, &m_UnormImageViews[m_UnormImages.size()-1]) != VK_SUCCESS) 
+    m_UnormImages.resize(m_FramebuffersCount);
+    for (int i = 0; i < m_FramebuffersCount; i++)
     {
-        throw std::runtime_error("failed to create texture image view!");
+        VkFormat format = VK_FORMAT_B8G8R8A8_UNORM;
+        m_UnormImages[i] = std::make_unique<Image>(m_Device, m_Extent.width, m_Extent.height, format,
+            VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_IMAGE_ASPECT_COLOR_BIT, 0
+        );
     }
 }
 
 void Framebuffer::CreateDepthImage()
 {
     m_DepthImages.resize(m_FramebuffersCount);
-    m_DepthImageViews.resize(m_FramebuffersCount);
     for (int i = 0; i < m_FramebuffersCount; i++)
     {
         m_DepthImages[i] = std::make_unique<Image>(m_Device, m_Extent.width, m_Extent.height, VK_FORMAT_D32_SFLOAT
-            , VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, 0
+            , VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT, 0
         );
-
-        VkImageViewCreateInfo viewInfo{};
-        viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        viewInfo.image = m_DepthImages[i]->GetImage();
-        viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        viewInfo.format = VK_FORMAT_D32_SFLOAT;
-        viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-        viewInfo.subresourceRange.baseMipLevel = 0;
-        viewInfo.subresourceRange.levelCount = 1;
-        viewInfo.subresourceRange.baseArrayLayer = 0;
-        viewInfo.subresourceRange.layerCount = 1;
-
-        if (vkCreateImageView(m_Device.GetDevice(), &viewInfo, nullptr, &m_DepthImageViews[i]) != VK_SUCCESS) 
-        {
-            throw std::runtime_error("failed to create texture image view!");
-        }
     }
 }

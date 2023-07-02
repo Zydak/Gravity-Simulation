@@ -1,5 +1,6 @@
 #include "device.h"
 #include "GLFW/glfw3.h"
+#include "buffer.h"
 
 #include <stdexcept>
 #include <iostream>
@@ -556,6 +557,23 @@ void Device::CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize siz
     vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 
     EndSingleTimeCommands(commandBuffer);
+}
+
+void Device::WriteToBuffer(Device& device, void* data, uint32_t size, VkBuffer dstBuffer)
+{
+    //assert(m_VertexCount >= 3 && "Vertex count me be at least 3");
+    VkDeviceSize bufferSize = size;
+
+    Buffer stagingBuffer(device, 
+        bufferSize, 
+        1,
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+    stagingBuffer.Map();
+    stagingBuffer.WriteToBuffer(data);
+
+    device.CopyBuffer(stagingBuffer.GetBuffer(), dstBuffer, bufferSize);
 }
 
 void Device::BeginSingleTimeCommands(VkCommandBuffer& buffer) 

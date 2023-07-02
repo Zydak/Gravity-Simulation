@@ -4,12 +4,19 @@
 #include <stbimage/stb_image.h>
 
 #include "stdexcept"
+#include "imgui/backends/imgui_impl_vulkan.h"
 
-TextureImage::TextureImage(Device& device, const std::string& filepath)
-    : m_Device(device)
+TextureImage::TextureImage(Device& device, const std::string& filepath, bool descriptor)
+    : m_Device(device), m_Sampler(device)
 {
+    m_Sampler.CreateSimpleSampler();
     CreateTextureImage(filepath);
     CreateImageView();
+
+    if (descriptor)
+    {
+        m_Descriptor = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(m_Sampler.GetSampler(), m_ImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    }
 }
 
 TextureImage::~TextureImage()
@@ -40,7 +47,7 @@ void TextureImage::CreateTextureImage(const std::string& filepath)
 
     m_Image = std::make_unique<Image>(m_Device, m_TexWidth, m_TexHeight, 
         VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL, 
-        VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     Image::TransitionImageLayout(m_Device, m_Image->GetImage(), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
     m_Image->CopyBufferToImage(m_Buffer, static_cast<uint32_t>(m_TexWidth), static_cast<uint32_t>(m_TexHeight));
@@ -66,4 +73,9 @@ void TextureImage::CreateImageView()
     {
         throw std::runtime_error("failed to create texture image view!");
     }
+}
+
+VkDescriptorSet TextureImage::GetImageDescriptor()
+{
+    return m_Descriptor;
 }

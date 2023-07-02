@@ -52,4 +52,6 @@ private:
     bool m_Pause = true;
     glm::dvec3 m_Offset;
     TextureImage m_IconImage{m_Device, "../assets/textures/icon.png"};
+
+    std::unique_ptr<TextureImage> m_TestImage;
 };

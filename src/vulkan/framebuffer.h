@@ -24,7 +24,6 @@ public:
 
     VkFramebuffer GetFramebuffer(uint32_t index);
     VkFramebuffer GetFramebuffer();
-
 private:
     void CreateUnormImage();
     void CreateImagePresentable();
@@ -38,8 +37,6 @@ private:
     uint32_t m_FramebuffersCount;
     std::vector<VkImage> m_PresentableImages;
     std::vector<VkImageView> m_PresentableImageViews;
-    std::vector<Image> m_UnormImages;
-    std::vector<VkImageView> m_UnormImageViews;
+    std::vector<std::unique_ptr<Image>> m_UnormImages;
     std::vector<std::unique_ptr<Image>> m_DepthImages;
-    std::vector<VkImageView> m_DepthImageViews;
 };

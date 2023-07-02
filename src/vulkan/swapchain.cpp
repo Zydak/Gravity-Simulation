@@ -155,6 +155,8 @@ void SwapChain::CreateSwapChain()
 
     m_SwapChainImageFormat = surfaceFormat.format;
     m_SwapChainExtent = extent;
+
+    vkGetSwapchainImagesKHR(m_Device.GetDevice(), m_SwapChain, &imageCount, nullptr);
 }
 
 void SwapChain::CreateRenderPass()
@@ -207,12 +209,11 @@ VkResult SwapChain::SubmitCommandBuffers(const VkCommandBuffer *buffers, uint32_
 
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores = &signalSemaphores;
+    presentInfo.pImageIndices = imageIndex;
 
     VkSwapchainKHR swapChains[] = {m_SwapChain};
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = swapChains;
-
-    presentInfo.pImageIndices = imageIndex;
 
     auto result = vkQueuePresentKHR(m_Device.GetPresentQueue(), &presentInfo);
 

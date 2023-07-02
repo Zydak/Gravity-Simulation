@@ -48,6 +48,7 @@ public:
     void CreateImageWithInfo(const VkImageCreateInfo &imageInfo, VkMemoryPropertyFlags properties, VkImage &image, VkDeviceMemory &imageMemory);
     void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer &buffer, VkDeviceMemory &bufferMemory);
     void CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+    static void WriteToBuffer(Device& device, void* data, uint32_t size, VkBuffer dstBuffer);
 
     void EndSingleTimeCommands(VkCommandBuffer commandBuffer);
     void BeginSingleTimeCommands(VkCommandBuffer& buffer);

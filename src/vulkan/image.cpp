@@ -1,9 +1,12 @@
 #include "image.h"
+#include "buffer.h"
 
 #include "stdexcept"
 
-Image::Image(Device& device, uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties)
-    : m_Device(device)
+Image::Image(Device& device, uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, 
+	VkImageUsageFlags usage, VkImageAspectFlagBits imageAspect, VkMemoryPropertyFlags properties
+)
+    : m_Device(device), m_Width(width), m_Height(height)
 {
     VkImageCreateInfo imageInfo{};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -19,6 +22,7 @@ Image::Image(Device& device, uint32_t width, uint32_t height, VkFormat format, V
     imageInfo.usage = usage;
     imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
     imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	imageInfo.flags = 0;
 
     if (vkCreateImage(m_Device.GetDevice(), &imageInfo, nullptr, &m_Image) != VK_SUCCESS) {
         throw std::runtime_error("failed to create image!");
@@ -37,6 +41,22 @@ Image::Image(Device& device, uint32_t width, uint32_t height, VkFormat format, V
     }
 
     vkBindImageMemory(m_Device.GetDevice(), m_Image, m_ImageMemory, 0);
+
+	VkImageViewCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    createInfo.image = m_Image;
+    createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    createInfo.format = format;
+    createInfo.subresourceRange.aspectMask = imageAspect;
+    createInfo.subresourceRange.baseMipLevel = 0;
+    createInfo.subresourceRange.levelCount = 1;
+    createInfo.subresourceRange.baseArrayLayer = 0;
+    createInfo.subresourceRange.layerCount = 1;
+
+    if (vkCreateImageView(m_Device.GetDevice(), &createInfo, nullptr, &m_ImageView) != VK_SUCCESS) 
+    {
+        throw std::runtime_error("failed to create texture image view!");
+    }
 }
 
 Image::~Image()
@@ -44,6 +64,8 @@ Image::~Image()
 	vkDeviceWaitIdle(m_Device.GetDevice());
     vkDestroyImage(m_Device.GetDevice(), m_Image, nullptr);
     vkFreeMemory(m_Device.GetDevice(), m_ImageMemory, nullptr);
+
+	vkDestroyImageView(m_Device.GetDevice(), m_ImageView, nullptr);
 }
 
 void Image::TransitionImageLayout(Device& device, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout)
@@ -322,4 +344,21 @@ void Image::CopyBufferToImage(VkBuffer buffer, uint32_t width, uint32_t height)
     );
 
     m_Device.EndSingleTimeCommands(commandBuffer);
+}
+
+void Image::WriteDataToImage(void* data)
+{
+	Buffer buffer(m_Device, m_Width * m_Height * 32, 1, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+	);
+
+	buffer.Map();
+	buffer.WriteToBuffer(data);
+	buffer.Flush();
+	buffer.Unmap();
+
+	Image::TransitionImageLayout(m_Device, m_Image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    
+	CopyBufferToImage(buffer.GetBuffer(), m_Width, m_Height);
+    Image::TransitionImageLayout(m_Device, m_Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }

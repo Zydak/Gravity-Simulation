@@ -59,10 +59,10 @@ struct GlobalUbo
 Application::Application()
 {
     m_GlobalPool = DescriptorPool::Builder(m_Device)
-        .SetMaxSets((SwapChain::MAX_FRAMES_IN_FLIGHT+8) * 2)// * 2 for ImGui
+        .SetMaxSets((SwapChain::MAX_FRAMES_IN_FLIGHT+9) * 2)// * 2 for ImGui
         .SetPoolFlags(VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT)
         .AddPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, SwapChain::MAX_FRAMES_IN_FLIGHT)
-        .AddPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, (SwapChain::MAX_FRAMES_IN_FLIGHT + 8) * 2)
+        .AddPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, (SwapChain::MAX_FRAMES_IN_FLIGHT + 9) * 2)
         .Build();
     
     LoadGameObjects();
@@ -152,6 +152,8 @@ void Application::Run()
 
 	vkDeviceWaitIdle(m_Device.GetDevice());
 	ImGui_ImplVulkan_DestroyFontUploadObjects();
+
+    m_TestImage = std::make_unique<TextureImage>(m_Device, "../assets/textures/test_image.jpg", true);
     
     auto lastUpdate = std::chrono::high_resolution_clock::now();
 	// Main Loop
@@ -627,6 +629,20 @@ void Application::RenderImGui(const FrameInfo& frameInfo)
     ImGui::Text("FPS %.1f (%fms)", m_FPS, frameInfo.frameTime);
     ImGui::Checkbox("Pause", &m_Pause);
     ImGui::Text("Simulation Time: %.2f hours | %.0f days | %.0f years", std::floor(realTime), std::floor(realTime/24.0), std::floor(realTime/24.0/365.25));
+
+    uint32_t test = m_TestImage->GetWidth();
+    ImGui::Image(m_TestImage->GetImageDescriptor(), {m_TestImage->GetWidth(), m_TestImage->GetHeight()});
+
+    if (ImGui::Button("render"))
+    {
+        std::vector<uint32_t> imageData(m_TestImage->GetWidth() * m_TestImage->GetHeight());
+
+        for (int i = 0; i < m_TestImage->GetWidth() * m_TestImage->GetHeight(); i++)
+        {
+            imageData[i] = 0xffff00ff;
+        }
+        m_TestImage->GetImage()->WriteDataToImage(imageData.data());
+    }
 
     ImGui::Combo("Skybox", &skyboxImageSelected, Skyboxes, IM_ARRAYSIZE(Skyboxes));
 
