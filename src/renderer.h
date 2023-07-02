@@ -41,9 +41,10 @@ public:
     Renderer(const Renderer&) = delete;
     Renderer &operator=(const Renderer&) = delete;
 
-    inline uint32_t GetSwapChainImageCount() { return m_SwapChain->GetImageCount(); }
-    inline VkRenderPass GetGeometryRenderPass() { return m_SwapChain->GetRenderPass(); }
-    inline float GetAspectRatio() { return m_SwapChain->GetExtentAspectRatio(); }
+    inline uint32_t GetSwapChainImageCount() { return m_Swapchain->GetImageCount(); }
+    inline VkRenderPass GetImGuiRenderPass() { return m_Swapchain->GetImGuiRenderPass(); }
+    inline VkImageView GetGeometryFramebufferImageView() { return m_Swapchain->GetGeometryFrameBufferImageView(m_CurrentFrameIndex); }
+    inline float GetAspectRatio() { return m_Swapchain->GetExtentAspectRatio(); }
     inline bool IsFrameInProgress() const { return m_IsFrameStarted; }
     VkCommandBuffer GetCurrentCommandBuffer() const
     {
@@ -58,6 +59,8 @@ public:
 
     VkCommandBuffer BeginFrame();
     void EndFrame();
+    void BeginImGuiRenderPass(VkCommandBuffer commandBuffer, const glm::vec3& clearColor);
+    void EndImGuiRenderPass(VkCommandBuffer commandBuffer);
     void BeginGeometryRenderPass(VkCommandBuffer commandBuffer, const glm::vec3& clearColor);
     void EndGeometryRenderPass(VkCommandBuffer commandBuffer);
     void RenderGameObjects(FrameInfo& frameInfo);
@@ -75,8 +78,9 @@ private:
     void CreatePipelineLayouts(VkDescriptorSetLayout globalSetLayout);
 
     Window& m_Window;
+
     Device& m_Device;
-    std::unique_ptr<SwapChain> m_SwapChain;
+    std::unique_ptr<SwapChain> m_Swapchain;
     std::vector<VkCommandBuffer> m_CommandBuffers;
 
     VkPipelineLayout m_DefaultPipelineLayout;

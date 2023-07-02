@@ -53,5 +53,6 @@ private:
     glm::dvec3 m_Offset;
     TextureImage m_IconImage{m_Device, "../assets/textures/icon.png"};
 
-    std::unique_ptr<TextureImage> m_TestImage;
+    VkDescriptorSet m_Descriptor;
+    glm::vec2 m_ViewportSize;
 };

@@ -6,6 +6,13 @@
 
 #include <vector>
 
+enum FramebufferAttachmentFormat
+{
+    Depth,
+    Unorm,
+    Presentable
+};
+
 struct SwapChainSupportDetails 
 {
   VkSurfaceCapabilitiesKHR capabilities; // min/max number of images

@@ -358,7 +358,6 @@ void Image::WriteDataToImage(void* data)
 	buffer.Unmap();
 
 	Image::TransitionImageLayout(m_Device, m_Image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-    
 	CopyBufferToImage(buffer.GetBuffer(), m_Width, m_Height);
     Image::TransitionImageLayout(m_Device, m_Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }

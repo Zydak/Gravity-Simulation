@@ -3,10 +3,10 @@
 
 #include "renderPass.h"
 
-
-RenderPass::RenderPass(Device& device, VkFormat imageFormat, VkFormat depthFormat)
+RenderPass::RenderPass(Device& device, VkFormat imageFormat, VkFormat depthFormat, VkRenderPassCreateInfo createInfo)
     : m_Device(device)
 {
+    // ----------------------------------------- TODO -------------------------------------------------------
     VkAttachmentDescription colorAttachment = {};
     colorAttachment.format = imageFormat;
     colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -58,8 +58,9 @@ RenderPass::RenderPass(Device& device, VkFormat imageFormat, VkFormat depthForma
     renderPassInfo.pSubpasses = &subpass;
     renderPassInfo.dependencyCount = 0;
     renderPassInfo.pDependencies = nullptr;
+    // --------------------------------------------------------------------------------------------------------------------------
 
-    if (vkCreateRenderPass(m_Device.GetDevice(), &renderPassInfo, nullptr, &m_RenderPass) != VK_SUCCESS) 
+    if (vkCreateRenderPass(m_Device.GetDevice(), &createInfo, nullptr, &m_RenderPass) != VK_SUCCESS) 
     {
         throw std::runtime_error("failed to create render pass!");
     }

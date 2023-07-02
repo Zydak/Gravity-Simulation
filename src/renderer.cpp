@@ -34,14 +34,14 @@ void Renderer::RecreateSwapChain()
     }
     vkDeviceWaitIdle(m_Device.GetDevice());
 
-    if(m_SwapChain == nullptr)
+    if(m_Swapchain == nullptr)
     {
-        m_SwapChain = std::make_unique<SwapChain>(m_Device, extent);
+        m_Swapchain = std::make_unique<SwapChain>(m_Device, extent);
     }
     else
     {
-        std::shared_ptr<SwapChain> oldSwapChain = std::move(m_SwapChain);
-        m_SwapChain = std::make_unique<SwapChain>(m_Device, extent, oldSwapChain);
+        std::shared_ptr<SwapChain> oldSwapChain = std::move(m_Swapchain);
+        m_Swapchain = std::make_unique<SwapChain>(m_Device, extent, oldSwapChain);
     }
     
     CreatePipelines();
@@ -77,7 +77,7 @@ VkCommandBuffer Renderer::BeginFrame()
 {
     assert(!m_IsFrameStarted && "Can't call BeginFrame while already in progress!");
 
-    auto result = m_SwapChain->AcquireNextImage(&m_CurrentImageIndex); 
+    auto result = m_Swapchain->AcquireNextImage(&m_CurrentImageIndex); 
     if (result == VK_ERROR_OUT_OF_DATE_KHR) 
     {
         RecreateSwapChain();
@@ -110,7 +110,7 @@ void Renderer::EndFrame()
         throw std::runtime_error("failed to record command buffer!");
     }
 
-    auto result = m_SwapChain->SubmitCommandBuffers(&commandBuffer, &m_CurrentImageIndex);
+    auto result = m_Swapchain->SubmitCommandBuffers(&commandBuffer, &m_CurrentImageIndex);
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_Window.WasWindowResized())
     {
         m_Window.ResetWindowResizedFlag();
@@ -125,6 +125,44 @@ void Renderer::EndFrame()
     m_CurrentFrameIndex = (m_CurrentFrameIndex + 1) % SwapChain::MAX_FRAMES_IN_FLIGHT;
 }
 
+void Renderer::BeginImGuiRenderPass(VkCommandBuffer commandBuffer, const glm::vec3& clearColor)
+{
+    assert(m_IsFrameStarted && "Can't call BeginSwapChainRenderPass while frame is not in progress");
+    assert(commandBuffer == GetCurrentCommandBuffer() && "Can't Begin Render pass on command buffer from different frame");
+
+    VkRenderPassBeginInfo renderPassInfo{};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    renderPassInfo.renderPass = m_Swapchain->GetImGuiRenderPass();
+    renderPassInfo.framebuffer = m_Swapchain->GetImGuiFrameBuffer(m_CurrentImageIndex);
+    renderPassInfo.renderArea.offset = {0, 0};
+    renderPassInfo.renderArea.extent = m_Swapchain->GetSwapChainExtent();
+    std::array<VkClearValue, 2> clearValues{};
+    clearValues[0].color = {clearColor.r, clearColor.g, clearColor.b};
+    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+    renderPassInfo.pClearValues = clearValues.data();
+    
+    vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+    VkViewport viewport{};
+    viewport.x = 0.0f;
+    viewport.y = 0.0f;
+    viewport.width = static_cast<float>(m_Swapchain->GetSwapChainExtent().width);
+    viewport.height = static_cast<float>(m_Swapchain->GetSwapChainExtent().height);
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+    VkRect2D scissor{{0, 0}, m_Swapchain->GetSwapChainExtent()};
+    vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+}
+
+void Renderer::EndImGuiRenderPass(VkCommandBuffer commandBuffer)
+{
+    assert(m_IsFrameStarted && "Can't call EndSwapChainRenderPass while frame is not in progress");
+    assert(commandBuffer == GetCurrentCommandBuffer() && "Can't end render pass on command buffer from different frame");
+
+    vkCmdEndRenderPass(commandBuffer);
+}
+
 void Renderer::BeginGeometryRenderPass(VkCommandBuffer commandBuffer, const glm::vec3& clearColor)
 {
     assert(m_IsFrameStarted && "Can't call BeginSwapChainRenderPass while frame is not in progress");
@@ -132,10 +170,10 @@ void Renderer::BeginGeometryRenderPass(VkCommandBuffer commandBuffer, const glm:
 
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = m_SwapChain->GetRenderPass();
-    renderPassInfo.framebuffer = m_SwapChain->GetSwapchainFrameBuffer(m_CurrentImageIndex);
+    renderPassInfo.renderPass = m_Swapchain->GetGeometryRenderPass();
+    renderPassInfo.framebuffer = m_Swapchain->GetGeometryFrameBuffer(m_CurrentImageIndex);
     renderPassInfo.renderArea.offset = {0, 0};
-    renderPassInfo.renderArea.extent = m_SwapChain->GetSwapChainExtent();
+    renderPassInfo.renderArea.extent = m_Swapchain->GetSwapChainExtent();
     std::array<VkClearValue, 2> clearValues{};
     clearValues[0].color = {clearColor.r, clearColor.g, clearColor.b};
     clearValues[1].depthStencil = {1.0f, 0};
@@ -147,11 +185,11 @@ void Renderer::BeginGeometryRenderPass(VkCommandBuffer commandBuffer, const glm:
     VkViewport viewport{};
     viewport.x = 0.0f;
     viewport.y = 0.0f;
-    viewport.width = static_cast<float>(m_SwapChain->GetSwapChainExtent().width);
-    viewport.height = static_cast<float>(m_SwapChain->GetSwapChainExtent().height);
+    viewport.width = static_cast<float>(m_Swapchain->GetSwapChainExtent().width);
+    viewport.height = static_cast<float>(m_Swapchain->GetSwapChainExtent().height);
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
-    VkRect2D scissor{{0, 0}, m_SwapChain->GetSwapChainExtent()};
+    VkRect2D scissor{{0, 0}, m_Swapchain->GetSwapChainExtent()};
     vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 }
@@ -372,11 +410,11 @@ void Renderer::CreatePipelines()
     // PLANETS
     //
     {
-        auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight(),
+        auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_Swapchain->GetWidth(), m_Swapchain->GetHeight(),
             VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
             VK_CULL_MODE_FRONT_BIT, true, false
         );
-        pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
+        pipelineConfig.renderPass = m_Swapchain->GetGeometryRenderPass();
         pipelineConfig.pipelineLayout = m_DefaultPipelineLayout;
         m_PlanetsPipeline = std::make_unique<Pipeline>(m_Device);
         m_PlanetsPipeline->CreatePipeline("../shaders/spv/sphere.vert.spv", "../shaders/spv/sphere.frag.spv", 
@@ -390,11 +428,11 @@ void Renderer::CreatePipelines()
     // STARS
     //
     {
-        auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight(),
+        auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_Swapchain->GetWidth(), m_Swapchain->GetHeight(),
             VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
             VK_CULL_MODE_FRONT_BIT, true, false
         );
-        pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
+        pipelineConfig.renderPass = m_Swapchain->GetGeometryRenderPass();
         pipelineConfig.pipelineLayout = m_DefaultPipelineLayout;
         m_StarsPipeline = std::make_unique<Pipeline>(m_Device);
         m_StarsPipeline->CreatePipeline("../shaders/spv/stars.vert.spv", "../shaders/spv/stars.frag.spv", 
@@ -408,11 +446,11 @@ void Renderer::CreatePipelines()
     // ORBITS
     //
     {
-        auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight(),
+        auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_Swapchain->GetWidth(), m_Swapchain->GetHeight(),
             VK_PRIMITIVE_TOPOLOGY_LINE_STRIP,
             VK_CULL_MODE_NONE, false, false
         );
-        pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
+        pipelineConfig.renderPass = m_Swapchain->GetGeometryRenderPass();
         pipelineConfig.pipelineLayout = m_OrbitsPipelineLayout;
         m_OrbitsPipeline = std::make_unique<Pipeline>(m_Device);
         m_OrbitsPipeline->CreatePipeline("../shaders/spv/orbits.vert.spv", "../shaders/spv/orbits.frag.spv",
@@ -426,11 +464,11 @@ void Renderer::CreatePipelines()
     // SKYBOX
     //
     {
-        auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight(),
+        auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_Swapchain->GetWidth(), m_Swapchain->GetHeight(),
             VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
             VK_CULL_MODE_BACK_BIT, false, false
         );
-        pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
+        pipelineConfig.renderPass = m_Swapchain->GetGeometryRenderPass();
         pipelineConfig.pipelineLayout = m_SkyboxPipelineLayout;
         m_SkyboxPipeline = std::make_unique<Pipeline>(m_Device);
         m_SkyboxPipeline->CreatePipeline("../shaders/spv/skybox.vert.spv", "../shaders/spv/skybox.frag.spv", 
@@ -444,11 +482,11 @@ void Renderer::CreatePipelines()
     // Billboards
     //
     {
-        auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_SwapChain->GetWidth(), m_SwapChain->GetHeight(),
+        auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_Swapchain->GetWidth(), m_Swapchain->GetHeight(),
             VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
             VK_CULL_MODE_FRONT_BIT, false, true
         );
-        pipelineConfig.renderPass = m_SwapChain->GetRenderPass();
+        pipelineConfig.renderPass = m_Swapchain->GetGeometryRenderPass();
         pipelineConfig.pipelineLayout = m_BillboardPipelineLayout;
         m_BillboardPipeline = std::make_unique<Pipeline>(m_Device);
         m_BillboardPipeline->CreatePipeline("../shaders/spv/billboard.vert.spv", "../shaders/spv/billboard.frag.spv", 

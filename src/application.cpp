@@ -129,7 +129,7 @@ void Application::Run()
 
 	// ImGui Creation
 	ImGui::CreateContext();
-	auto io = ImGui::GetIO();
+	ImGuiIO& io = ImGui::GetIO();
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
 	ImGui_ImplGlfw_InitForVulkan(m_Window.GetGLFWwindow(), true);
@@ -143,7 +143,7 @@ void Application::Run()
 	info.MinImageCount = 2;
 	info.ImageCount = m_Renderer->GetSwapChainImageCount();
 	info.CheckVkResultFn = CheckVkResult;
-	ImGui_ImplVulkan_Init(&info, m_Renderer->GetGeometryRenderPass());
+	ImGui_ImplVulkan_Init(&info, m_Renderer->GetImGuiRenderPass());
 
 	VkCommandBuffer cmdBuffer;
     m_Device.BeginSingleTimeCommands(cmdBuffer);
@@ -153,7 +153,7 @@ void Application::Run()
 	vkDeviceWaitIdle(m_Device.GetDevice());
 	ImGui_ImplVulkan_DestroyFontUploadObjects();
 
-    m_TestImage = std::make_unique<TextureImage>(m_Device, "../assets/textures/test_image.jpg", true);
+    m_Descriptor = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(m_Sampler.GetSampler(), m_Renderer->GetGeometryFramebufferImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     
     auto lastUpdate = std::chrono::high_resolution_clock::now();
 	// Main Loop
@@ -213,7 +213,7 @@ void Application::Run()
             frameInfo.offset = m_GameObjects[m_TargetLock]->GetObjectTransform().translation;
             
 			// Camera Update
-            float aspectRatio = m_Renderer->GetAspectRatio();
+            float aspectRatio = m_ViewportSize.x / m_ViewportSize.y;
             m_Camera.SetPerspectiveProjection(glm::radians(50.0f), aspectRatio, 0.000001f, 1000.0f);
             m_CameraController.Update(0.016f, m_Camera, m_TargetLock, m_GameObjects);
             m_Camera.SetViewTarget({0.0, 0.0, 0.0});
@@ -244,9 +244,13 @@ void Application::Run()
 
             m_Renderer->RenderGameObjects(frameInfo);
 
+            m_Renderer->EndGeometryRenderPass(commandBuffer);
+            m_Renderer->BeginImGuiRenderPass(commandBuffer, {0.0f, 0.0f, 0.0f});
+
             RenderImGui(frameInfo);
 
-            m_Renderer->EndGeometryRenderPass(commandBuffer);
+            m_Renderer->EndImGuiRenderPass(commandBuffer);
+
             m_Renderer->EndFrame();
         }
     }
@@ -619,6 +623,15 @@ void Application::RenderImGui(const FrameInfo& frameInfo)
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
+    ImGuiIO& io = ImGui::GetIO();
+    if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
+    {
+        ImGuiID dockspaceID = ImGui::GetID("Dockspace");
+        //ImGui::DockSpace(dockspaceID);
+        ImGuiViewport* viewport = ImGui::GetMainViewport();
+        ImGui::DockSpaceOverViewport(viewport);
+    }
+
     ImGui::Begin("Settings", (bool*)false, 0);
 
     if (m_FPSaccumulator > 0.5f)
@@ -630,19 +643,6 @@ void Application::RenderImGui(const FrameInfo& frameInfo)
     ImGui::Checkbox("Pause", &m_Pause);
     ImGui::Text("Simulation Time: %.2f hours | %.0f days | %.0f years", std::floor(realTime), std::floor(realTime/24.0), std::floor(realTime/24.0/365.25));
 
-    uint32_t test = m_TestImage->GetWidth();
-    ImGui::Image(m_TestImage->GetImageDescriptor(), {m_TestImage->GetWidth(), m_TestImage->GetHeight()});
-
-    if (ImGui::Button("render"))
-    {
-        std::vector<uint32_t> imageData(m_TestImage->GetWidth() * m_TestImage->GetHeight());
-
-        for (int i = 0; i < m_TestImage->GetWidth() * m_TestImage->GetHeight(); i++)
-        {
-            imageData[i] = 0xffff00ff;
-        }
-        m_TestImage->GetImage()->WriteDataToImage(imageData.data());
-    }
 
     ImGui::Combo("Skybox", &skyboxImageSelected, Skyboxes, IM_ARRAYSIZE(Skyboxes));
 
@@ -658,8 +658,15 @@ void Application::RenderImGui(const FrameInfo& frameInfo)
             m_TargetLock = obj->GetObjectID();
         }
     }
-    
     ImGui::End();
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+    ImGui::Begin("Viewport");
+    m_ViewportSize = {ImGui::GetWindowSize().x, ImGui::GetWindowSize().y};
+    static ImVec2 lastViewportSize = ImGui::GetWindowSize();
+    ImGui::Image(m_Descriptor, ImGui::GetContentRegionAvail());
+    ImGui::End();
+    ImGui::PopStyleVar();
  
     ImGui::Render();
     ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), frameInfo.commandBuffer);

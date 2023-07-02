@@ -20,8 +20,12 @@ public:
     SwapChain(const SwapChain &) = delete;
     SwapChain& operator=(const SwapChain &) = delete;
 
-    VkRenderPass GetRenderPass() { return m_RenderPass->GetRenderPass(); }
-    VkFramebuffer GetSwapchainFrameBuffer(int index) { return m_SwapChainFramebuffers->GetFramebuffer(index); }
+    VkRenderPass GetImGuiRenderPass() { return m_ImGuiRenderPass->GetRenderPass(); }
+    VkRenderPass GetGeometryRenderPass() { return m_GeometryRenderPass->GetRenderPass(); }
+    VkFramebuffer GetImGuiFrameBuffer(int index) { return m_ImGuiFramebuffers->GetFramebuffer(index); }
+    VkFramebuffer GetGeometryFrameBuffer(int index) { return m_GeometryFramebuffers->GetFramebuffer(index); }
+    VkImageView GetGeometryFrameBufferImageView(int index) { return m_GeometryFramebuffers->GetUnormImageView(index); }
+    void ResizeGeometryFramebuffer(glm::vec2 size);
     uint32_t GetWidth() { return m_SwapChainExtent.width; }
     uint32_t GetHeight() { return m_SwapChainExtent.height; }
     VkFormat GetSwapChainImageFormat() { return m_SwapChainImageFormat; }
@@ -53,7 +57,8 @@ private:
 
     uint32_t imageCount;
     size_t m_CurrentFrame = 0;
-    std::unique_ptr<Framebuffer> m_SwapChainFramebuffers;
+    std::unique_ptr<Framebuffer> m_ImGuiFramebuffers;
+    std::unique_ptr<Framebuffer> m_GeometryFramebuffers;
     
     std::vector<VkSemaphore> m_ImageAvailableSemaphores;
     std::vector<VkSemaphore> m_RenderFinishedSemaphores;
@@ -62,5 +67,6 @@ private:
     VkFormat m_SwapChainImageFormat;
     VkExtent2D m_SwapChainExtent; 
 
-    std::unique_ptr<RenderPass> m_RenderPass;
+    std::unique_ptr<RenderPass> m_ImGuiRenderPass;
+    std::unique_ptr<RenderPass> m_GeometryRenderPass;
 };

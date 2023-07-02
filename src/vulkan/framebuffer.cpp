@@ -5,13 +5,9 @@
 #include <cassert>
 #include "iostream"
 
-Framebuffer::Framebuffer(Device& device, VkSwapchainKHR& swapchain, 
-        VkExtent2D extent, RenderPass& renderPass, 
-        std::vector<FramebufferAttachmentFormat> attachments, uint32_t framebuffersCount
-    )
-     : m_Device(device), m_Swapchain(swapchain), m_Extent(extent), m_FramebuffersCount(framebuffersCount)
+void Framebuffer::CreateFramebuffer()
 {
-    for (auto iter = attachments.begin(); iter != attachments.end(); iter++)
+    for (auto iter = m_Attachments.begin(); iter != m_Attachments.end(); iter++)
     {
         switch (*iter)
         {
@@ -48,11 +44,11 @@ Framebuffer::Framebuffer(Device& device, VkSwapchainKHR& swapchain,
 
         VkFramebufferCreateInfo framebufferInfo = {};
         framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebufferInfo.renderPass = renderPass.GetRenderPass();
+        framebufferInfo.renderPass = m_RenderPass.GetRenderPass();
         framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
         framebufferInfo.pAttachments = attachments.data();
-        framebufferInfo.width = extent.width;
-        framebufferInfo.height = extent.height;
+        framebufferInfo.width = m_Extent.width;
+        framebufferInfo.height = m_Extent.height;
         framebufferInfo.layers = 1;
 
         if (vkCreateFramebuffer(m_Device.GetDevice(), &framebufferInfo, nullptr, &m_Framebuffers[i]) != VK_SUCCESS) 
@@ -60,6 +56,21 @@ Framebuffer::Framebuffer(Device& device, VkSwapchainKHR& swapchain,
             throw std::runtime_error("failed to create framebuffer!");
         }
     }
+}
+
+Framebuffer::Framebuffer(Device& device, VkSwapchainKHR& swapchain, 
+        VkExtent2D extent, RenderPass& renderPass, 
+        std::vector<FramebufferAttachmentFormat> attachments, uint32_t framebuffersCount
+    )
+     : m_Device(device), m_Swapchain(swapchain), m_Extent(extent), m_RenderPass(renderPass), m_Attachments(attachments), m_FramebuffersCount(framebuffersCount)
+{
+    CreateFramebuffer();
+}
+
+void Framebuffer::Resize(glm::vec2 size)
+{
+    m_Extent = {(uint32_t)size.x, (uint32_t)size.y};
+    CreateFramebuffer();
 }
 
 VkFramebuffer Framebuffer::GetFramebuffer(uint32_t index)
@@ -120,8 +131,9 @@ void Framebuffer::CreateUnormImage()
     {
         VkFormat format = VK_FORMAT_B8G8R8A8_UNORM;
         m_UnormImages[i] = std::make_unique<Image>(m_Device, m_Extent.width, m_Extent.height, format,
-            VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_IMAGE_ASPECT_COLOR_BIT, 0
+            VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
         );
+        Image::TransitionImageLayout(m_Device, m_UnormImages[i]->GetImage(), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     }
 }
 
@@ -131,7 +143,7 @@ void Framebuffer::CreateDepthImage()
     for (int i = 0; i < m_FramebuffersCount; i++)
     {
         m_DepthImages[i] = std::make_unique<Image>(m_Device, m_Extent.width, m_Extent.height, VK_FORMAT_D32_SFLOAT
-            , VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT, 0
+            , VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
         );
     }
 }

@@ -69,14 +69,14 @@ VkPresentModeKHR SwapChain::ChooseSwapPresentMode(const std::vector<VkPresentMod
             return availablePresentMode;
         }
     }
-    // for (const auto &availablePresentMode : availablePresentModes) 
-    // {
-    //    if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) 
-    //    {
-    //        std::cout << "Present mode: Immediate" << std::endl;
-    //        return availablePresentMode;
-    //    }
-    // }
+    for (const auto &availablePresentMode : availablePresentModes) 
+    {
+       if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) 
+       {
+           std::cout << "Present mode: Immediate" << std::endl;
+           return availablePresentMode;
+       }
+    }
 
     std::cout << "Present mode: V-Sync" << std::endl;
     return VK_PRESENT_MODE_FIFO_KHR;
@@ -161,7 +161,111 @@ void SwapChain::CreateSwapChain()
 
 void SwapChain::CreateRenderPass()
 {
-    m_RenderPass = std::make_unique<RenderPass>(m_Device, m_SwapChainImageFormat, FindDepthFormat(m_Device));
+    {
+        VkAttachmentDescription colorAttachment = {};
+        colorAttachment.format = m_SwapChainImageFormat;
+        colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+        VkAttachmentReference colorAttachmentRef = {};
+        colorAttachmentRef.attachment = 0;
+        colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        VkSubpassDescription subpass = {};
+        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpass.colorAttachmentCount = 1;
+        subpass.pColorAttachments = &colorAttachmentRef;
+        subpass.pDepthStencilAttachment = nullptr;
+
+        VkSubpassDependency dependency = {};
+        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+        dependency.srcAccessMask = 0;
+        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        dependency.dstSubpass = 0;
+        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+        std::array<VkAttachmentDescription, 1> attachments = {colorAttachment};
+        VkRenderPassCreateInfo renderPassInfo = {};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+        renderPassInfo.pAttachments = attachments.data();
+        renderPassInfo.subpassCount = 1;
+        renderPassInfo.pSubpasses = &subpass;
+        renderPassInfo.dependencyCount = 0;
+        renderPassInfo.pDependencies = nullptr;
+
+        //std::vector<FramebufferAttachmentFormat> attachments = {FramebufferAttachmentFormat::Presentable, FramebufferAttachmentFormat::Depth};
+        m_ImGuiRenderPass = std::make_unique<RenderPass>(m_Device, m_SwapChainImageFormat, FindDepthFormat(m_Device), renderPassInfo);
+    }
+
+    {
+        VkAttachmentDescription colorAttachment = {};
+        colorAttachment.format = m_SwapChainImageFormat;
+        colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        colorAttachment.initialLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+        VkAttachmentReference colorAttachmentRef = {};
+        colorAttachmentRef.attachment = 0;
+        colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        
+        VkAttachmentDescription depthAttachment{};
+        depthAttachment.format = FindDepthFormat(m_Device);
+        depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        VkAttachmentReference depthAttachmentRef{};
+        depthAttachmentRef.attachment = 1;
+        depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        VkSubpassDescription subpass = {};
+        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpass.colorAttachmentCount = 1;
+        subpass.pColorAttachments = &colorAttachmentRef;
+        subpass.pDepthStencilAttachment = &depthAttachmentRef;
+
+        VkSubpassDependency dependency = {};
+        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+        dependency.srcAccessMask = 0;
+        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        dependency.dstSubpass = 0;
+        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+        std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
+        VkRenderPassCreateInfo renderPassInfo = {};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+        renderPassInfo.pAttachments = attachments.data();
+        renderPassInfo.subpassCount = 1;
+        renderPassInfo.pSubpasses = &subpass;
+        renderPassInfo.dependencyCount = 0;
+        renderPassInfo.pDependencies = nullptr;
+
+        m_GeometryRenderPass = std::make_unique<RenderPass>(m_Device, m_SwapChainImageFormat, FindDepthFormat(m_Device), renderPassInfo);
+    }
+}
+
+void SwapChain::ResizeGeometryFramebuffer(glm::vec2 size)
+{
+    vkDeviceWaitIdle(m_Device.GetDevice());
+    m_GeometryFramebuffers->Resize(size);
+    vkDeviceWaitIdle(m_Device.GetDevice());
 }
 
 VkFormat SwapChain::FindDepthFormat(Device& device)
@@ -175,10 +279,19 @@ VkFormat SwapChain::FindDepthFormat(Device& device)
 void SwapChain::CreateFramebuffers()
 {
     VkExtent2D swapChainExtent = GetSwapChainExtent();
-    std::vector<FramebufferAttachmentFormat> attachments = {FramebufferAttachmentFormat::Presentable, FramebufferAttachmentFormat::Depth};
-    m_SwapChainFramebuffers = std::make_unique<Framebuffer>(m_Device, m_SwapChain, 
-        swapChainExtent, *m_RenderPass, attachments, imageCount
-    );
+    {
+        std::vector<FramebufferAttachmentFormat> attachments = {FramebufferAttachmentFormat::Presentable};
+        m_ImGuiFramebuffers = std::make_unique<Framebuffer>(m_Device, m_SwapChain, 
+            swapChainExtent, *m_ImGuiRenderPass, attachments, imageCount
+        );
+    }
+
+    {
+        std::vector<FramebufferAttachmentFormat> attachments = {FramebufferAttachmentFormat::Unorm, FramebufferAttachmentFormat::Depth};
+        m_GeometryFramebuffers = std::make_unique<Framebuffer>(m_Device, m_SwapChain, 
+            swapChainExtent, *m_GeometryRenderPass, attachments, imageCount
+        );
+    }
 }
 
 VkResult SwapChain::SubmitCommandBuffers(const VkCommandBuffer *buffers, uint32_t *imageIndex) 

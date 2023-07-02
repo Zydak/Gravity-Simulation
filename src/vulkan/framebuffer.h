@@ -6,13 +6,7 @@
 
 #include <vector>
 #include <memory>
-
-enum FramebufferAttachmentFormat
-{
-    Depth,
-    Unorm,
-    Presentable
-};
+#include "glm/glm.hpp"
 
 class Framebuffer
 {
@@ -22,9 +16,13 @@ public:
     );
     ~Framebuffer();
 
+    VkImageView GetUnormImageView(int index) { return m_UnormImages[index]->GetImageView(); }
+
     VkFramebuffer GetFramebuffer(uint32_t index);
     VkFramebuffer GetFramebuffer();
+    void Resize(glm::vec2 size);
 private:
+    void CreateFramebuffer();
     void CreateUnormImage();
     void CreateImagePresentable();
     void CreateDepthImage();
@@ -32,9 +30,11 @@ private:
     Device& m_Device;
     VkSwapchainKHR& m_Swapchain;
     std::vector<VkFramebuffer> m_Framebuffers;
+    RenderPass& m_RenderPass;
 
     VkExtent2D m_Extent;
     uint32_t m_FramebuffersCount;
+    std::vector<FramebufferAttachmentFormat> m_Attachments;
     std::vector<VkImage> m_PresentableImages;
     std::vector<VkImageView> m_PresentableImageViews;
     std::vector<std::unique_ptr<Image>> m_UnormImages;
