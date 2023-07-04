@@ -215,7 +215,7 @@ void Application::Run()
 			// Camera Update
             float aspectRatio = m_ViewportPanelSize.x / m_ViewportPanelSize.y;
             m_Camera.SetPerspectiveProjection(glm::radians(50.0f), aspectRatio, 0.000001f, 1000.0f);
-            m_CameraController.Update(0.016f, m_Camera, m_TargetLock, m_GameObjects);
+            m_CameraController.Update(0.016f, m_Camera, m_TargetLock, m_GameObjects, m_IsViewportHovered);
             m_Camera.SetViewTarget({0.0, 0.0, 0.0});
             
             // UBO update
@@ -236,7 +236,7 @@ void Application::Run()
             }
             
 
-            // ------------------- RENDER PASS -----------------
+            // ------------------- GEOMETRY RENDER PASS -----------------
             m_Renderer->BeginGeometryRenderPass(commandBuffer, {0.0f, 0.0f, 0.0f});
             #ifndef FAST_LOAD
                 m_Renderer->RenderSkybox(frameInfo, *m_Skybox, m_SkyboxDescriptorSet); // Skybox has to be rendered first
@@ -245,6 +245,8 @@ void Application::Run()
             m_Renderer->RenderGameObjects(frameInfo);
 
             m_Renderer->EndGeometryRenderPass(commandBuffer);
+
+            // ------------------- IMGUI RENDER PASS -----------------
             m_Renderer->BeginImGuiRenderPass(commandBuffer, {0.0f, 0.0f, 0.0f});
 
             RenderImGui(frameInfo);
@@ -630,6 +632,7 @@ void Application::RenderImGui(const FrameInfo& frameInfo)
         ImGuiViewport* viewport = ImGui::GetMainViewport();
         ImGui::DockSpaceOverViewport(viewport);
     }
+    ImGui::StyleColorsLight();
 
     ImGui::Begin("Settings", (bool*)false, 0);
 
@@ -641,7 +644,6 @@ void Application::RenderImGui(const FrameInfo& frameInfo)
     ImGui::Text("FPS %.1f (%fms)", m_FPS, frameInfo.frameTime);
     ImGui::Checkbox("Pause", &m_Pause);
     ImGui::Text("Simulation Time: %.2f hours | %.0f days | %.0f years", std::floor(realTime), std::floor(realTime/24.0), std::floor(realTime/24.0/365.25));
-
 
     ImGui::Combo("Skybox", &skyboxImageSelected, Skyboxes, IM_ARRAYSIZE(Skyboxes));
 
@@ -669,6 +671,7 @@ void Application::RenderImGui(const FrameInfo& frameInfo)
         firstTime = false;
     }
     ImGui::Begin("Viewport");
+    m_IsViewportHovered = ImGui::IsWindowHovered();
     m_ViewportPanelSize = {ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y};
     if (lastViewportSize.x != m_ViewportPanelSize.x || lastViewportSize.y != m_ViewportPanelSize.y)
     {

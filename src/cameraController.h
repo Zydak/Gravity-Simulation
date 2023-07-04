@@ -10,7 +10,7 @@ public:
     CameraController(GLFWwindow* window);
     ~CameraController();
 
-    void Update(const float& delta, Camera& camera, const int& target, Map& gameObjects);
+    void Update(const float& delta, Camera& camera, const int& target, Map& gameObjects, bool inputOn);
 private:
     GLFWwindow* m_Window;
 };

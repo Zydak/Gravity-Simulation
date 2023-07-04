@@ -52,6 +52,7 @@ private:
     bool m_Pause = true;
     glm::dvec3 m_Offset;
     TextureImage m_IconImage{m_Device, "../assets/textures/icon.png"};
+    bool m_IsViewportHovered = true;
 
     VkDescriptorSet m_Descriptor;
     glm::vec2 m_ViewportPanelSize = {900, 900};

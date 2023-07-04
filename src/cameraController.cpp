@@ -52,13 +52,18 @@ CameraController::~CameraController()
 /*
     * @brief Updates camera position based on mouse movement
 */
-void CameraController::Update(const float& delta, Camera& camera, const int& target, Map& gameObjects)
+void CameraController::Update(const float& delta, Camera& camera, const int& target, Map& gameObjects, bool inputOn)
 {
     if (scrollY < gameObjects[target]->GetObjectProperties().radius*2/SCALE_DOWN)
         scrollY = gameObjects[target]->GetObjectProperties().radius*2/SCALE_DOWN;
-    double radius = scrollY;
+    static double radius;
+    if (!inputOn)
+    {
+        scrollY = radius;
+    }
+    radius = scrollY;
     //if (glfwGetMouseButton(m_Window, 0) == GLFW_PRESS)
-    if (glfwGetMouseButton(m_Window, 0) == GLFW_PRESS && !ImGui::GetIO().WantCaptureMouse)
+    if (glfwGetMouseButton(m_Window, 0) == GLFW_PRESS && inputOn)
     {
         double x, y;
         glfwGetCursorPos(m_Window, &x, &y);
