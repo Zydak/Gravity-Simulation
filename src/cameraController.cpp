@@ -57,8 +57,8 @@ void CameraController::Update(const float& delta, Camera& camera, const int& tar
     if (scrollY < gameObjects[target]->GetObjectProperties().radius*2/SCALE_DOWN)
         scrollY = gameObjects[target]->GetObjectProperties().radius*2/SCALE_DOWN;
     double radius = scrollY;
-    //if (glfwGetMouseButton(m_Window, 0) == GLFW_PRESS && !ImGui::GetIO().WantCaptureMouse)
-    if (glfwGetMouseButton(m_Window, 0) == GLFW_PRESS)
+    //if (glfwGetMouseButton(m_Window, 0) == GLFW_PRESS)
+    if (glfwGetMouseButton(m_Window, 0) == GLFW_PRESS && !ImGui::GetIO().WantCaptureMouse)
     {
         double x, y;
         glfwGetCursorPos(m_Window, &x, &y);

@@ -54,5 +54,5 @@ private:
     TextureImage m_IconImage{m_Device, "../assets/textures/icon.png"};
 
     VkDescriptorSet m_Descriptor;
-    glm::vec2 m_ViewportSize;
+    glm::vec2 m_ViewportPanelSize = {900, 900};
 };

@@ -13,8 +13,8 @@ class SwapChain
 {
 public:
     static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
-    SwapChain(Device &deviceRef, VkExtent2D windowExtent);
-    SwapChain(Device &deviceRef, VkExtent2D windowExtent, std::shared_ptr<SwapChain> previousSwapChain);
+    SwapChain(Device &deviceRef, VkExtent2D windowExtent, VkExtent2D viewportExtent);
+    SwapChain(Device &deviceRef, VkExtent2D windowExtent, VkExtent2D viewportExtent, std::shared_ptr<SwapChain> previousSwapChain);
     ~SwapChain();
 
     SwapChain(const SwapChain &) = delete;
@@ -23,7 +23,8 @@ public:
     VkRenderPass GetImGuiRenderPass() { return m_ImGuiRenderPass->GetRenderPass(); }
     VkRenderPass GetGeometryRenderPass() { return m_GeometryRenderPass->GetRenderPass(); }
     VkFramebuffer GetImGuiFrameBuffer(int index) { return m_ImGuiFramebuffers->GetFramebuffer(index); }
-    VkFramebuffer GetGeometryFrameBuffer(int index) { return m_GeometryFramebuffers->GetFramebuffer(index); }
+    Framebuffer& GetGeometryFrameBuffer() { return *m_GeometryFramebuffers; }
+    VkFramebuffer GetGeometryVkFrameBuffer(int index) { return m_GeometryFramebuffers->GetFramebuffer(index); }
     VkImageView GetGeometryFrameBufferImageView(int index) { return m_GeometryFramebuffers->GetUnormImageView(index); }
     void ResizeGeometryFramebuffer(glm::vec2 size);
     uint32_t GetWidth() { return m_SwapChainExtent.width; }
@@ -51,6 +52,7 @@ private:
     VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities);
     
     std::shared_ptr<SwapChain> m_OldSwapChain;
+    VkExtent2D m_ViewportExtent;
     VkSwapchainKHR m_SwapChain;
     Device& m_Device;
     VkExtent2D m_WindowExtent;

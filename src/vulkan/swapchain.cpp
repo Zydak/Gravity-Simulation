@@ -7,16 +7,16 @@
 #include <iostream>
 #include <array>
 
-SwapChain::SwapChain(Device &deviceRef, VkExtent2D windowExtent)
-    : m_Device(deviceRef), m_WindowExtent(windowExtent)
+SwapChain::SwapChain(Device &deviceRef, VkExtent2D windowExtent, VkExtent2D viewportExtent)
+    : m_Device(deviceRef), m_WindowExtent(windowExtent), m_ViewportExtent(viewportExtent)
 {
     CreateSwapChain();
     CreateRenderPass();
     CreateFramebuffers();
     CreateSyncObjects();
 }
-SwapChain::SwapChain(Device &deviceRef, VkExtent2D windowExtent, std::shared_ptr<SwapChain> previousSwapChain)
-    : m_Device(deviceRef), m_WindowExtent(windowExtent), m_OldSwapChain(previousSwapChain)
+SwapChain::SwapChain(Device &deviceRef, VkExtent2D windowExtent, VkExtent2D viewportExtent, std::shared_ptr<SwapChain> previousSwapChain)
+    : m_Device(deviceRef), m_WindowExtent(windowExtent), m_ViewportExtent(viewportExtent), m_OldSwapChain(previousSwapChain)
 {
     CreateSwapChain();
     CreateRenderPass();
@@ -278,18 +278,17 @@ VkFormat SwapChain::FindDepthFormat(Device& device)
 
 void SwapChain::CreateFramebuffers()
 {
-    VkExtent2D swapChainExtent = GetSwapChainExtent();
     {
         std::vector<FramebufferAttachmentFormat> attachments = {FramebufferAttachmentFormat::Presentable};
         m_ImGuiFramebuffers = std::make_unique<Framebuffer>(m_Device, m_SwapChain, 
-            swapChainExtent, *m_ImGuiRenderPass, attachments, imageCount
+            GetSwapChainExtent(), *m_ImGuiRenderPass, attachments, imageCount
         );
     }
 
     {
         std::vector<FramebufferAttachmentFormat> attachments = {FramebufferAttachmentFormat::Unorm, FramebufferAttachmentFormat::Depth};
         m_GeometryFramebuffers = std::make_unique<Framebuffer>(m_Device, m_SwapChain, 
-            swapChainExtent, *m_GeometryRenderPass, attachments, imageCount
+            m_ViewportExtent, *m_GeometryRenderPass, attachments, imageCount
         );
     }
 }

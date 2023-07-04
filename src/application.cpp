@@ -59,10 +59,10 @@ struct GlobalUbo
 Application::Application()
 {
     m_GlobalPool = DescriptorPool::Builder(m_Device)
-        .SetMaxSets((SwapChain::MAX_FRAMES_IN_FLIGHT+9) * 2)// * 2 for ImGui
+        .SetMaxSets(1000 * 1000)
         .SetPoolFlags(VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT)
-        .AddPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, SwapChain::MAX_FRAMES_IN_FLIGHT)
-        .AddPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, (SwapChain::MAX_FRAMES_IN_FLIGHT + 9) * 2)
+        .AddPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000)
+        .AddPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000)
         .Build();
     
     LoadGameObjects();
@@ -152,10 +152,10 @@ void Application::Run()
 
 	vkDeviceWaitIdle(m_Device.GetDevice());
 	ImGui_ImplVulkan_DestroyFontUploadObjects();
-
-    m_Descriptor = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(m_Sampler.GetSampler(), m_Renderer->GetGeometryFramebufferImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     
     auto lastUpdate = std::chrono::high_resolution_clock::now();
+
+    m_Descriptor = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(m_Sampler.GetSampler(), m_Renderer->GetGeometryFramebufferImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	// Main Loop
     while(!m_Window.ShouldClose())
     {
@@ -213,7 +213,7 @@ void Application::Run()
             frameInfo.offset = m_GameObjects[m_TargetLock]->GetObjectTransform().translation;
             
 			// Camera Update
-            float aspectRatio = m_ViewportSize.x / m_ViewportSize.y;
+            float aspectRatio = m_ViewportPanelSize.x / m_ViewportPanelSize.y;
             m_Camera.SetPerspectiveProjection(glm::radians(50.0f), aspectRatio, 0.000001f, 1000.0f);
             m_CameraController.Update(0.016f, m_Camera, m_TargetLock, m_GameObjects);
             m_Camera.SetViewTarget({0.0, 0.0, 0.0});
@@ -627,7 +627,6 @@ void Application::RenderImGui(const FrameInfo& frameInfo)
     if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
     {
         ImGuiID dockspaceID = ImGui::GetID("Dockspace");
-        //ImGui::DockSpace(dockspaceID);
         ImGuiViewport* viewport = ImGui::GetMainViewport();
         ImGui::DockSpaceOverViewport(viewport);
     }
@@ -660,11 +659,23 @@ void Application::RenderImGui(const FrameInfo& frameInfo)
     }
     ImGui::End();
 
+    static glm::vec2 lastViewportSize = {0,0};
+    static bool firstTime = true;
+
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+    if (firstTime)
+    {
+        ImGui::SetNextWindowSize({900, 900});
+        firstTime = false;
+    }
     ImGui::Begin("Viewport");
-    m_ViewportSize = {ImGui::GetWindowSize().x, ImGui::GetWindowSize().y};
-    static ImVec2 lastViewportSize = ImGui::GetWindowSize();
-    ImGui::Image(m_Descriptor, ImGui::GetContentRegionAvail());
+    m_ViewportPanelSize = {ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y};
+    if (lastViewportSize.x != m_ViewportPanelSize.x || lastViewportSize.y != m_ViewportPanelSize.y)
+    {
+        lastViewportSize = {m_ViewportPanelSize.x, m_ViewportPanelSize.y};
+        m_Renderer->RecreateDescriptor(m_Descriptor, m_Sampler, m_ViewportPanelSize);
+    }
+    ImGui::Image(m_Descriptor, {m_ViewportPanelSize.x, m_ViewportPanelSize.y});
     ImGui::End();
     ImGui::PopStyleVar();
  

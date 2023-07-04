@@ -69,8 +69,8 @@ Framebuffer::Framebuffer(Device& device, VkSwapchainKHR& swapchain,
 
 void Framebuffer::Resize(glm::vec2 size)
 {
-    m_Extent = {(uint32_t)size.x, (uint32_t)size.y};
-    CreateFramebuffer();
+    // m_Extent = {(uint32_t)size.x, (uint32_t)size.y};
+    // CreateFramebuffer();
 }
 
 VkFramebuffer Framebuffer::GetFramebuffer(uint32_t index)

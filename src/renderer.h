@@ -11,6 +11,7 @@
 #include <memory>
 #include <vector>
 #include <cassert>
+#include <iostream>
 
 struct PushConstants
 {
@@ -40,6 +41,15 @@ public:
 
     Renderer(const Renderer&) = delete;
     Renderer &operator=(const Renderer&) = delete;
+
+    void RecreateDescriptor(VkDescriptorSet& descriptor, Sampler& sampler, glm::vec2 size) 
+    { 
+        m_RecreateImageDescriptor = true; 
+        m_Descriptor = &descriptor; 
+        m_DescSampler = &sampler;
+        m_LastViewportSize = m_ViewportSize;
+        m_ViewportSize = size;
+    }
 
     inline uint32_t GetSwapChainImageCount() { return m_Swapchain->GetImageCount(); }
     inline VkRenderPass GetImGuiRenderPass() { return m_Swapchain->GetImGuiRenderPass(); }
@@ -78,6 +88,12 @@ private:
     void CreatePipelineLayouts(VkDescriptorSetLayout globalSetLayout);
 
     Window& m_Window;
+    // Descriptor used for ImGui to render viewport
+    bool m_RecreateImageDescriptor = false;
+    VkDescriptorSet* m_Descriptor;
+    Sampler* m_DescSampler;
+    glm::vec2 m_ViewportSize = {900, 900};
+    glm::vec2 m_LastViewportSize = m_ViewportSize;
 
     Device& m_Device;
     std::unique_ptr<SwapChain> m_Swapchain;

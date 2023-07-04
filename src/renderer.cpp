@@ -1,6 +1,7 @@
 #include "renderer.h"
 
 #include "models/customModel.h"
+#include "imgui/backends/imgui_impl_vulkan.h"
 
 #include <stdexcept>
 #include <cassert>
@@ -36,12 +37,14 @@ void Renderer::RecreateSwapChain()
 
     if(m_Swapchain == nullptr)
     {
-        m_Swapchain = std::make_unique<SwapChain>(m_Device, extent);
+        m_Swapchain = std::make_unique<SwapChain>(m_Device, extent, VkExtent2D(m_ViewportSize.x, m_ViewportSize.y));
     }
     else
     {
         std::shared_ptr<SwapChain> oldSwapChain = std::move(m_Swapchain);
-        m_Swapchain = std::make_unique<SwapChain>(m_Device, extent, oldSwapChain);
+        m_Swapchain = std::make_unique<SwapChain>(m_Device, extent, VkExtent2D(m_ViewportSize.x, m_ViewportSize.y), oldSwapChain);
+        *m_Descriptor = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(m_DescSampler->GetSampler(), GetGeometryFramebufferImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        m_LastViewportSize = m_ViewportSize;
     }
     
     CreatePipelines();
@@ -78,7 +81,7 @@ VkCommandBuffer Renderer::BeginFrame()
     assert(!m_IsFrameStarted && "Can't call BeginFrame while already in progress!");
 
     auto result = m_Swapchain->AcquireNextImage(&m_CurrentImageIndex); 
-    if (result == VK_ERROR_OUT_OF_DATE_KHR) 
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || m_ViewportSize != m_LastViewportSize) 
     {
         RecreateSwapChain();
         return nullptr;
@@ -171,9 +174,9 @@ void Renderer::BeginGeometryRenderPass(VkCommandBuffer commandBuffer, const glm:
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = m_Swapchain->GetGeometryRenderPass();
-    renderPassInfo.framebuffer = m_Swapchain->GetGeometryFrameBuffer(m_CurrentImageIndex);
+    renderPassInfo.framebuffer = m_Swapchain->GetGeometryVkFrameBuffer(m_CurrentImageIndex);
     renderPassInfo.renderArea.offset = {0, 0};
-    renderPassInfo.renderArea.extent = m_Swapchain->GetSwapChainExtent();
+    renderPassInfo.renderArea.extent = VkExtent2D(m_ViewportSize.x, m_ViewportSize.y);
     std::array<VkClearValue, 2> clearValues{};
     clearValues[0].color = {clearColor.r, clearColor.g, clearColor.b};
     clearValues[1].depthStencil = {1.0f, 0};
@@ -185,11 +188,11 @@ void Renderer::BeginGeometryRenderPass(VkCommandBuffer commandBuffer, const glm:
     VkViewport viewport{};
     viewport.x = 0.0f;
     viewport.y = 0.0f;
-    viewport.width = static_cast<float>(m_Swapchain->GetSwapChainExtent().width);
-    viewport.height = static_cast<float>(m_Swapchain->GetSwapChainExtent().height);
+    viewport.width = static_cast<float>(m_ViewportSize.x);
+    viewport.height = static_cast<float>(m_ViewportSize.y);
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
-    VkRect2D scissor{{0, 0}, m_Swapchain->GetSwapChainExtent()};
+    VkRect2D scissor{{0, 0}, VkExtent2D(m_ViewportSize.x, m_ViewportSize.y)};
     vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 }
@@ -410,7 +413,7 @@ void Renderer::CreatePipelines()
     // PLANETS
     //
     {
-        auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_Swapchain->GetWidth(), m_Swapchain->GetHeight(),
+        auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_ViewportSize.x, m_ViewportSize.y,
             VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
             VK_CULL_MODE_FRONT_BIT, true, false
         );
@@ -428,7 +431,7 @@ void Renderer::CreatePipelines()
     // STARS
     //
     {
-        auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_Swapchain->GetWidth(), m_Swapchain->GetHeight(),
+        auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_ViewportSize.x, m_ViewportSize.y,
             VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
             VK_CULL_MODE_FRONT_BIT, true, false
         );
@@ -446,7 +449,7 @@ void Renderer::CreatePipelines()
     // ORBITS
     //
     {
-        auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_Swapchain->GetWidth(), m_Swapchain->GetHeight(),
+        auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_ViewportSize.x, m_ViewportSize.y,
             VK_PRIMITIVE_TOPOLOGY_LINE_STRIP,
             VK_CULL_MODE_NONE, false, false
         );
@@ -464,7 +467,7 @@ void Renderer::CreatePipelines()
     // SKYBOX
     //
     {
-        auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_Swapchain->GetWidth(), m_Swapchain->GetHeight(),
+        auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_ViewportSize.x, m_ViewportSize.y,
             VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
             VK_CULL_MODE_BACK_BIT, false, false
         );
@@ -482,7 +485,7 @@ void Renderer::CreatePipelines()
     // Billboards
     //
     {
-        auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_Swapchain->GetWidth(), m_Swapchain->GetHeight(),
+        auto pipelineConfig = Pipeline::CreatePipelineConfigInfo(m_ViewportSize.x, m_ViewportSize.y,
             VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
             VK_CULL_MODE_FRONT_BIT, false, true
         );

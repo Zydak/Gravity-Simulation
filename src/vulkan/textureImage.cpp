@@ -7,22 +7,14 @@
 #include "imgui/backends/imgui_impl_vulkan.h"
 
 TextureImage::TextureImage(Device& device, const std::string& filepath, bool descriptor)
-    : m_Device(device), m_Sampler(device)
+    : m_Device(device)
 {
-    m_Sampler.CreateSimpleSampler();
     CreateTextureImage(filepath);
-    CreateImageView();
-
-    if (descriptor)
-    {
-        m_Descriptor = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(m_Sampler.GetSampler(), m_ImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-    }
 }
 
 TextureImage::~TextureImage()
 {
-    vkDeviceWaitIdle(m_Device.GetDevice());
-    vkDestroyImageView(m_Device.GetDevice(), m_ImageView, nullptr);
+
 }
 
 void TextureImage::CreateTextureImage(const std::string& filepath) 
@@ -55,27 +47,4 @@ void TextureImage::CreateTextureImage(const std::string& filepath)
     
     vkDestroyBuffer(m_Device.GetDevice(), m_Buffer, nullptr);
     vkFreeMemory(m_Device.GetDevice(), m_BufferMemory, nullptr);
-}
-
-void TextureImage::CreateImageView()
-{
-    VkImageViewCreateInfo viewInfo{};
-    viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    viewInfo.image = m_Image->GetImage();
-    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    viewInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
-    viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    viewInfo.subresourceRange.baseMipLevel = 0;
-    viewInfo.subresourceRange.levelCount = 1;
-    viewInfo.subresourceRange.baseArrayLayer = 0;
-    viewInfo.subresourceRange.layerCount = 1;
-    if (vkCreateImageView(m_Device.GetDevice(), &viewInfo, nullptr, &m_ImageView) != VK_SUCCESS) 
-    {
-        throw std::runtime_error("failed to create texture image view!");
-    }
-}
-
-VkDescriptorSet TextureImage::GetImageDescriptor()
-{
-    return m_Descriptor;
 }
