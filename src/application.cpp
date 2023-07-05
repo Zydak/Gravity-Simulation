@@ -155,7 +155,7 @@ void Application::Run()
     
     auto lastUpdate = std::chrono::high_resolution_clock::now();
 
-    m_Descriptor = (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(m_Sampler.GetSampler(), m_Renderer->GetGeometryFramebufferImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    m_Descriptor = ImGui_ImplVulkan_AddTexture(m_Sampler.GetSampler(), m_Renderer->GetGeometryFramebufferImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	// Main Loop
     while(!m_Window.ShouldClose())
     {
@@ -632,7 +632,6 @@ void Application::RenderImGui(const FrameInfo& frameInfo)
         ImGuiViewport* viewport = ImGui::GetMainViewport();
         ImGui::DockSpaceOverViewport(viewport);
     }
-    ImGui::StyleColorsLight();
 
     ImGui::Begin("Settings", (bool*)false, 0);
 

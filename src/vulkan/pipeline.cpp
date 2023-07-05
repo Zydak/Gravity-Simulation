@@ -89,7 +89,7 @@ PipelineConfigInfo Pipeline::CreatePipelineConfigInfo(uint32_t width, uint32_t h
     configInfo.multisampleInfo.sampleShadingEnable = VK_FALSE;
     configInfo.multisampleInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
     configInfo.multisampleInfo.minSampleShading = 1.0f;           
-    configInfo.multisampleInfo.pSampleMask = nullptr;             
+    configInfo.multisampleInfo.pSampleMask = nullptr;
     configInfo.multisampleInfo.alphaToCoverageEnable = VK_FALSE;  
     configInfo.multisampleInfo.alphaToOneEnable = VK_FALSE;       
 
@@ -98,11 +98,11 @@ PipelineConfigInfo Pipeline::CreatePipelineConfigInfo(uint32_t width, uint32_t h
         configInfo.colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
         configInfo.colorBlendAttachment.blendEnable = VK_TRUE;
         configInfo.colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_COLOR;
-        configInfo.colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-        configInfo.colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;            
-        configInfo.colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-        configInfo.colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-        configInfo.colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;  
+        configInfo.colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
+        configInfo.colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+        configInfo.colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+        configInfo.colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        configInfo.colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
     }
     else
     {
